@@ -21,7 +21,7 @@
     }
     
     if (!confirmButtonText) {
-        confirmButtonText = @"确定";
+        confirmButtonText = @"確定";
     }
     
     [vc configWithImageView:nil 
@@ -61,7 +61,7 @@
     return [self showAlertWithTitle:title 
                             message:message 
                     cancelButtonText:@"取消" 
-                   confirmButtonText:@"确定" 
+                   confirmButtonText:@"確定" 
                         cancelAction:cancelAction 
                        confirmAction:confirmAction];
 }
