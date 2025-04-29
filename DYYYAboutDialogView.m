@@ -77,14 +77,14 @@
                                      range:telegramRange];
         }
         
-        NSRange githubRange = [message rangeOfString:@"仓库地址 Wtrwx/DYYY"];
+        NSRange githubRange = [message rangeOfString:@"倉庫位址 Wtrwx/DYYY"];
         if (githubRange.location != NSNotFound) {
             [attributedString addAttribute:NSLinkAttributeName 
                                      value:@"https://github.com/Wtrwx/DYYY" 
                                      range:githubRange];
         }
 
-        NSRange huamiGithubRange = [message rangeOfString:@"开源地址 huami1314/DYYY"];
+        NSRange huamiGithubRange = [message rangeOfString:@"開源位址 huami1314/DYYY"];
         if (huamiGithubRange.location != NSNotFound) {
             [attributedString addAttribute:NSLinkAttributeName 
                                      value:@"https://github.com/huami1314/DYYY" 
@@ -108,7 +108,7 @@
         self.confirmButton = [UIButton buttonWithType:UIButtonTypeSystem];
         self.confirmButton.frame = CGRectMake(0, contentHeight - 45, 300, 50.5);
         self.confirmButton.backgroundColor = [UIColor clearColor];
-        [self.confirmButton setTitle:@"确定" forState:UIControlStateNormal];
+        [self.confirmButton setTitle:@"確定" forState:UIControlStateNormal];
         [self.confirmButton setTitleColor:[UIColor colorWithRed:45/255.0 green:47/255.0 blue:56/255.0 alpha:1.0] forState:UIControlStateNormal]; // #2d2f38
         [self.confirmButton addTarget:self action:@selector(confirmTapped) forControlEvents:UIControlEventTouchUpInside];
         [self.contentView addSubview:self.confirmButton];
