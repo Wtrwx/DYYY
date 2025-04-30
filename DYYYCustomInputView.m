@@ -41,7 +41,7 @@
         self.inputTextField.textColor = [UIColor colorWithRed:45/255.0 green:47/255.0 blue:56/255.0 alpha:1.0]; // #2d2f38
         
         // 使用自定义占位符文本
-        NSString *placeholderString = placeholder.length > 0 ? placeholder : @"请输入内容";
+        NSString *placeholderString = placeholder.length > 0 ? placeholder : @"請輸入內容";
         self.inputTextField.attributedPlaceholder = [[NSAttributedString alloc] initWithString:placeholderString 
                                                                                     attributes:@{NSForegroundColorAttributeName: [UIColor colorWithRed:124/255.0 green:124/255.0 blue:130/255.0 alpha:1.0]}]; // #7c7c82
         
@@ -86,7 +86,7 @@
         self.confirmButton = [UIButton buttonWithType:UIButtonTypeSystem];
         self.confirmButton.frame = CGRectMake(150, 0, 150, 55.5);
         self.confirmButton.backgroundColor = [UIColor clearColor];
-        [self.confirmButton setTitle:@"确定" forState:UIControlStateNormal];
+        [self.confirmButton setTitle:@"確定" forState:UIControlStateNormal];
         [self.confirmButton setTitleColor:[UIColor colorWithRed:45/255.0 green:47/255.0 blue:56/255.0 alpha:1.0] forState:UIControlStateNormal];  // #2d2f38
         [self.confirmButton addTarget:self action:@selector(confirmTapped) forControlEvents:UIControlEventTouchUpInside];
         [buttonContainer addSubview:self.confirmButton];
