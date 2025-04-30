@@ -1596,12 +1596,12 @@ static void showUserAgreementAlert() {
 			      @"cellType" : @6,
 			      @"imageName" : @"ic_boxarrowdown_outlined"},
 			    @{@"identifier" : @"DYYYInterfaceDownload",
-			      @"title" : @"介面解析儲存媒體",
+			      @"title" : @"接口解析儲存媒體",
 			      @"detail" : @"不填關閉",
 			      @"cellType" : @26,
 			      @"imageName" : @"ic_cloudarrowdown_outlined_20"},
 			    @{@"identifier" : @"DYYYShowAllVideoQuality",
-			      @"title" : @"介面顯示解析度選項",
+			      @"title" : @"接口顯示解析度選項",
 			      @"detail" : @"",
 			      @"cellType" : @6,
 			      @"imageName" : @"ic_hamburgernut_outlined_20"},
@@ -1634,7 +1634,7 @@ static void showUserAgreementAlert() {
 				    item.cellTappedBlock = ^{
 				      NSString *defaultText = [item.detail isEqualToString:@"不填關閉"] ? @"" : item.detail;
 				      showTextInputAlert(
-					  @"設定媒體解析介面", defaultText, @"解析介面以url=結尾",
+					  @"設定媒體解析接口", defaultText, @"解析接口以url=結尾",
 					  ^(NSString *text) {
 					    // 保存用户输入的接口URL
 					    NSString *trimmedText = [text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
@@ -1981,7 +1981,7 @@ static void showUserAgreementAlert() {
 						@"imageName" : @"ic_boxarrowdown_outlined"},
 					      @{
 						      @"identifier" : @"DYYYDoubleInterfaceDownload",
-						      @"title" : @"介面儲存",
+						      @"title" : @"接口儲存",
 						      @"detail" : @"",
 						      @"cellType" : @6,
 						      @"imageName" : @"ic_cloudarrowdown_outlined_20"
