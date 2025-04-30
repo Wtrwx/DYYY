@@ -86,8 +86,8 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYfollowTips"]) {
 
 		dispatch_async(dispatch_get_main_queue(), ^{
-		  [DYYYBottomAlertView showAlertWithTitle:@"关注确认"
-						  message:@"是否确认关注？"
+		  [DYYYBottomAlertView showAlertWithTitle:@"關注確認"
+						  message:@"是否確認關注？"
 					     cancelAction:nil
 					    confirmAction:^{
 					      %orig(gesture);
@@ -114,7 +114,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 
 %hook AWEFeedContainerContentView
 - (void)setAlpha:(CGFloat)alpha {
-	// 纯净模式功能
+	// 純淨模式功能
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYisEnablePure"]) {
 		%orig(0.0);
 
@@ -161,7 +161,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 		return;
 	}
 
-	// 原来的透明度设置逻辑，保持不变
+	// 原来的透明度設置邏輯，保持不變
 	NSString *transparentValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYtopbartransparent"];
 	if (transparentValue && transparentValue.length > 0) {
 		CGFloat alphaValue = [transparentValue floatValue];
@@ -192,7 +192,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 }
 %end
 
-// 添加新的 hook 来处理顶栏透明度
+// 添加新的 hook 来處理頂欄透明度
 %hook AWEFeedTopBarContainer
 - (void)layoutSubviews {
 	%orig;
@@ -204,7 +204,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 }
 %new
 - (void)applyDYYYTransparency {
-	// 如果启用了纯净模式，不做任何处理
+	// 如果啟用了純淨模式，不做任何處理
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYisEnablePure"]) {
 		return;
 	}
@@ -213,7 +213,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 	if (transparentValue && transparentValue.length > 0) {
 		CGFloat alphaValue = [transparentValue floatValue];
 		if (alphaValue >= 0.0 && alphaValue <= 1.0) {
-			// 设置自身背景色的透明度
+			// 設置自身背景色的透明度
 			UIColor *backgroundColor = self.backgroundColor;
 			if (backgroundColor) {
 				CGFloat r, g, b, a;
@@ -222,10 +222,10 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 				}
 			}
 
-			// 使用类型转换确保编译器知道这是一个 UIView
+			// 使用類型轉換確保編譯器知道這是一個 UIView
 			[(UIView *)self setAlpha:alphaValue];
 
-			// 确保子视图不会叠加透明度
+			// 確保子視圖不會疊加透明度
 			for (UIView *subview in self.subviews) {
 				subview.alpha = 1.0;
 			}
@@ -352,7 +352,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 
 				if (settingVC.modalPresentationStyle == UIModalPresentationFullScreen) {
 					UIButton *closeButton = [UIButton buttonWithType:UIButtonTypeSystem];
-					[closeButton setTitle:@"关闭" forState:UIControlStateNormal];
+					[closeButton setTitle:@"關閉" forState:UIControlStateNormal];
 					closeButton.translatesAutoresizingMaskIntoConstraints = NO;
 
 					[settingVC.view addSubview:closeButton];
@@ -443,11 +443,11 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 	if ([self.subviews count] == 2)
 		return;
 
-	// 获取 enableEnterProfile 属性来判断是否是主页
+	// 獲取 enableEnterProfile 屬性來判斷是否是主頁
 	id enableEnterProfile = [self valueForKey:@"enableEnterProfile"];
 	BOOL isHome = (enableEnterProfile != nil && [enableEnterProfile boolValue]);
 
-	// 检查是否在作者主页
+	// 檢查是否在作者主頁
 	BOOL isAuthorProfile = NO;
 	UIResponder *responder = self;
 	while ((responder = [responder nextResponder])) {
@@ -457,7 +457,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 		}
 	}
 
-	// 如果不是主页也不是作者主页，直接返回
+	// 如果不是主頁也不是作者主頁，直接返回
 	if (!isHome && !isAuthorProfile)
 		return;
 
@@ -465,7 +465,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 		if ([subview isKindOfClass:[UIView class]]) {
 			UIView *nextResponder = (UIView *)subview.nextResponder;
 
-			// 处理主页的情况
+			// 處理主頁的情況
 			if (isHome && [nextResponder isKindOfClass:%c(AWEPlayInteractionViewController)]) {
 				UIViewController *awemeBaseViewController = [nextResponder valueForKey:@"awemeBaseViewController"];
 				if (![awemeBaseViewController isKindOfClass:%c(AWEFeedCellViewController)]) {
@@ -478,12 +478,12 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 					subview.frame = frame;
 				}
 			}
-			// 处理作者主页的情况
+			// 處理作者主頁的情況
 			else if (isAuthorProfile) {
-				// 检查是否是作品图片
+				// 檢查是否是作品圖片
 				BOOL isWorkImage = NO;
 
-				// 可以通过检查子视图、标签或其他特性来确定是否是作品图片
+				// 可以通過檢查子視圖、標籤或其他特性來確定是否是作品圖片
 				for (UIView *childView in subview.subviews) {
 					if ([NSStringFromClass([childView class]) containsString:@"ImageView"] || [NSStringFromClass([childView class]) containsString:@"ThumbnailView"]) {
 						isWorkImage = YES;
@@ -492,7 +492,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 				}
 
 				if (isWorkImage) {
-					// 修复作者主页作品图片上移问题
+					// 修復作者主頁作品圖片上移問題
 					CGRect frame = subview.frame;
 					frame.origin.y += 83;
 					subview.frame = frame;
@@ -607,10 +607,10 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 
 		UIBlurEffectStyle blurStyle = isDarkMode ? UIBlurEffectStyleDark : UIBlurEffectStyleLight;
 
-		// 动态获取用户设置的透明度
+		// 動態獲取用戶設置的透明度
 		float userTransparency = [[[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYCommentBlurTransparent"] floatValue];
 		if (userTransparency <= 0 || userTransparency > 1) {
-			userTransparency = 0.5; // 默认值0.5（半透明）
+			userTransparency = 0.5; // 預設值0.5（半透明）
 		}
 
 		if (!existingBlurView) {
@@ -618,7 +618,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 			UIVisualEffectView *blurEffectView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
 			blurEffectView.frame = self.view.bounds;
 			blurEffectView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-			blurEffectView.alpha = userTransparency; // 设置为用户自定义透明度
+			blurEffectView.alpha = userTransparency; // 設置為用戶自訂透明度
 			blurEffectView.tag = 999;
 
 			UIView *overlayView = [[UIView alloc] initWithFrame:self.view.bounds];
@@ -632,7 +632,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 			UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:blurStyle];
 			[existingBlurView setEffect:blurEffect];
 
-			existingBlurView.alpha = userTransparency; // 动态更新已有视图的透明度
+			existingBlurView.alpha = userTransparency; // 動態更新已有視圖的透明度
 
 			for (UIView *subview in existingBlurView.contentView.subviews) {
 				if (subview.tag != 999) {
@@ -709,7 +709,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 	BOOL shouldFilterTime = NO;
 	BOOL shouldFilterUser = NO;
 
-	// 获取用户设置的需要过滤的关键词
+	// 獲取用戶設置的需要過濾的關鍵詞
 	NSString *filterKeywords = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYfilterKeywords"];
 	NSArray *keywordsList = nil;
 
@@ -717,10 +717,10 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 		keywordsList = [filterKeywords componentsSeparatedByString:@","];
 	}
 
-	// 获取需要过滤的用户列表
+	// 獲取需要過濾的使用者列表
 	NSString *filterUsers = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYfilterUsers"];
 
-	// 检查是否需要过滤特定用户
+	// 檢查是否需要過濾特定使用者
 	if (self.shareRecExtra && filterUsers.length > 0 && self.author) {
 		NSArray *usersList = [filterUsers componentsSeparatedByString:@","];
 		NSString *currentShortID = self.author.shortID;
@@ -728,7 +728,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 
 		if (currentShortID.length > 0) {
 			for (NSString *userInfo in usersList) {
-				// 解析"昵称-id"格式
+				// 解析"暱稱-id"格式
 				NSArray *components = [userInfo componentsSeparatedByString:@"-"];
 				if (components.count >= 2) {
 					NSString *userId = [components lastObject];
@@ -745,9 +745,9 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 
 	NSInteger filterLowLikesThreshold = [[NSUserDefaults standardUserDefaults] integerForKey:@"DYYYfilterLowLikes"];
 
-	// 只有当shareRecExtra不为空时才过滤点赞量低的视频和关键词
+	// 只有當shareRecExtra不為空時才過濾點讚量低的影片和關鍵詞
 	if (self.shareRecExtra && ![self.shareRecExtra isEqual:@""]) {
-		// 过滤低点赞量视频
+		// 過濾低點讚量影片
 		if (filterLowLikesThreshold > 0) {
 			AWESearchAwemeExtraModel *searchExtraModel = [self searchExtraModel];
 			if (!searchExtraModel) {
@@ -758,9 +758,9 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 			}
 		}
 
-		// 过滤包含特定关键词的视频
+		// 過濾包含特定關鍵詞的影片
 		if (keywordsList.count > 0) {
-			// 检查视频标题
+			// 檢查影片標題
 			if (self.itemTitle.length > 0) {
 				for (NSString *keyword in keywordsList) {
 					NSString *trimmedKeyword = [keyword stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
@@ -771,7 +771,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 				}
 			}
 
-			// 如果标题中没有关键词，检查标签(textExtras)
+			// 如果標題中沒有關鍵詞，檢查標籤(textExtras)
 			if (!shouldFilterKeywords && self.textExtras.count > 0) {
 				for (AWEAwemeTextExtraModel *textExtra in self.textExtras) {
 					NSString *hashtagName = textExtra.hashtagName;
@@ -790,7 +790,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 			}
 		}
 
-		// 过滤视频发布时间
+		// 過濾影片發佈時間
 		long long currentTimestamp = (long long)[[NSDate date] timeIntervalSince1970];
 		NSInteger daysThreshold = [[NSUserDefaults standardUserDefaults] integerForKey:@"DYYYfiltertimelimit"];
 		if (daysThreshold > 0) {
@@ -822,7 +822,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 
 	BOOL shouldFilterTime = NO;
 
-	// 获取用户设置的需要过滤的关键词
+	// 獲取用戶設置的需要過濾的關鍵詞
 	NSString *filterKeywords = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYfilterKeywords"];
 	NSArray *keywordsList = nil;
 
@@ -832,9 +832,9 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 
 	NSInteger filterLowLikesThreshold = [[NSUserDefaults standardUserDefaults] integerForKey:@"DYYYfilterLowLikes"];
 
-	// 只有当shareRecExtra不为空时才过滤
+	// 只有當shareRecExtra不為空時才過濾
 	if (self.shareRecExtra && ![self.shareRecExtra isEqual:@""]) {
-		// 过滤低点赞量视频
+		// 過濾低點讚量影片
 		if (filterLowLikesThreshold > 0) {
 			AWESearchAwemeExtraModel *searchExtraModel = [self searchExtraModel];
 			if (!searchExtraModel) {
@@ -845,9 +845,9 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 			}
 		}
 
-		// 过滤包含特定关键词的视频
+		// 過濾包含特定關鍵詞的影片
 		if (keywordsList.count > 0) {
-			// 检查视频标题
+			// 檢查影片標題
 			if (self.itemTitle.length > 0) {
 				for (NSString *keyword in keywordsList) {
 					NSString *trimmedKeyword = [keyword stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
@@ -858,7 +858,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 				}
 			}
 
-			// 如果标题中没有关键词，检查标签(textExtras)
+			// 如果標題中沒有關鍵詞，檢查標籤(textExtras)
 			if (!shouldFilterKeywords && self.textExtras.count > 0) {
 				for (AWEAwemeTextExtraModel *textExtra in self.textExtras) {
 					NSString *hashtagName = textExtra.hashtagName;
@@ -877,7 +877,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 			}
 		}
 
-		// 过滤视频发布时间
+		// 過濾影片發佈時間
 		long long currentTimestamp = (long long)[[NSDate date] timeIntervalSince1970];
 		NSInteger daysThreshold = [[NSUserDefaults standardUserDefaults] integerForKey:@"DYYYfiltertimelimit"];
 		if (daysThreshold > 0) {
@@ -913,7 +913,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 
 %end
 
-// 拦截开屏广告
+// 攔截開屏廣告
 %hook BDASplashControllerView
 + (id)alloc {
 	BOOL noAds = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYNoAds"];
@@ -928,7 +928,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 - (void)layoutSubviews {
 	%orig;
 
-	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideDiscover"] && [self.accessibilityLabel isEqualToString:@"搜索"]) {
+	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideDiscover"] && [self.accessibilityLabel isEqualToString:@"搜尋"]) {
 		[self removeFromSuperview];
 	}
 
@@ -938,7 +938,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 				BOOL containsDanmu = NO;
 
 				for (UIView *innerSubview in subview.subviews) {
-					if ([innerSubview isKindOfClass:[UILabel class]] && [((UILabel *)innerSubview).text containsString:@"弹幕"]) {
+					if ([innerSubview isKindOfClass:[UILabel class]] && [((UILabel *)innerSubview).text containsString:@"彈幕"]) {
 						containsDanmu = YES;
 						break;
 					}
@@ -1014,12 +1014,12 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 - (id)touchUpInsideBlock {
 	id r = %orig;
 
-	// 只有收藏按钮才显示确认弹窗
+	// 只有收藏按鈕才顯示確認彈窗
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYcollectTips"] && [self.accessibilityLabel isEqualToString:@"收藏"]) {
 
 		dispatch_async(dispatch_get_main_queue(), ^{
-		  [DYYYBottomAlertView showAlertWithTitle:@"收藏确认"
-						  message:@"是否确认/取消收藏？"
+		  [DYYYBottomAlertView showAlertWithTitle:@"收藏確認"
+						  message:@"是否確認/取消收藏？"
 					     cancelAction:nil
 					    confirmAction:^{
 					      if (r && [r isKindOfClass:NSClassFromString(@"NSBlock")]) {
@@ -1028,7 +1028,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 					    }];
 		});
 
-		return nil; // 阻止原始 block 立即执行
+		return nil; // 阻止原始 block 立即執行
 	}
 
 	return r;
@@ -1037,7 +1037,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 
 %hook AWEFeedProgressSlider
 
-// 在初始化时设置进度条样式
+// 在初始化時設置進度條樣式
 - (instancetype)initWithFrame:(CGRect)frame {
 	self = %orig;
 	if (self) {
@@ -1046,7 +1046,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 	return self;
 }
 
-// 在布局更新时应用自定义样式
+// 在布局更新時應用自訂樣式
 - (void)layoutSubviews {
 	%orig;
 	[self applyCustomProgressStyle];
@@ -1056,12 +1056,12 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 - (void)applyCustomProgressStyle {
 	NSString *scheduleStyle = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYScheduleStyle"];
 
-	if ([scheduleStyle isEqualToString:@"进度条两侧左右"]) {
-		// 获取父视图宽度，以便计算新的宽度
+	if ([scheduleStyle isEqualToString:@"進度條兩側左右"]) {
+		// 獲取父視圖寬度，以便計算新的寬度
 		CGFloat parentWidth = self.superview.bounds.size.width;
 		CGRect frame = self.frame;
 
-		// 计算宽度百分比和边距
+		// 計算寬度百分比和邊距
 		CGFloat widthPercent = 0.80;
 		NSString *widthPercentValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYProgressBarWidthPercent"];
 		if (widthPercentValue.length > 0) {
@@ -1071,7 +1071,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 			}
 		}
 
-		// 调整进度条宽度和位置
+		// 調整進度條寬度和位置
 		CGFloat newWidth = parentWidth * widthPercent;
 		CGFloat centerX = frame.origin.x + frame.size.width / 2;
 
@@ -1082,10 +1082,10 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 	}
 }
 
-// 开启视频进度条后默认显示进度条的透明度否则有部分视频不会显示进度条以及秒数
+// 開啟影片進度條後預設顯示進度條的透明度否則有部分影片不會顯示進度條以及秒數
 - (void)setAlpha:(CGFloat)alpha {
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYisShowScheduleDisplay"]) {
-		// 如果启用了隐藏视频进度，进度条透明度为0
+		// 如果啟用了隱藏影片進度，進度條透明度為0
 		if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideVideoProgress"]) {
 			%orig(0);
 		} else {
@@ -1096,9 +1096,9 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 	}
 }
 
-// 确保即使进度条隐藏也可以拖动
+// 確保即使進度條隱藏也可以拖動
 - (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event {
-	// 如果隐藏视频进度但显示进度时长，扩大判断区域以便于用户交互
+	// 如果隱藏影片進度但顯示進度時長，擴大判斷區域以便於用戶互動
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideVideoProgress"] && [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYisShowScheduleDisplay"]) {
 		CGRect expandedBounds = CGRectInset(self.bounds, -20, -20);
 		return CGRectContainsPoint(expandedBounds, point);
@@ -1106,25 +1106,25 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 	return %orig;
 }
 
-// MARK: 视频显示进度条以及视频进度秒数
+// MARK: 影片顯示進度條以及影片進度秒數
 - (void)setLimitUpperActionArea:(BOOL)arg1 {
 	%orig;
-	// 定义一下进度条默认算法
+	// 定義一下進度條預設算法
 	NSString *duration = [self.progressSliderDelegate formatTimeFromSeconds:floor(self.progressSliderDelegate.model.videoDuration / 1000)];
-	// 如果开启了显示时间进度
+	// 如果開啟了顯示時間進度
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYisShowScheduleDisplay"]) {
 		UIView *parentView = self.superview;
 		if (!parentView)
 			return;
 
-		// 移除之前可能存在的标签
+		// 移除之前可能存在的標籤
 		[[parentView viewWithTag:10001] removeFromSuperview];
 		[[parentView viewWithTag:10002] removeFromSuperview];
 
-		// 计算标签在父视图中的位置
+		// 計算標籤在父視圖中的位置
 		CGRect sliderFrame = [self convertRect:self.bounds toView:parentView];
 
-		// 获取垂直偏移量配置值，默认为-12.5
+		// 獲取垂直偏移量配置值，預設為-12.5
 		CGFloat verticalOffset = -12.5;
 		NSString *offsetValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYTimelineVerticalPosition"];
 		if (offsetValue.length > 0) {
@@ -1134,21 +1134,21 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 			}
 		}
 
-		// 获取显示样式设置
+		// 獲取顯示樣式設置
 		NSString *scheduleStyle = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYScheduleStyle"];
-		BOOL showRemainingTime = [scheduleStyle isEqualToString:@"进度条右侧剩余"];
-		BOOL showCompleteTime = [scheduleStyle isEqualToString:@"进度条右侧完整"];
+		BOOL showRemainingTime = [scheduleStyle isEqualToString:@"進度條右側剩餘"];
+		BOOL showCompleteTime = [scheduleStyle isEqualToString:@"進度條右側完整"];
 
-		// 获取用户设置的时间标签颜色
+		// 獲取用戶設置的時間標籤顏色
 		NSString *labelColorHex = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYProgressLabelColor"];
-		UIColor *labelColor = [UIColor whiteColor]; // 默认白色
+		UIColor *labelColor = [UIColor whiteColor]; // 預設白色
 		if (labelColorHex && labelColorHex.length > 0) {
 			labelColor = [DYYYManager colorWithHexString:labelColorHex];
 		}
 
-		// 只有在非"进度条右侧剩余"和非"进度条右侧完整"模式时创建左侧时间标签
+		// 只有在非"進度條右側剩餘"和非"進度條右側完整"模式時創建左側時間標籤
 		if (!showRemainingTime && !showCompleteTime) {
-			// 创建左侧时间标签
+			// 創建左側時間標籤
 			UILabel *leftLabel = [[UILabel alloc] init];
 			leftLabel.frame = CGRectMake(sliderFrame.origin.x, sliderFrame.origin.y + verticalOffset, 50, 15);
 			leftLabel.backgroundColor = [UIColor clearColor];
@@ -1159,11 +1159,11 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 			[parentView addSubview:leftLabel];
 		}
 
-		// 创建右侧时间标签
+		// 創建右側時間標籤
 		UILabel *rightLabel = [[UILabel alloc] init];
 		if (showCompleteTime) {
 			rightLabel.frame = CGRectMake(sliderFrame.origin.x + sliderFrame.size.width - 50, sliderFrame.origin.y + verticalOffset, 50, 15);
-			// 修改这里：始终使用 00:00/时长 的格式
+			// 修改這裡：始終使用 00:00/時長 的格式
 			[rightLabel setText:[NSString stringWithFormat:@"00:00/%@", duration]];
 		} else {
 			rightLabel.frame = CGRectMake(sliderFrame.origin.x + sliderFrame.size.width - 23, sliderFrame.origin.y + verticalOffset, 50, 15);
@@ -1179,32 +1179,32 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 
 %end
 
-// MARK: 视频显示-算法
+// MARK: 影片顯示-算法
 %hook AWEPlayInteractionProgressController
 %new
-// 根据时间来给算法
+// 根據時間來給算法
 - (NSString *)formatTimeFromSeconds:(CGFloat)seconds {
-	// 小时
+	// 小時
 	NSInteger hours = (NSInteger)seconds / 3600;
-	// 分钟
+	// 分鐘
 	NSInteger minutes = ((NSInteger)seconds % 3600) / 60;
-	// 秒数
+	// 秒數
 	NSInteger secs = (NSInteger)seconds % 60;
 
-	// 定义进度条实例
+	// 定義進度條實例
 	AWEFeedProgressSlider *progressSlider = self.progressSlider;
 	UIView *parentView = progressSlider.superview;
 	UILabel *rightLabel = [parentView viewWithTag:10002];
 
-	// 如果视频超过 60 分钟
+	// 如果影片超過 60 分鐘
 	if (hours > 0) {
-		// 主线程设置他的显示总时间进度条位置
+		// 主執行緒設置他的顯示總時間進度條位置
 		dispatch_async(dispatch_get_main_queue(), ^{
 		  if (rightLabel) {
 			  CGRect sliderFrame = [progressSlider convertRect:progressSlider.bounds toView:parentView];
 			  CGRect frame = rightLabel.frame;
 			  frame.origin.x = sliderFrame.origin.x + sliderFrame.size.width - 46;
-			  // 保持原来的垂直位置
+			  // 保持原來的垂直位置
 			  rightLabel.frame = frame;
 		  }
 		});
@@ -1218,28 +1218,28 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 
 - (void)updateProgressSliderWithTime:(CGFloat)arg1 totalDuration:(CGFloat)arg2 {
 	%orig;
-	// 如果开启了显示视频进度
+	// 如果開啟了顯示影片進度
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYisShowScheduleDisplay"]) {
-		// 获取进度条实例
+		// 獲取進度條實例
 		AWEFeedProgressSlider *progressSlider = self.progressSlider;
 		UIView *parentView = progressSlider.superview;
 
 		UILabel *leftLabel = [parentView viewWithTag:10001];
 		UILabel *rightLabel = [parentView viewWithTag:10002];
 
-		// 获取用户设置的时间标签颜色
+		// 獲取用戶設置的時間標籤顏色
 		NSString *labelColorHex = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYProgressLabelColor"];
-		UIColor *labelColor = [UIColor whiteColor]; // 默认白色
+		UIColor *labelColor = [UIColor whiteColor]; // 預設白色
 		if (labelColorHex && labelColorHex.length > 0) {
 			labelColor = [DYYYManager colorWithHexString:labelColorHex];
 		}
 
-		// 获取显示样式设置
+		// 獲取顯示樣式設置
 		NSString *scheduleStyle = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYScheduleStyle"];
-		BOOL showRemainingTime = [scheduleStyle isEqualToString:@"进度条右侧剩余"];
-		BOOL showCompleteTime = [scheduleStyle isEqualToString:@"进度条右侧完整"];
+		BOOL showRemainingTime = [scheduleStyle isEqualToString:@"進度條右側剩餘"];
+		BOOL showCompleteTime = [scheduleStyle isEqualToString:@"進度條右側完整"];
 
-		// 如果检测到时间
+		// 如果檢測到時間
 		if (arg1 > 0 && leftLabel) {
 			[leftLabel setText:[self formatTimeFromSeconds:arg1]];
 			[leftLabel setTextColor:labelColor];
@@ -1260,14 +1260,14 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 	}
 }
 
-// 增加检测是否隐藏视频进度条的处理
+// 增加檢測是否隱藏影片進度條的處理
 - (void)setHidden:(BOOL)hidden {
 	%orig;
 
 	BOOL hideVideoProgress = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideVideoProgress"];
 	BOOL showScheduleDisplay = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYisShowScheduleDisplay"];
 
-	// 如果需要隐藏视频进度但显示时长
+	// 如果需要隱藏影片進度但顯示時長
 	if (hideVideoProgress && showScheduleDisplay && !hidden) {
 		self.alpha = 0;
 	}
@@ -1285,12 +1285,12 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 - (void)applyCustomProgressStyle {
 	NSString *scheduleStyle = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYScheduleStyle"];
 
-	if ([scheduleStyle isEqualToString:@"进度条两侧左右"]) {
-		// 获取父视图宽度，以便计算新的宽度
+	if ([scheduleStyle isEqualToString:@"進度條兩側左右"]) {
+		// 獲取父視圖寬度，以便計算新的寬度
 		CGFloat parentWidth = self.superview.bounds.size.width;
 		CGRect frame = self.frame;
 
-		// 计算宽度百分比和边距
+		// 計算寬度百分比和邊距
 		CGFloat widthPercent = 0.80;
 		NSString *widthPercentValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYProgressBarWidthPercent"];
 		if (widthPercentValue.length > 0) {
@@ -1300,7 +1300,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 			}
 		}
 
-		// 调整进度条宽度和位置
+		// 調整進度條寬度和位置
 		CGFloat newWidth = parentWidth * widthPercent;
 		CGFloat centerX = frame.origin.x + frame.size.width / 2;
 
@@ -1309,12 +1309,12 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 
 		self.frame = frame;
 
-		// 调整进度条子视图的位置和大小，隐藏UIView类型的子视图
+		// 調整進度條子視圖的位置和大小，隱藏UIView類型的子視圖
 		for (UIView *subview in self.subviews) {
 			if ([subview class] == [UIView class]) {
 				subview.hidden = YES;
 			} else {
-				// 对其他类型的子视图调整宽度
+				// 對其他類型的子視圖調整寬度
 				CGRect subFrame = subview.frame;
 				subFrame.size.width = newWidth;
 				subview.frame = subFrame;
@@ -1337,7 +1337,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 	for (UIView *subview in [self subviews]) {
 		if ([subview isKindOfClass:[UILabel class]]) {
 			UILabel *label = (UILabel *)subview;
-			if ([label.text isEqualToString:@"首页"]) {
+			if ([label.text isEqualToString:@"首頁"]) {
 				if (indexTitle.length > 0) {
 					[label setText:indexTitle];
 					[self setNeedsLayout];
@@ -1349,7 +1349,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 					[self setNeedsLayout];
 				}
 			}
-			if ([label.text isEqualToString:@"消息"]) {
+			if ([label.text isEqualToString:@"訊息"]) {
 				if (msgTitle.length > 0) {
 					[label setText:msgTitle];
 					[self setNeedsLayout];
@@ -1408,9 +1408,9 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 							    ([cityCode hasPrefix:@"11"] || [cityCode hasPrefix:@"12"] || [cityCode hasPrefix:@"31"] || [cityCode hasPrefix:@"50"]);
 
 					if (isDirectCity) {
-						label.text = [NSString stringWithFormat:@"%@  IP属地：%@", text, cityName];
+						label.text = [NSString stringWithFormat:@"%@  IP屬地：%@", text, cityName];
 					} else {
-						label.text = [NSString stringWithFormat:@"%@  IP属地：%@ %@", text, provinceName, cityName];
+						label.text = [NSString stringWithFormat:@"%@  IP屬地：%@ %@", text, provinceName, cityName];
 					}
 				} else {
 					BOOL isDirectCity = [provinceName isEqualToString:cityName] ||
@@ -1420,7 +1420,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 					if (containsProvince && !isDirectCity) {
 						label.text = [NSString stringWithFormat:@"%@ %@", text, cityName];
 					} else if (containsProvince && isDirectCity) {
-						label.text = [NSString stringWithFormat:@"%@  IP属地：%@", text, cityName];
+						label.text = [NSString stringWithFormat:@"%@  IP屬地：%@", text, cityName];
 					} else if (isDirectCity && containsProvince) {
 						label.text = text;
 					} else if (containsProvince) {
@@ -1432,7 +1432,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 			}
 		}
 	}
-	// 应用IP属地标签上移
+	// 應用IP屬地標籤上移
 	NSString *ipScaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYNicknameScale"];
 	if (ipScaleValue.length > 0) {
 		UIFont *originalFont = label.font;
@@ -1449,7 +1449,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 		label.font = originalFont;
 	}
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYEnabsuijiyanse"]) {
-        // 随机生成3个颜色，suiji
+        // 隨機生成3個顏色，suiji
         UIColor *color1 = [UIColor colorWithRed:(CGFloat)arc4random_uniform(256) / 255.0 green:(CGFloat)arc4random_uniform(256) / 255.0 blue:(CGFloat)arc4random_uniform(256) / 255.0 alpha:1.0];
         UIColor *color2 = [UIColor colorWithRed:(CGFloat)arc4random_uniform(256) / 255.0 green:(CGFloat)arc4random_uniform(256) / 255.0 blue:(CGFloat)arc4random_uniform(256) / 255.0 alpha:1.0];
         UIColor *color3 = [UIColor colorWithRed:(CGFloat)arc4random_uniform(256) / 255.0 green:(CGFloat)arc4random_uniform(256) / 255.0 blue:(CGFloat)arc4random_uniform(256) / 255.0 alpha:1.0];
@@ -1601,7 +1601,7 @@ static CGFloat currentScale = 1.0;
 	if ([self.accessibilityLabel isEqualToString:@"left"]) {
 		NSString *scaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYNicknameScale"];
 
-		// 首先恢复到原始状态，确保变换不会累积
+		// 首先恢復到原始狀態，確保變換不會累積
 		self.transform = CGAffineTransformIdentity;
 
 		if (scaleValue.length > 0) {
@@ -1657,7 +1657,7 @@ static CGFloat currentScale = 1.0;
 
 %end
 
-// 对新版文案的缩放（33.0以上）
+// 對新版文案的縮放（33.0以上）
 
 %hook AWEPlayInteractionDescriptionLabel
 
@@ -1704,7 +1704,7 @@ static CGFloat currentScale = 1.0;
 		grandParentView = parentView.superview;
 	}
 
-	// 检查祖父视图是否为 AWEBaseElementView 类型
+	// 檢查祖父視圖是否為 AWEBaseElementView 類型
 	if (grandParentView && [grandParentView.superview isKindOfClass:%c(AWEBaseElementView)]) {
 		CGRect scaledFrame = grandParentView.frame;
 		CGFloat translationX = -scaledFrame.origin.x;
@@ -1795,24 +1795,24 @@ static CGFloat currentScale = 1.0;
 %end
 
 
-// 去除启动视频广告
+// 去除啟動影片廣告
 %hook AWEAwesomeSplashFeedCellOldAccessoryView
 
-// 在方法入口处添加控制逻辑
+// 在方法入口處添加控制邏輯
 - (id)ddExtraView {
-	// 检查用户是否启用了无广告模式
+	// 檢查用戶是否啟用了無廣告模式
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYNoAds"]) {
-		NSLog(@"[AdControl] 无广告模式已启用 - 隐藏ddExtraView");
-		return NULL; // 返回空视图
+		NSLog(@"[AdControl] 無廣告模式已啟用 - 隱藏ddExtraView");
+		return NULL; // 返回空視圖
 	}
 
-	// 正常模式调用原始方法
+	// 正常模式調用原始方法
 	return %orig;
 }
 
 %end
 
-// 去广告功能
+// 去廣告功能
 %hook AwemeAdManager
 - (void)showAd {
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYNoAds"])
@@ -1821,7 +1821,7 @@ static CGFloat currentScale = 1.0;
 }
 %end
 
-// 获取资源的地址
+// 獲取資源的地址
 %hook AWEURLModel
 %new - (NSURL *)getDYYYSrcURLDownload {
 	;
@@ -1841,11 +1841,11 @@ static CGFloat currentScale = 1.0;
 }
 %end
 
-// 禁用点击首页刷新
+// 禁用點擊首頁刷新
 %hook AWENormalModeTabBarGeneralButton
 
 - (BOOL)enableRefresh {
-	if ([self.accessibilityLabel isEqualToString:@"首页"]) {
+	if ([self.accessibilityLabel isEqualToString:@"首頁"]) {
 		if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHomeRefresh"]) {
 			return NO;
 		}
@@ -1880,7 +1880,7 @@ static CGFloat currentScale = 1.0;
 %end
 
 
-// 应用内推送毛玻璃效果
+// 應用內推送毛玻璃效果
 %hook AWEInnerNotificationWindow
 
 - (id)initWithFrame:(CGRect)frame {
@@ -1978,7 +1978,7 @@ static CGFloat currentScale = 1.0;
 			UILabel *label = (UILabel *)subview;
 			NSString *text = label.text;
 
-			if (![text isEqualToString:@"回复"] && ![text isEqualToString:@"查看"] && ![text isEqualToString:@"续火花"]) {
+			if (![text isEqualToString:@"回覆"] && ![text isEqualToString:@"查看"] && ![text isEqualToString:@"續火花"]) {
 				label.textColor = [UIColor whiteColor];
 			}
 		}
@@ -2000,27 +2000,27 @@ static CGFloat currentScale = 1.0;
 
 %end
 
-//开启自动背景切换
+// 開啟自動背景切換
 %hook AWESettingThemeManager
- 
-// 控制自动主题开关状态
+
+// 控制自動主題開關狀態
 - (BOOL)isAutoChangeEnable {
      if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYisEnableAutoTheme"]) {
-         return YES; // 强制启用自动主题
+         return YES; // 強制啟用自動主題
      }
-     return %orig; // 保持原始逻辑
+     return %orig; // 保持原始邏輯
 }
- 
-// 控制自动切换主题行为
+
+// 控制自動切換主題行為
 - (void)startAutoChangeThemeCanRequest:(BOOL)arg1 {
      if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYisEnableAutoTheme"]) {
-         BOOL newArg = YES; // 创建新变量避免直接修改参数
-         %orig(newArg);     // 调用原始方法并传入新参数
+         BOOL newArg = YES; // 創建新變數避免直接修改參數
+         %orig(newArg);     // 調用原始方法並傳入新參數
          return;
      }
-     %orig(arg1); // 保持原始参数调用
+     %orig(arg1); // 保持原始參數調用
 }
- 
+
 %end
 
 %hook _TtC33AWECommentLongPressPanelSwiftImpl32CommentLongPressPanelCopyElement
@@ -2035,7 +2035,7 @@ static CGFloat currentScale = 1.0;
 		}
 		NSString *descText = [selectdComment content];
 		[[UIPasteboard generalPasteboard] setString:descText];
-		[DYYYManager showToast:@"文案已复制到剪贴板"];
+		[DYYYManager showToast:@"文案已複製到剪貼板"];
 	}
 }
 %end
