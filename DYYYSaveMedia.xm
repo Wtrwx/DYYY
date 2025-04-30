@@ -79,7 +79,7 @@ static BOOL isDownloadFlied = NO;
 				[DYYYManager downloadMedia:heifURL
 						 mediaType:MediaTypeHeic
 						completion:^{
-						  [DYYYManager showToast:@"表情包已保存到相册"];
+						  [DYYYManager showToast:@"表情包已儲存至相簿"];
 						}];
 				return;
 			}
@@ -88,7 +88,6 @@ static BOOL isDownloadFlied = NO;
 	%orig;
 }
 %end
-
 
 // 强制启用保存他人头像
 %hook AFDProfileAvatarFunctionManager
@@ -106,7 +105,7 @@ static BOOL isDownloadFlied = NO;
 // 添加保存按钮
 - (void)layoutSubviews {
     %orig;
-        static char kHasSaveButtonKey;
+    static char kHasSaveButtonKey;
     if (!objc_getAssociatedObject(self, &kHasSaveButtonKey)) {
         // 创建保存按钮
         UIButton *saveButton = [UIButton buttonWithType:UIButtonTypeSystem];
@@ -158,7 +157,7 @@ static BOOL isDownloadFlied = NO;
     // 获取表情包URL
     AWEIMEmoticonModel *emoticonModel = self.model;
     if (!emoticonModel) {
-        [DYYYManager showToast:@"无法获取表情包信息"];
+        [DYYYManager showToast:@"無法取得表情包資訊"];
         return;
     }
               
@@ -182,7 +181,7 @@ static BOOL isDownloadFlied = NO;
     }
     
     if (!urlString) {
-        [DYYYManager showToast:@"无法获取表情包链接"];
+        [DYYYManager showToast:@"無法取得表情包連結"];
         return;
     }
 
@@ -190,7 +189,7 @@ static BOOL isDownloadFlied = NO;
     [DYYYManager downloadMedia:url
                     mediaType:MediaTypeHeic
                    completion:^{
-                       [DYYYManager showToast:@"表情包已保存到相册"];
+                       [DYYYManager showToast:@"表情包已儲存至相簿"];
                    }];
 }
 
