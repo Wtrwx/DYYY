@@ -58,7 +58,7 @@
 
     // 主标题
     self.titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 20, 260, 24)];
-    self.titleLabel.text = title ?: @"推荐过滤设置";
+    self.titleLabel.text = title ?: @"推薦過濾設定";
     self.titleLabel.textColor = [UIColor colorWithRed:45/255.0 green:47/255.0 blue:56/255.0 alpha:1.0]; // #2d2f38
     self.titleLabel.textAlignment = NSTextAlignmentCenter;
     self.titleLabel.font = [UIFont systemFontOfSize:18 weight:UIFontWeightMedium];
@@ -72,10 +72,9 @@
     [self.keywordFilterButton addTarget:self action:@selector(keywordFilterTapped) forControlEvents:UIControlEventTouchUpInside];
     [self.contentView addSubview:self.keywordFilterButton];
 
-
     // 选中预览区域
     self.selectionPreviewLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 54, 260, 50)];
-    self.selectionPreviewLabel.text = @"请滑动选择文字";
+    self.selectionPreviewLabel.text = @"請滑動選擇文字";
     self.selectionPreviewLabel.textColor = [UIColor colorWithRed:11/255.0 green:223/255.0 blue:154/255.0 alpha:1.0]; // #0BDF9A
     self.selectionPreviewLabel.textAlignment = NSTextAlignmentCenter;
     self.selectionPreviewLabel.numberOfLines = 2;
@@ -108,7 +107,9 @@
 
     // 取消按钮
     self.cancelButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    self.cancelButton.frame = CGRectMake(0, 0, 149.5, 55.5);
+    self.cancelButton.frame = CGRectMake(0, 0 aanwe
+
+, 149.5, 55.5);
     self.cancelButton.backgroundColor = [UIColor clearColor];
     [self.cancelButton setTitle:@"取消" forState:UIControlStateNormal];
     [self.cancelButton setTitleColor:[UIColor colorWithRed:124/255.0 green:124/255.0 blue:130/255.0 alpha:1.0] forState:UIControlStateNormal]; // #7c7c82
@@ -124,7 +125,7 @@
     self.confirmButton = [UIButton buttonWithType:UIButtonTypeSystem];
     self.confirmButton.frame = CGRectMake(150, 0, 150, 55.5);
     self.confirmButton.backgroundColor = [UIColor clearColor];
-    [self.confirmButton setTitle:@"确定" forState:UIControlStateNormal];
+    [self.confirmButton setTitle:@"確定" forState:UIControlStateNormal];
     [self.confirmButton setTitleColor:[UIColor colorWithRed:45/255.0 green:47/255.0 blue:56/255.0 alpha:1.0] forState:UIControlStateNormal]; // #2d2f38
     [self.confirmButton addTarget:self action:@selector(confirmTapped) forControlEvents:UIControlEventTouchUpInside];
     [buttonContainer addSubview:self.confirmButton];
@@ -306,9 +307,8 @@
         button.backgroundColor = [UIColor whiteColor];
     }
     
-    self.selectionPreviewLabel.text = @"请滑动选择文字";
+    self.selectionPreviewLabel.text = @"請滑動選擇文字";
 }
-
 
 - (void)updateSelectionWithStartIndex:(NSInteger)startIdx endIndex:(NSInteger)endIdx {
   // 确保有效的开始和结束索引
@@ -335,7 +335,7 @@
   if (selection.length > 0) {
     self.selectionPreviewLabel.text = selection;
   } else {
-    self.selectionPreviewLabel.text = @"请滑动选择文字";
+    self.selectionPreviewLabel.text = @"請滑動選擇文字";
   }
 }
 
