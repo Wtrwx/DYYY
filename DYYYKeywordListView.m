@@ -297,7 +297,7 @@
     didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
   [tableView deselectRowAtIndexPath:indexPath animated:YES];
 
-  String *currentKeyword = self.keywords[indexPath.row];
+  NSString *currentKeyword = self.keywords[indexPath.row];
   DYYYCustomInputView *inputView =
       [[DYYYCustomInputView alloc] initWithTitle:@"編輯過濾項目"
                                      defaultText:currentKeyword
