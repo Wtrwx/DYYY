@@ -216,8 +216,8 @@ static void initTargetClassNames(void) {
         
         [animatedImageView startAnimating];
     } else {
-        [self setTitle:@"隐藏" forState:UIControlStateNormal];
-        [self setTitle:@"显示" forState:UIControlStateSelected];
+        [self setTitle:@"隱藏" forState:UIControlStateNormal];
+        [self setTitle:@"顯示" forState:UIControlStateSelected];
         self.titleLabel.font = [UIFont systemFontOfSize:10];
     }
 }
@@ -299,7 +299,7 @@ static void initTargetClassNames(void) {
 		self.isLocked = !self.isLocked;
 		// 保存锁定状态
 		[self saveLockState];
-		NSString *toastMessage = self.isLocked ? @"按钮已锁定" : @"按钮已解锁";
+		NSString *toastMessage = self.isLocked ? @"按鈕已鎖定" : @"按鈕已解鎖";
 		[DYYYManager showToast:toastMessage];
 		if (@available(iOS 10.0, *)) {
 			UIImpactFeedbackGenerator *generator = [[UIImpactFeedbackGenerator alloc] initWithStyle:UIImpactFeedbackStyleLight];
