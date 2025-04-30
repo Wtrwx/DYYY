@@ -46,7 +46,7 @@
 				  [DYYYManager downloadMedia:url
 						   mediaType:MediaTypeVideo
 						  completion:^{
-						    [DYYYManager showToast:@"影片已儲存至相簿"];
+						    [DYYYManager showToast:@"影片已儲存至照片App"];
 						  }];
 			  }
 
@@ -73,7 +73,7 @@
 				  [DYYYManager downloadMedia:url
 						   mediaType:MediaTypeImage
 						  completion:^{
-						    [DYYYManager showToast:@"封面已儲存至相簿"];
+						    [DYYYManager showToast:@"封面已儲存至照片App"];
 						  }];
 			  }
 
@@ -114,7 +114,7 @@
 
 			AWEImageAlbumImageModel *currimge = self.awemeModel.albumImages[self.awemeModel.currentImageIndex - 1];
 			if (currimge.clipVideo != nil) {
-				imageViewModel.describeString = @"儲存目前實況";
+				imageViewModel.describeString = @"儲存目前原況";
 			}
 			imageViewModel.action = ^{
 			  AWEAwemeModel *awemeModel = self.awemeModel;
@@ -125,7 +125,7 @@
 			  } else {
 				  currentImageModel = awemeModel.albumImages.firstObject;
 			  }
-			  // 如果是實況的話
+			  // 如果是原況的話
 			  if (currimge.clipVideo != nil) {
 				  NSURL *url = [NSURL URLWithString:currentImageModel.urlList.firstObject];
 				  NSURL *videoURL = [currimge.clipVideo.playURL getDYYYSrcURLDownload];
@@ -133,14 +133,14 @@
 				  [DYYYManager downloadLivePhoto:url
 							videoURL:videoURL
 						      completion:^{
-							[DYYYManager showToast:@"實況照片已儲存至相簿"];
+							[DYYYManager showToast:@"原況照片已儲存至照片App"];
 						      }];
 			  } else if (currentImageModel && currentImageModel.urlList.count > 0) {
 				  NSURL *url = [NSURL URLWithString:currentImageModel.urlList.firstObject];
 				  [DYYYManager downloadMedia:url
 						   mediaType:MediaTypeImage
 						  completion:^{
-						    [DYYYManager showToast:@"圖片已儲存至相簿"];
+						    [DYYYManager showToast:@"圖片已儲存至照片App"];
 						  }];
 			  }
 
@@ -157,7 +157,7 @@
 				allImagesViewModel.duxIconName = @"ic_boxarrowdownhigh_outlined";
 				allImagesViewModel.describeString = @"儲存所有圖片";
 
-				// 檢查是否有實況照片並更改按鈕文字
+				// 檢查是否有原況照片並更改按鈕文字
 				BOOL hasLivePhoto = NO;
 				for (AWEImageAlbumImageModel *imageModel in self.awemeModel.albumImages) {
 					if (imageModel.clipVideo != nil) {
@@ -167,7 +167,7 @@
 				}
 
 				if (hasLivePhoto) {
-					allImagesViewModel.describeString = @"儲存所有實況";
+					allImagesViewModel.describeString = @"儲存所有原況";
 				}
 
 				allImagesViewModel.action = ^{
@@ -180,7 +180,7 @@
 					  }
 				  }
 
-				  // 檢查是否有實況照片
+				  // 檢查是否有原況照片
 				  BOOL hasLivePhoto = NO;
 				  for (AWEImageAlbumImageModel *imageModel in awemeModel.albumImages) {
 					  if (imageModel.clipVideo != nil) {
@@ -189,7 +189,7 @@
 					  }
 				  }
 
-				  // 如果有實況照片，使用單獨的downloadLivePhoto方法逐個下載
+				  // 如果有原況照片，使用單獨的downloadLivePhoto方法逐個下載
 				  if (hasLivePhoto) {
 					  NSMutableArray *livePhotos = [NSMutableArray array];
 					  for (AWEImageAlbumImageModel *imageModel in awemeModel.albumImages) {
@@ -201,7 +201,7 @@
 						  }
 					  }
 
-					  // 使用批量下載實況照片方法
+					  // 使用批量下載原況照片方法
 					  [DYYYManager downloadAllLivePhotos:livePhotos];
 				  } else if (imageURLs.count > 0) {
 					  [DYYYManager downloadAllImages:imageURLs];
@@ -253,14 +253,14 @@
 		[viewModels addObject:copyShareLink];
 	}
 
-	// 添加介面儲存功能
+	// 添加接口儲存功能
 	NSString *apiKey = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYInterfaceDownload"];
 	if (apiKey.length > 0) {
 		AWELongPressPanelBaseViewModel *apiDownload = [[%c(AWELongPressPanelBaseViewModel) alloc] init];
 		apiDownload.awemeModel = self.awemeModel;
 		apiDownload.actionType = 673;
 		apiDownload.duxIconName = @"ic_cloudarrowdown_outlined_20";
-		apiDownload.describeString = @"介面儲存";
+		apiDownload.describeString = @"接口儲存";
 
 		apiDownload.action = ^{
 		  NSString *shareLink = [self.awemeModel valueForKey:@"shareURL"];
@@ -565,7 +565,7 @@
 				  [DYYYManager downloadMedia:url
 						   mediaType:MediaTypeVideo
 						  completion:^{
-						    [DYYYManager showToast:@"影片已儲存至相簿"];
+						    [DYYYManager showToast:@"影片已儲存至照片App"];
 						  }];
 			  }
 
@@ -592,7 +592,7 @@
 				  [DYYYManager downloadMedia:url
 						   mediaType:MediaTypeImage
 						  completion:^{
-						    [DYYYManager showToast:@"封面已儲存至相簿"];
+						    [DYYYManager showToast:@"封面已儲存至照片App"];
 						  }];
 			  }
 
@@ -633,7 +633,7 @@
 
 			AWEImageAlbumImageModel *currimge = self.awemeModel.albumImages[self.awemeModel.currentImageIndex - 1];
 			if (currimge.clipVideo != nil) {
-				imageViewModel.describeString = @"儲存目前實況";
+				imageViewModel.describeString = @"儲存目前原況";
 			}
 			imageViewModel.action = ^{
 			  AWEAwemeModel *awemeModel = self.awemeModel;
@@ -644,7 +644,7 @@
 			  } else {
 				  currentImageModel = awemeModel.albumImages.firstObject;
 			  }
-			  // 如果是實況的話
+			  // 如果是原況的話
 			  if (currimge.clipVideo != nil) {
 				  NSURL *url = [NSURL URLWithString:currentImageModel.urlList.firstObject];
 				  NSURL *videoURL = [currimge.clipVideo.playURL getDYYYSrcURLDownload];
@@ -652,14 +652,14 @@
 				  [DYYYManager downloadLivePhoto:url
 							videoURL:videoURL
 						      completion:^{
-							[DYYYManager showToast:@"實況照片已儲存至相簿"];
+							[DYYYManager showToast:@"原況照片已儲存至照片App"];
 						      }];
 			  } else if (currentImageModel && currentImageModel.urlList.count > 0) {
 				  NSURL *url = [NSURL URLWithString:currentImageModel.urlList.firstObject];
 				  [DYYYManager downloadMedia:url
 						   mediaType:MediaTypeImage
 						  completion:^{
-						    [DYYYManager showToast:@"圖片已儲存至相簿"];
+						    [DYYYManager showToast:@"圖片已儲存至照片App"];
 						  }];
 			  }
 
@@ -676,7 +676,7 @@
 				allImagesViewModel.duxIconName = @"ic_boxarrowdownhigh_outlined";
 				allImagesViewModel.describeString = @"儲存所有圖片";
 
-				// 檢查是否有實況照片並更改按鈕文字
+				// 檢查是否有原況照片並更改按鈕文字
 				BOOL hasLivePhoto = NO;
 				for (AWEImageAlbumImageModel *imageModel in self.awemeModel.albumImages) {
 					if (imageModel.clipVideo != nil) {
@@ -686,7 +686,7 @@
 				}
 
 				if (hasLivePhoto) {
-					allImagesViewModel.describeString = @"儲存所有實況";
+					allImagesViewModel.describeString = @"儲存所有原況";
 				}
 
 				allImagesViewModel.action = ^{
@@ -699,7 +699,7 @@
 					  }
 				  }
 
-				  // 檢查是否有實況照片
+				  // 檢查是否有原況照片
 				  BOOL hasLivePhoto = NO;
 				  for (AWEImageAlbumImageModel *imageModel in awemeModel.albumImages) {
 					  if (imageModel.clipVideo != nil) {
@@ -708,7 +708,7 @@
 					  }
 				  }
 
-				  // 如果有實況照片，使用單獨的downloadLivePhoto方法逐個下載
+				  // 如果有原況照片，使用單獨的downloadLivePhoto方法逐個下載
 				  if (hasLivePhoto) {
 					  NSMutableArray *livePhotos = [NSMutableArray array];
 					  for (AWEImageAlbumImageModel *imageModel in awemeModel.albumImages) {
@@ -720,7 +720,7 @@
 						  }
 					  }
 
-					  // 使用批量下載實況照片方法
+					  // 使用批量下載原況照片方法
 					  [DYYYManager downloadAllLivePhotos:livePhotos];
 				  } else if (imageURLs.count > 0) {
 					  [DYYYManager downloadAllImages:imageURLs];
@@ -735,14 +735,14 @@
 		}
 	}
 
-	// 添加介面儲存功能
+	// 添加接口儲存功能
 	NSString *apiKey = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYInterfaceDownload"];
 	if (apiKey.length > 0) {
 		AWELongPressPanelBaseViewModel *apiDownload = [[%c(AWELongPressPanelBaseViewModel) alloc] init];
 		apiDownload.awemeModel = self.awemeModel;
 		apiDownload.actionType = 673;
 		apiDownload.duxIconName = @"ic_cloudarrowdown_outlined_20";
-		apiDownload.describeString = @"介面儲存";
+		apiDownload.describeString = @"接口儲存";
 
 		apiDownload.action = ^{
 		  NSString *shareLink = [self.awemeModel valueForKey:@"shareURL"];
