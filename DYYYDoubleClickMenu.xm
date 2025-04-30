@@ -48,7 +48,7 @@
 
 		// 确定内容类型（视频或图片）
 		BOOL isImageContent = (awemeModel.awemeType == 68);
-		NSString *downloadTitle = isImageContent ? @"保存图片" : @"保存视频";
+		NSString *downloadTitle = isImageContent ? @"儲存圖片" : @"儲存影片";
 
 		// 创建AWEUserActionSheetView
 		AWEUserActionSheetView *actionSheet = [[NSClassFromString(@"AWEUserActionSheetView") alloc] init];
@@ -75,7 +75,7 @@
 						      [DYYYManager downloadMedia:url
 								       mediaType:MediaTypeImage
 								      completion:^{
-									[DYYYManager showToast:@"图片已保存到相册"];
+									[DYYYManager showToast:@"圖片已儲存至相簿"];
 								      }];
 					      }
 				      } else {
@@ -85,7 +85,7 @@
 						      [DYYYManager downloadMedia:url
 								       mediaType:MediaTypeVideo
 								      completion:^{
-									[DYYYManager showToast:@"视频已保存到相册"];
+									[DYYYManager showToast:@"影片已儲存至相簿"];
 								      }];
 					      }
 				      }
@@ -94,7 +94,7 @@
 
 			// 如果是图集，添加下载所有图片选项
 			if (isImageContent && awemeModel.albumImages.count > 1) {
-				AWEUserSheetAction *downloadAllAction = [NSClassFromString(@"AWEUserSheetAction") actionWithTitle:@"保存所有图片"
+				AWEUserSheetAction *downloadAllAction = [NSClassFromString(@"AWEUserSheetAction") actionWithTitle:@"儲存所有圖片"
 															  imgName:nil
 															  handler:^{
 															    NSMutableArray *imageURLs = [NSMutableArray array];
@@ -113,7 +113,7 @@
 		if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDoubleTapDownloadAudio"] || ![[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYDoubleTapDownloadAudio"]) {
 
 			AWEUserSheetAction *downloadAudioAction = [NSClassFromString(@"AWEUserSheetAction")
-			    actionWithTitle:@"保存音频"
+			    actionWithTitle:@"儲存音訊"
 				    imgName:nil
 				    handler:^{
 				      if (musicModel && musicModel.playURL && musicModel.playURL.originURLList.count > 0) {
@@ -128,12 +128,12 @@
 		if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDoubleInterfaceDownload"]) {
 			NSString *apiKey = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYInterfaceDownload"];
 			if (apiKey.length > 0) {
-				AWEUserSheetAction *apiDownloadAction = [NSClassFromString(@"AWEUserSheetAction") actionWithTitle:@"接口保存"
+				AWEUserSheetAction *apiDownloadAction = [NSClassFromString(@"AWEUserSheetAction") actionWithTitle:@"介面儲存"
 															  imgName:nil
 															  handler:^{
 															    NSString *shareLink = [awemeModel valueForKey:@"shareURL"];
 															    if (shareLink.length == 0) {
-																    [DYYYManager showToast:@"无法获取分享链接"];
+																    [DYYYManager showToast:@"無法取得分享連結"];
 																    return;
 															    }
 
@@ -147,12 +147,12 @@
 		// 添加复制文案选项
 		if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDoubleTapCopyDesc"] || ![[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYDoubleTapCopyDesc"]) {
 
-			AWEUserSheetAction *copyTextAction = [NSClassFromString(@"AWEUserSheetAction") actionWithTitle:@"复制文案"
+			AWEUserSheetAction *copyTextAction = [NSClassFromString(@"AWEUserSheetAction") actionWithTitle:@"複製文案"
 													       imgName:nil
 													       handler:^{
 														 NSString *descText = [awemeModel valueForKey:@"descriptionString"];
 														 [[UIPasteboard generalPasteboard] setString:descText];
-														 [DYYYManager showToast:@"文案已复制到剪贴板"];
+														 [DYYYManager showToast:@"文案已複製至剪貼簿"];
 													       }];
 			[actions addObject:copyTextAction];
 		}
@@ -160,7 +160,7 @@
 		// 添加打开评论区选项
 		if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDoubleTapComment"] || ![[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYDoubleTapComment"]) {
 
-			AWEUserSheetAction *openCommentAction = [NSClassFromString(@"AWEUserSheetAction") actionWithTitle:@"打开评论"
+			AWEUserSheetAction *openCommentAction = [NSClassFromString(@"AWEUserSheetAction") actionWithTitle:@"開啟評論"
 														  imgName:nil
 														  handler:^{
 														    [self performCommentAction];
@@ -171,7 +171,7 @@
 		// 添加点赞视频选项
 		if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDoubleTapLike"] || ![[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYDoubleTapLike"]) {
 
-			AWEUserSheetAction *likeAction = [NSClassFromString(@"AWEUserSheetAction") actionWithTitle:@"点赞视频"
+			AWEUserSheetAction *likeAction = [NSClassFromString(@"AWEUserSheetAction") actionWithTitle:@"按讚影片"
 													   imgName:nil
 													   handler:^{
 													     [self performLikeAction]; // 执行点赞操作
@@ -182,7 +182,7 @@
 		// 添加分享选项
 		if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDoubleTapshowSharePanel"] || ![[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYDoubleTapshowSharePanel"]) {
 
-			AWEUserSheetAction *showSharePanel = [NSClassFromString(@"AWEUserSheetAction") actionWithTitle:@"分享视频"
+			AWEUserSheetAction *showSharePanel = [NSClassFromString(@"AWEUserSheetAction") actionWithTitle:@"分享影片"
 													       imgName:nil
 													       handler:^{
 														 [self showSharePanel]; // 执行分享操作
@@ -192,7 +192,7 @@
 		// 添加长按面板
 		if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDoubleTapshowDislikeOnVideo"] || ![[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYDoubleTapshowDislikeOnVideo"]) {
 
-			AWEUserSheetAction *showDislikeOnVideo = [NSClassFromString(@"AWEUserSheetAction") actionWithTitle:@"长按面板"
+			AWEUserSheetAction *showDislikeOnVideo = [NSClassFromString(@"AWEUserSheetAction") actionWithTitle:@"長按面板"
 														   imgName:nil
 														   handler:^{
 														     [self showDislikeOnVideo]; // 执行长按面板操作
