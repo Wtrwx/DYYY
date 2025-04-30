@@ -2059,7 +2059,7 @@ static void showUserAgreementAlert() {
 		    // 创建悬浮按钮设置二级界面的设置项
 
 		    // 快捷倍速section
-		    MutableArray<AWESettingItemModel *> *speedButtonItems = [NSMutableArray array];
+		    NSMutableArray<AWESettingItemModel *> *speedButtonItems = [NSMutableArray array];
 
 		    // 倍速按钮
 		    AWESettingItemModel *enableSpeedButton = [self
