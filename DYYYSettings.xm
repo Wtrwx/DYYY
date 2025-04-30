@@ -1876,8 +1876,8 @@ static void showUserAgreementAlert() {
 		      // 目标路径
 		      NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
 		      NSString *documentsDirectory = [paths firstObject];
-		      QString *dyyyFolderPath = [documentsDirectory stringByAppendingPathComponent:@"DYYY"];
-		      QString *configPath = [dyyyFolderPath stringByAppendingPathComponent:@"abtest_data_fixed.json"];
+		      NSString *dyyyFolderPath = [documentsDirectory stringByAppendingPathComponent:@"DYYY"];
+		      NSString *configPath = [dyyyFolderPath stringByAppendingPathComponent:@"abtest_data_fixed.json"];
 
 		      // 检查文件是否存在
 		      if ([[NSFileManager defaultManager] fileExistsAtPath:configPath]) {
