@@ -810,7 +810,7 @@
 			// 設定確認回調
 			keywordListView.onConfirm = ^(NSArray *users) {
 			  // 將使用者陣列轉換為逗號分隔的字串
-			  QString *userString = [users componentsJoinedByString:@","];
+			  NSString *userString = [users componentsJoinedByString:@","];
 
 			  // 儲存至使用者預設設定
 			  [[NSUserDefaults standardUserDefaults] setObject:userString forKey:@"DYYYfilterUsers"];
