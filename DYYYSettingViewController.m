@@ -250,7 +250,8 @@ typedef NS_ENUM(NSInteger, DYYYSettingItemType) {
             [DYYYSettingItem itemWithTitle:@"隱藏流量提醒" key:@"DYYYHideCellularAlert" type:DYYYSettingItemTypeSwitch],
             [DYYYSettingItem itemWithTitle:@"隱藏紅包懸浮" key:@"DYYYHidePendantGroup" type:DYYYSettingItemTypeSwitch],
             [DYYYSettingItem itemWithTitle:@"隱藏聊天評論" key:@"DYYYHideChatCommentBg" type:DYYYSettingItemTypeSwitch],
-            [DYYYSettingItem itemWithTitle:@"隱藏鍵盤AI" key:@"DYYYHidekeyboardai" type:DYYYSettingItemTypeSwitch]
+            [DYYYSettingItem itemWithTitle:@"隱藏鍵盤AI" key:@"DYYYHidekeyboardai" type:DYYYSettingItemTypeSwitch],
+            [DYYYSettingItem itemWithTitle:@"隱藏面板日常" key:@"DYYYHidePanelDaily" type:DYYYSettingItemTypeSwitch]
         ],
         @[
             [DYYYSettingItem itemWithTitle:@"移除推薦" key:@"DYYYHideHotContainer" type:DYYYSettingItemTypeSwitch],
