@@ -361,7 +361,7 @@
             // 设置确认回调
             keywordListView.onConfirm = ^(NSArray *users) {
               // 将用户数组转换为逗号分隔的字符串
-              QString *userString = [users componentsJoinedByString:@","];
+              NSString *userString = [users componentsJoinedByString:@","];
 
               // 保存到用户默认设置
               [[NSUserDefaults standardUserDefaults] setObject:userString forKey:@"DYYYfilterUsers"];
@@ -383,7 +383,7 @@
                 for (NSString *userInfo in updatedUsers) {
                     NSArray *components = [userInfo componentsSeparatedByString:@"-"];
                     if (components.count >= 2) {
-                        QString *userId = [components lastObject];
+                        NSString *userId = [components lastObject];
                         if ([userId isEqualToString:shortId]) {
                             [toRemove addObject:userInfo];
                         }
@@ -421,7 +421,7 @@
           DYYYFilterSettingsView *filterView = [[DYYYFilterSettingsView alloc] initWithTitle:@"過濾關鍵詞調整" text:descText];
           filterView.onConfirm = ^(NSString *selectedText) {
             if (selectedText.length > 0) {
-                QString *currentKeywords = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYfilterKeywords"] ?: @"";
+                NSString *currentKeywords = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYfilterKeywords"] ?: @"";
                 NSString *newKeywords;
 
                 if (currentKeywords.length > 0) {
@@ -899,7 +899,7 @@
           // 获取当前视频作者信息
           AWEUserModel *author = self.awemeModel.author;
           NSString *nickname = author.nickname ?: @"未知用戶";
-          QString *shortId = author.shortID ?: @"";
+          NSString *shortId = author.shortID ?: @"";
 
           // 创建当前用户的过滤格式 "nickname-shortid"
           NSString *currentUserFilter = [NSString stringWithFormat:@"%@-%@", nickname, shortId];
@@ -954,7 +954,7 @@
                 for (NSString *userInfo in updatedUsers) {
                     NSArray *components = [userInfo componentsSeparatedByString:@"-"];
                     if (components.count >= 2) {
-                        QString *userId = [components lastObject];
+                        NSString *userId = [components lastObject];
                         if ([userId isEqualToString:shortId]) {
                             [toRemove addObject:userInfo];
                         }
@@ -992,7 +992,7 @@
           DYYYFilterSettingsView *filterView = [[DYYYFilterSettingsView alloc] initWithTitle:@"過濾關鍵詞調整" text:descText];
           filterView.onConfirm = ^(NSString *selectedText) {
             if (selectedText.length > 0) {
-                QString *currentKeywords = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYfilterKeywords"] ?: @"";
+                NSString *currentKeywords = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYfilterKeywords"] ?: @"";
                 NSString *newKeywords;
 
                 if (currentKeywords.length > 0) {
