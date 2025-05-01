@@ -79,7 +79,7 @@ static BOOL isDownloadFlied = NO;
 				[DYYYManager downloadMedia:heifURL
 						 mediaType:MediaTypeHeic
 						completion:^{
-						  [DYYYManager showToast:@"表情包已儲存至相簿"];
+						  [DYYYManager showToast:@"表情包已儲存至照片App"];
 						}];
 				return;
 			}
@@ -189,7 +189,7 @@ static BOOL isDownloadFlied = NO;
     [DYYYManager downloadMedia:url
                     mediaType:MediaTypeHeic
                    completion:^{
-                       [DYYYManager showToast:@"表情包已儲存至相簿"];
+                       [DYYYManager showToast:@"表情包已儲存至照片App"];
                    }];
 }
 
