@@ -928,7 +928,7 @@
               confirmButtonText:actionButtonText
               cancelAction:^{
             // 创建并显示关键词列表视图
-            DYYYKeywordListView *keywordListView = [[DYYYKeywordListView alloc] initWithTitle:"過濾用戶列表" keywords:userArray];
+            DYYYKeywordListView *keywordListView = [[DYYYKeywordListView alloc] initWithTitle:"@過濾用戶列表" keywords:userArray];
             // 设置确认回调
             keywordListView.onConfirm = ^(NSArray *users) {
               // 将用户数组转换为逗号分隔的字符串
