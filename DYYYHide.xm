@@ -598,7 +598,7 @@
 
         if ([label isEqualToString:@"商城"]) {
             shouldHide = hideShop;
-        } else if ([label containsString:@"訊息"]) {
+        } else if ([label containsString:@"消息"]) {
             shouldHide = hideMsg;
         } else if ([label containsString:@"朋友"]) {
             shouldHide = hideFri;
@@ -677,7 +677,7 @@
 		} else if ([label isEqualToString:@"商城"]) {
 			shouldHide = hideShop;
 			buttonType = @"shop";
-		} else if ([label containsString:@"訊息"]) {
+		} else if ([label containsString:@"消息"]) {
 			shouldHide = hideMsg;
 			buttonType = @"message";
 		} else if ([label containsString:@"朋友"]) {
