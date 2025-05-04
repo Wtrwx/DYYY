@@ -1,8 +1,7 @@
 name: build deb
 
-on: 
-  push:
-  pull_request:
+# 修复点：将 on 部分改为列表或带空对象的结构
+on: [push, pull_request]  # ✅ 正确写法
 
 jobs:
   build:
