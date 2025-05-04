@@ -1,10 +1,6 @@
 name: Build Tweak
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -15,21 +11,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: true
 
       - name: Cache Theos
-        id: cache
         uses: actions/cache@v4
         with:
           path: ${{ env.THEOS }}
           key: ${{ runner.os }}-theos-${{ hashFiles('**/Makefile') }}
 
       - name: Setup Theos
-        if: steps.cache.outputs.cache-hit != 'true'
         uses: huami1314/theos-action@main
 
-      - name: Install iOS SDK
+      - name: Install Dependencies
         run: |
+          brew install ldid xz
           mkdir -p $THEOS/sdks
           curl -LO https://your-private-repo/iPhoneOS.sdk.tar.xz
           tar xf iPhoneOS.sdk.tar.xz -C $THEOS/sdks
