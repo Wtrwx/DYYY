@@ -1,45 +1,47 @@
-name: build deb
+name: Build Tweak
 
-on: 
+on:
   push:
+    branches: [ "main" ]
   pull_request:
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      THEOS: ${{ github.workspace }}/theos
 
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
 
-      - name: Check cache
-        run: |
-          echo upstream_heads=`git ls-remote https://github.com/roothide/theos | head -n 1 | cut -f 1`-`git ls-remote https://github.com/theos/sdks | head -n 1 | cut -f 1` >> $GITHUB_ENV
-
-      - name: Use cache
+      - name: Cache Theos
         id: cache
-        uses: actions/cache@v4.2.1
+        uses: actions/cache@v4
         with:
-          path: ${{ github.workspace }}/theos
-          key: ${{ runner.os }}-${{ env.upstream_heads }}
+          path: ${{ env.THEOS }}
+          key: ${{ runner.os }}-theos-${{ hashFiles('**/Makefile') }}
 
-      - name: Prepare Theos
+      - name: Setup Theos
+        if: steps.cache.outputs.cache-hit != 'true'
         uses: huami1314/theos-action@main
 
-      - name: Setup GNU Make
+      - name: Install iOS SDK
         run: |
-          echo "$(brew --prefix)/opt/make/libexec/gnubin" >> $GITHUB_PATH
+          mkdir -p $THEOS/sdks
+          curl -LO https://your-private-repo/iPhoneOS.sdk.tar.xz
+          tar xf iPhoneOS.sdk.tar.xz -C $THEOS/sdks
 
-      - name: Build package
+      - name: Build Packages
         run: |
-          rm -f packages/*
-          make package FINALPACKAGE=1 -j$(sysctl -n hw.ncpu)
-          make package THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1 -j$(sysctl -n hw.ncpu)
-          make package THEOS_PACKAGE_SCHEME=roothide FINALPACKAGE=1 -j$(sysctl -n hw.ncpu)
+          make clean
+          for scheme in rootless roothide; do
+            make package THEOS_PACKAGE_SCHEME=$scheme FINALPACKAGE=1 -j$(sysctl -n hw.ncpu)
+          done
 
-      - name: Upload specific Deb packages
-        uses: actions/upload-artifact@v4.6.0
+      - uses: actions/upload-artifact@v4
         with:
-          name: DYYY
-          path: ${{ github.workspace }}/packages/*.deb
+          name: Debian-Packages
+          path: packages/*.deb
