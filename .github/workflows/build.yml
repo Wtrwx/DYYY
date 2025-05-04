@@ -13,6 +13,56 @@ jobs:
         with:
           submodules: true
 
+      - name: Check cache
+        run: |
+          echo upstream_heads=`git ls-remote https://github.com/roothide/theos | head -n 1 | cut -f 1`-`git ls-remote https://github.com/theos/sdks | head -n 1 | cut -f 1`-$(date +%s) >> $GITHUB_ENV
+
+      - name: Use cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.THEOS }}
+          key: ${{ runner.os }}-${{ env.upstream_heads }}
+
+      - name: Prepare Theos
+        uses: huami1314/theos-action@main
+
+      - name: Install iOS SDK
+        run: |
+          mkdir -p $THEOS/sdks
+          curl -LO https://your-private-repo/iPhoneOS14.sdk.tar.xz
+          tar xf iPhoneOS14.sdk.tar.xz -C $THEOS/sdks
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Build Packages
+        run: |
+          make clean
+          for scheme in rootless roothide; do
+            make package THEOS_PACKAGE_SCHEME=$scheme FINALPACKAGE=1 -j$(sysctl -n hw.ncpu)
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Debian-Packages
+          path: packages/*.deb
+name: Build Tweak
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    env:
+      THEOS: ${{ github.workspace }}/theos
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
       - name: Cache Theos
         uses: actions/cache@v4
         with:
