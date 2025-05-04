@@ -224,6 +224,9 @@ typedef NS_ENUM(NSInteger, MediaType) {
 
 @end
 
+@interface AWEFamiliarNavView : UIView
+@end
+
 @interface AWEPlayInteractionNewBaseController : UIView
 @property (retain, nonatomic) AWEAwemeModel * model;
 @end
@@ -895,4 +898,7 @@ typedef NS_ENUM(NSInteger, MediaType) {
 // 隐藏状态栏
 @interface AWEFeedRootViewController : UIViewController
 - (BOOL)prefersStatusBarHidden;
+@end
+
+@interface AWEFeedUnfollowFamiliarFollowAndDislikeView : UIView
 @end
