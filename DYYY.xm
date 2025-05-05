@@ -527,6 +527,39 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 }
 %end
 
+%hook AWEDPlayerFeedPlayerViewController
+
+- (void)viewDidLayoutSubviews {
+	%orig;
+
+	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYisEnableFullScreen"]) {
+		UIView *contentView = self.contentView;
+		if (contentView && contentView.superview) {
+			CGRect frame = contentView.frame;
+			CGFloat parentHeight = contentView.superview.frame.size.height;
+
+			if (frame.size.height == parentHeight - 83) {
+				frame.size.height = parentHeight;
+				contentView.frame = frame;
+				[contentView setNeedsLayout];
+				[contentView layoutIfNeeded];
+			}
+		}
+	}
+}
+
+- (void)setIsAutoPlay:(BOOL)arg0 {
+	float defaultSpeed = [[NSUserDefaults standardUserDefaults] floatForKey:@"DYYYDefaultSpeed"];
+
+	if (defaultSpeed > 0 && defaultSpeed != 1) {
+		[self setVideoControllerPlaybackRate:defaultSpeed];
+	}
+
+	%orig(arg0);
+}
+
+%end
+
 %hook UIView
 
 - (void)setFrame:(CGRect)frame {
@@ -541,7 +574,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
 	}
 
 	UIViewController *vc = [self firstAvailableUIViewController];
-	if ([vc isKindOfClass:%c(AWEAwemePlayVideoViewController)]) {
+	if ([vc isKindOfClass:%c(AWEAwemePlayVideoViewController)] || [vc isKindOfClass:%c(AWEDPlayerFeedPlayerViewController)]) {
 
 		if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYisEnableCommentBlur"] && frame.origin.x != 0) {
 			return;
@@ -1667,53 +1700,59 @@ static CGFloat currentScale = 1.0;
 }
 
 %end
-
 %hook AWEPlayInteractionDescriptionScrollView
 
 - (void)layoutSubviews {
-	%orig;
+    %orig;
+    
+    self.transform = CGAffineTransformIdentity;
+    
+    NSString *descriptionOffsetValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYDescriptionVerticalOffset"];
+    CGFloat verticalOffset = 0;
+    if (descriptionOffsetValue.length > 0) {
+        verticalOffset = [descriptionOffsetValue floatValue];
+    }
+    
+    UIView *parentView = self.superview;
+    UIView *grandParentView = nil;
 
-	self.transform = CGAffineTransformIdentity;
-
-	// 添加文案垂直偏移支持
-	NSString *descriptionOffsetValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYDescriptionVerticalOffset"];
-	CGFloat verticalOffset = 0;
-	if (descriptionOffsetValue.length > 0) {
-		verticalOffset = [descriptionOffsetValue floatValue];
-	}
-
-	UIView *parentView = self.superview;
-	UIView *grandParentView = nil;
-
-	if (parentView) {
-		grandParentView = parentView.superview;
-	}
+    if (parentView) {
+        grandParentView = parentView.superview;
+    }
+    
+    if (grandParentView && verticalOffset != 0) {
+        CGAffineTransform translationTransform = CGAffineTransformMakeTranslation(0, verticalOffset);
+        grandParentView.transform = translationTransform;
+    }
 }
 
 %end
 
-// 对新版文案的缩放（33.0以上）
-
+// 对新版文案的偏移（33.0以上）
 %hook AWEPlayInteractionDescriptionLabel
 
 - (void)layoutSubviews {
-	%orig;
+    %orig;
+    
+    self.transform = CGAffineTransformIdentity;
+    
+    NSString *descriptionOffsetValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYDescriptionVerticalOffset"];
+    CGFloat verticalOffset = 0;
+    if (descriptionOffsetValue.length > 0) {
+        verticalOffset = [descriptionOffsetValue floatValue];
+    }
+    
+    UIView *parentView = self.superview;
+    UIView *grandParentView = nil;
 
-	self.transform = CGAffineTransformIdentity;
-
-	// 添加文案垂直偏移支持
-	NSString *descriptionOffsetValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYDescriptionVerticalOffset"];
-	CGFloat verticalOffset = 0;
-	if (descriptionOffsetValue.length > 0) {
-		verticalOffset = [descriptionOffsetValue floatValue];
-	}
-
-	UIView *parentView = self.superview;
-	UIView *grandParentView = nil;
-
-	if (parentView) {
-		grandParentView = parentView.superview;
-	}
+    if (parentView) {
+        grandParentView = parentView.superview;
+    }
+    
+    if (grandParentView && verticalOffset != 0) {
+        CGAffineTransform translationTransform = CGAffineTransformMakeTranslation(0, verticalOffset);
+        grandParentView.transform = translationTransform;
+    }
 }
 
 %end
@@ -1865,6 +1904,8 @@ static CGFloat currentScale = 1.0;
 	;
 	;
 	;
+	;
+	;
 	NSURL *bestURL;
 	for (NSString *url in self.originURLList) {
 		if ([url containsString:@"video_mp4"] || [url containsString:@".jpeg"] || [url containsString:@".mp3"]) {
@@ -1884,12 +1925,12 @@ static CGFloat currentScale = 1.0;
 %hook AWENormalModeTabBarGeneralButton
 
 - (BOOL)enableRefresh {
-    if ([self.accessibilityLabel isEqualToString:@"首页"]) {
-        if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHomeRefresh"]) {
-            return NO;
-        }
-    }
-    return %orig;
+	if ([self.accessibilityLabel isEqualToString:@"首页"]) {
+		if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHomeRefresh"]) {
+			return NO;
+		}
+	}
+	return %orig;
 }
 
 %end
@@ -2169,6 +2210,17 @@ static CGFloat currentScale = 1.0;
 			break;
 		}
 	}
+}
+
+%end
+
+%hook AWEHDRModelManager
+
++ (BOOL)enableVideoHDR {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
+        return NO;
+    }
+    return %orig;
 }
 
 %end
