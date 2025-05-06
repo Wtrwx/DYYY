@@ -2182,12 +2182,11 @@ static void showUserAgreementAlert() {
 			      @"detail" : @"",
 			      @"cellType" : @6,
 			      @"imageName" : @"ic_comment_outlined_20"},
-			    @{
-				    @"identifier" : @"DYYYEnableDoubleOpenAlertController",
-				    @"title" : @"启用双击打开菜单",
-				    @"detail" : @"",
-				    @"cellType" : @26,
-				    @"imageName" : @"ic_xiaoxihuazhonghua_outlined_20"
+			    @{@"identifier" : @"DYYYEnableDoubleOpenAlertController",
+			      @"title" : @"启用双击打开菜单",
+			      @"detail" : @"",
+			      @"cellType" : @26,
+			      @"imageName" : @"ic_xiaoxihuazhonghua_outlined_20"
 			    }
 		    ];
 
@@ -2223,26 +2222,26 @@ static void showUserAgreementAlert() {
 						@"detail" : @"",
 						@"cellType" : @6,
 						@"imageName" : @"ic_boxarrowdown_outlined"},
+                                              @{@"identifier" : @"DYYYDoubleSaveCover",
+						@"title" : @"保存封面",
+						@"detail" : @"",
+						@"cellType" : @6,
+						@"imageName" : @"ic_boxarrowdown_outlined"},
 					      @{@"identifier" : @"DYYYDoubleTapDownloadAudio",
 						@"title" : @"保存音频",
 						@"detail" : @"",
 						@"cellType" : @6,
 						@"imageName" : @"ic_boxarrowdown_outlined"},
-
-					      @{
-						      @"identifier" : @"DYYYDoubleInterfaceDownload",
-						      @"title" : @"接口保存",
-						      @"detail" : @"",
-						      @"cellType" : @6,
-						      @"imageName" : @"ic_cloudarrowdown_outlined_20"
-					      },
-					      @{
-						      @"identifier" : @"DYYYDoubleTapCopyDesc",
-						      @"title" : @"复制文案",
-						      @"detail" : @"",
-						      @"cellType" : @6,
-						      @"imageName" : @"ic_rectangleonrectangleup_outlined_20"
-					      },
+                                              @{@"identifier" : @"DYYYDoubleInterfaceDownload",
+						@"title" : @"接口保存",
+						@"detail" : @"",
+						@"cellType" : @6,
+						@"imageName" : @"ic_cloudarrowdown_outlined_20"},
+					      @{@"identifier" : @"DYYYDoubleTapCopyDesc",
+						@"title" : @"复制文案",
+						@"detail" : @"",
+						@"cellType" : @6,
+						@"imageName" : @"ic_rectangleonrectangleup_outlined_20"},
 					      @{@"identifier" : @"DYYYDoubleTapComment",
 						@"title" : @"打开评论",
 						@"detail" : @"",
@@ -2253,16 +2252,12 @@ static void showUserAgreementAlert() {
 						@"detail" : @"",
 						@"cellType" : @6,
 						@"imageName" : @"ic_heart_outlined_20"},
-
-					      @{
-						      @"identifier" : @"DYYYDoubleTapshowDislikeOnVideo",
-						      @"title" : @"长按面板",
-						      @"detail" : @"",
-						      @"cellType" : @6,
-						      @"imageName" : @"ic_xiaoxihuazhonghua_outlined_20"
-					      },
-
-					      @{@"identifier" : @"DYYYDoubleTapshowSharePanel",
+                                              @{@"identifier" : @"DYYYDoubleTapshowDislikeOnVideo",
+						@"title" : @"长按面板",
+						@"detail" : @"",
+						@"cellType" : @6,
+						@"imageName" : @"ic_xiaoxihuazhonghua_outlined_20"},
+                                              @{@"identifier" : @"DYYYDoubleTapshowSharePanel",
 						@"title" : @"分享视频",
 						@"detail" : @"",
 						@"cellType" : @6,
