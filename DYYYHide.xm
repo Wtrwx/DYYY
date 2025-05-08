@@ -627,6 +627,17 @@
 
 %end
 
+%hook ACCGestureResponsibleStickerView
+- (void)layoutSubviews {
+	%orig;
+
+	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideChallengeStickers"]) {
+		[self removeFromSuperview];
+		return;
+	}
+}
+%end
+
 %hook AWEMusicCoverButton
 
 - (void)layoutSubviews {
@@ -667,11 +678,11 @@
 			[self removeFromSuperview];
 			return;
 		}
-	}
-
-	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideFollowPromptView"]) {
-		self.hidden = YES;
-		return;
+		if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideFollowPromptView"]) {
+			self.userInteractionEnabled = NO;
+			[self removeFromSuperview];
+			return;
+		}
 	}
 }
 
@@ -1641,7 +1652,7 @@
 	%orig;
 
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideChapterProgress"]) {
-		self.hidden = YES;
+		[self removeFromSuperview];
 	}
 }
 

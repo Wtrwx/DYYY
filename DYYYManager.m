@@ -11,7 +11,8 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 
-// 自定义进度条视图类
+#import "DYYYDownloadProgressView.h"
+
 @interface DYYYManager () {
   AVAssetExportSession *session;
   AVURLAsset *asset;
@@ -20,158 +21,6 @@
   dispatch_queue_t queue;
   dispatch_group_t group;
 }
-@end
-
-@interface DYYYDownloadProgressView : UIView
-@property(nonatomic, strong) UIView *containerView;
-@property(nonatomic, strong) UIView *progressBarBackground;
-@property(nonatomic, strong) UIView *progressBar;
-@property(nonatomic, strong) UILabel *progressLabel;
-@property(nonatomic, strong) UIButton *cancelButton;
-@property(nonatomic, copy) void (^cancelBlock)(void);
-@property(nonatomic, assign) BOOL isCancelled;
-
-- (instancetype)initWithFrame:(CGRect)frame;
-- (void)setProgress:(float)progress;
-- (void)show;
-- (void)dismiss;
-
-@end
-
-@implementation DYYYDownloadProgressView
-
-- (instancetype)initWithFrame:(CGRect)frame {
-  self = [super initWithFrame:frame];
-  if (self) {
-    self.backgroundColor = [UIColor clearColor];
-    self.isCancelled = NO;
-
-    // 创建容器视图，减小尺寸
-    _containerView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 240, 140)];
-    _containerView.center =
-        CGPointMake(CGRectGetMidX(self.bounds), CGRectGetMidY(self.bounds));
-    _containerView.backgroundColor = [UIColor colorWithWhite:0.1 alpha:0.95];
-    _containerView.layer.cornerRadius = 12;
-    _containerView.clipsToBounds = YES;
-    [self addSubview:_containerView];
-
-    // 创建进度条背景
-    _progressBarBackground = [[UIView alloc]
-        initWithFrame:CGRectMake(20, 50,
-                                 CGRectGetWidth(_containerView.frame) - 40, 8)];
-    _progressBarBackground.backgroundColor = [UIColor colorWithWhite:0.3
-                                                               alpha:1.0];
-    _progressBarBackground.layer.cornerRadius = 4;
-    [_containerView addSubview:_progressBarBackground];
-
-    // 创建进度条
-    _progressBar = [[UIView alloc]
-        initWithFrame:CGRectMake(
-                          0, 0, 0,
-                          CGRectGetHeight(_progressBarBackground.frame))];
-    _progressBar.backgroundColor = [UIColor colorWithRed:0.0
-                                                   green:0.7
-                                                    blue:1.0
-                                                   alpha:1.0];
-    _progressBar.layer.cornerRadius = 4;
-    [_progressBarBackground addSubview:_progressBar];
-
-    // 创建进度标签
-    _progressLabel = [[UILabel alloc]
-        initWithFrame:CGRectMake(
-                          0, CGRectGetMaxY(_progressBarBackground.frame) + 12,
-                          CGRectGetWidth(_containerView.frame), 20)];
-    _progressLabel.textAlignment = NSTextAlignmentCenter;
-    _progressLabel.textColor = [UIColor whiteColor];
-    _progressLabel.font = [UIFont systemFontOfSize:14];
-    _progressLabel.text = @"0%";
-    [_containerView addSubview:_progressLabel];
-
-    // 创建取消按钮
-    _cancelButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    _cancelButton.frame =
-        CGRectMake((CGRectGetWidth(_containerView.frame) - 80) / 2,
-                   CGRectGetMaxY(_progressLabel.frame) + 10, 80, 32);
-    _cancelButton.backgroundColor = [UIColor colorWithWhite:0.2 alpha:1.0];
-    [_cancelButton setTitle:@"取消" forState:UIControlStateNormal];
-    [_cancelButton setTitleColor:[UIColor whiteColor]
-                        forState:UIControlStateNormal];
-    _cancelButton.layer.cornerRadius = 16;
-    [_cancelButton addTarget:self
-                      action:@selector(cancelButtonTapped)
-            forControlEvents:UIControlEventTouchUpInside];
-    [_containerView addSubview:_cancelButton];
-
-    // 添加标题标签
-    UILabel *titleLabel = [[UILabel alloc]
-        initWithFrame:CGRectMake(0, 15, CGRectGetWidth(_containerView.frame),
-                                 20)];
-    titleLabel.textAlignment = NSTextAlignmentCenter;
-    titleLabel.textColor = [UIColor whiteColor];
-    titleLabel.font = [UIFont systemFontOfSize:16 weight:UIFontWeightMedium];
-    titleLabel.text = @"正在下载";
-    [_containerView addSubview:titleLabel];
-
-    // 设置初始透明度为0，以便动画显示
-    self.alpha = 0;
-  }
-  return self;
-}
-
-- (void)setProgress:(float)progress {
-  // 确保在主线程中更新UI
-  if (![NSThread isMainThread]) {
-    dispatch_async(dispatch_get_main_queue(), ^{
-      [self setProgress:progress];
-    });
-    return;
-  }
-
-  // 进度值限制在0到1之间
-  progress = MAX(0.0, MIN(1.0, progress));
-
-  // 设置进度条长度
-  CGRect progressFrame = _progressBar.frame;
-  progressFrame.size.width =
-      progress * CGRectGetWidth(_progressBarBackground.frame);
-  _progressBar.frame = progressFrame;
-
-  // 更新进度百分比
-  int percentage = (int)(progress * 100);
-  _progressLabel.text = [NSString stringWithFormat:@"%d%%", percentage];
-}
-
-- (void)show {
-  UIWindow *window = [UIApplication sharedApplication].keyWindow;
-  if (!window)
-    return;
-
-  [window addSubview:self];
-
-  [UIView animateWithDuration:0.3
-                   animations:^{
-                     self.alpha = 1.0;
-                   }];
-}
-
-- (void)dismiss {
-  [UIView animateWithDuration:0.3
-      animations:^{
-        self.alpha = 0;
-      }
-      completion:^(BOOL finished) {
-        [self removeFromSuperview];
-      }];
-}
-
-- (void)cancelButtonTapped {
-  self.isCancelled = YES; // 设置取消标志
-  if (self.cancelBlock) {
-    self.cancelBlock();
-  }
-  [self dismiss];
-}
-
 @end
 
 @interface DYYYManager () <NSURLSessionDownloadDelegate>
@@ -262,6 +111,10 @@
     return [UIApplication sharedApplication].windows.firstObject;
 #pragma clang diagnostic pop
   }
+}
+
++ (BOOL)isDarkMode {
+  return [NSClassFromString(@"AWEUIThemeManager") isLightTheme] ? NO : YES;
 }
 
 + (UIViewController *)getActiveTopController {
@@ -1427,7 +1280,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
 
 + (void)downloadMedia:(NSURL *)url
             mediaType:(MediaType)mediaType
-           completion:(void (^)(void))completion {
+           completion:(void (^)(BOOL success))completion {
   [self downloadMediaWithProgress:url
                         mediaType:mediaType
                          progress:nil
@@ -1456,15 +1309,22 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                                [rootVC presentViewController:activityVC
                                                     animated:YES
                                                   completion:nil];
+                               if (completion) {
+                                 completion(YES);
+                               }
                              });
                            } else {
                              [self saveMedia:fileURL
                                    mediaType:mediaType
-                                  completion:completion];
+                                  completion:^{
+                                    if (completion) {
+                                      completion(YES);
+                                    }
+                                  }];
                            }
                          } else {
                            if (completion) {
-                             completion();
+                             completion(NO);
                            }
                          }
                        }];
@@ -2423,10 +2283,6 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
   });
 }
 
-+ (BOOL)isDarkMode {
-  return [NSClassFromString(@"AWEUIThemeManager") isLightTheme] ? NO : YES;
-}
-
 + (void)parseAndDownloadVideoWithShareLink:(NSString *)shareLink apiKey:(NSString *)apiKey {
     if (shareLink.length == 0 || apiKey.length == 0) {
         [self showToast:@"分享链接或API密钥无效"];
@@ -2489,10 +2345,14 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                                                 handler:^{
                                                   NSURL *videoDownloadUrl = [NSURL URLWithString:url];
                                                   [self downloadMedia:videoDownloadUrl
-                                                    mediaType:MediaTypeVideo
-                                                       completion:^{
-                                                     [self showToast:[NSString stringWithFormat:@"视频已保存到相册 (%@)", level]];
-                                                       }];
+                                                        mediaType:MediaTypeVideo
+                                                      completion:^(BOOL success) {
+                                                        if (success) {
+                                                          [self showToast:[NSString stringWithFormat:@"视频已保存到相册 (%@)", level]];
+                                                        } else {
+                                                          [self showToast:[NSString stringWithFormat:@"已取消保存 (%@)", level]];
+                                                        }
+                                                      }];
                                                 }];
                                         [actions addObject:qualityAction];
                                     }
@@ -2526,28 +2386,15 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                                     NSURL *videoDownloadUrl = [NSURL URLWithString:url];
                                     [self downloadMedia:videoDownloadUrl
                                           mediaType:MediaTypeVideo
-                                         completion:^{
-                                           [self showToast:[NSString stringWithFormat:@"视频已保存到相册 (%@)", level]];
-                                         }];
+                                        completion:^(BOOL success) {
+                                            if (success) {
+                                                [self showToast:[NSString stringWithFormat:@"视频已保存到相册 (%@)", level]];
+                                            } else {
+                                                [self showToast:[NSString stringWithFormat:@"已取消保存 (%@)", level]];
+                                            }
+                                        }];
                                     return;
                                 }
-                            }
-
-                            // 如果没有视频或图片数组，但有单个视频URL
-                            if (!hasVideos && !hasImages && !hasVideoList) {
-                                NSString *videoUrl = dataDict[@"url"];
-                                if (videoUrl.length > 0) {
-                                    [self showToast:@"开始下载单个视频..."];
-                                    NSURL *videoDownloadUrl = [NSURL URLWithString:videoUrl];
-                                    [self downloadMedia:videoDownloadUrl
-                                          mediaType:MediaTypeVideo
-                                         completion:^{
-                                           [self showToast:@"视频已保存到相册"];
-                                         }];
-                                } else {
-                                    [self showToast:@"接口未返回有效的视频链接"];
-                                }
-                                return;
                             }
 
                             [self batchDownloadResources:videos images:images];
@@ -2571,6 +2418,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
     dispatch_group_t downloadGroup = dispatch_group_create();
     __block NSInteger totalDownloads = 0;
     __block NSInteger completedDownloads = 0;
+    __block NSInteger successfulDownloads = 0;
 
     if (hasVideos) {
         totalDownloads += videos.count;
@@ -2591,6 +2439,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                                @synchronized(videoFiles) {
                                    videoFiles[i] = fileURL;
                                }
+                               successfulDownloads++;
                            }
                            completedDownloads++;
                            dispatch_group_leave(downloadGroup);
@@ -2616,6 +2465,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                                @synchronized(imageFiles) {
                                    imageFiles[i] = fileURL;
                                }
+                               successfulDownloads++;
                            }
                            completedDownloads++;
                            dispatch_group_leave(downloadGroup);
@@ -2624,8 +2474,8 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
     }
 
     dispatch_group_notify(downloadGroup, dispatch_get_main_queue(), ^{
-      if (completedDownloads < totalDownloads) {
-          [self showToast:@"部分下载失败"];
+      if (successfulDownloads < totalDownloads) {
+          [self showToast:[NSString stringWithFormat:@"下载完成: %ld/%ld 成功", (long)successfulDownloads, (long)totalDownloads]];
       }
 
       NSInteger videoSuccessCount = 0;
