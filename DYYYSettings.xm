@@ -467,7 +467,7 @@ static void showUserAgreementAlert() {
 			      @"detail" : @"",
 			      @"cellType" : @6,
 			      @"imageName" : @"ic_location_outlined_20"},
-				@{@"identifier" : @"DYYYGeonamesUsername",
+			    @{@"identifier" : @"DYYYGeonamesUsername",
 			      @"title" : @"国外解析账号",
 			      @"detail" : @"",
 			      @"cellType" : @26,
@@ -503,23 +503,7 @@ static void showUserAgreementAlert() {
 
 				      // 设置详情文本为选中的值
 				      item.detail = selectedValue;
-				      UIViewController *topVC = topView();
-				      // 刷新表格视图
-				      if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
-					      dispatch_async(dispatch_get_main_queue(), ^{
-						UITableView *tableView = nil;
-						for (UIView *subview in topVC.view.subviews) {
-							if ([subview isKindOfClass:[UITableView class]]) {
-								tableView = (UITableView *)subview;
-								break;
-							}
-						}
-
-						if (tableView) {
-							[tableView reloadData];
-						}
-					      });
-				      }
+				      [self refreshTableView];
 				    };
 			    }
 
@@ -538,23 +522,7 @@ static void showUserAgreementAlert() {
 				      // 设置详情文本为选中的值
 
 				      item.detail = selectedValue;
-				      UIViewController *topVC = topView();
-				      // 刷新表格视图
-				      if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
-					      dispatch_async(dispatch_get_main_queue(), ^{
-						UITableView *tableView = nil;
-						for (UIView *subview in topVC.view.subviews) {
-							if ([subview isKindOfClass:[UITableView class]]) {
-								tableView = (UITableView *)subview;
-								break;
-							}
-						}
-
-						if (tableView) {
-							[tableView reloadData];
-						}
-					      });
-				      }
+				      [self refreshTableView];
 				    };
 			    }
 
@@ -632,7 +600,7 @@ static void showUserAgreementAlert() {
 			      @"detail" : @"",
 			      @"cellType" : @6,
 			      @"imageName" : @"ic_personcircleclean_outlined_20"},
-				@{@"identifier" : @"DYYYDisableHDR",
+			    @{@"identifier" : @"DYYYDisableHDR",
 			      @"title" : @"关闭HDR效果",
 			      @"detail" : @"",
 			      @"cellType" : @6,
@@ -660,22 +628,7 @@ static void showUserAgreementAlert() {
 						    setUserDefaults(valueString, @"DYYYfilterLowLikes");
 
 						    item.detail = valueString;
-						    UIViewController *topVC = topView();
-						    if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
-							    dispatch_async(dispatch_get_main_queue(), ^{
-							      UITableView *tableView = nil;
-							      for (UIView *subview in topVC.view.subviews) {
-								      if ([subview isKindOfClass:[UITableView class]]) {
-									      tableView = (UITableView *)subview;
-									      break;
-								      }
-							      }
-
-							      if (tableView) {
-								      [tableView reloadData];
-							      }
-							    });
-						    }
+						    [self refreshTableView];
 					    } else {
 						    DYYYAboutDialogView *errorDialog = [[DYYYAboutDialogView alloc] initWithTitle:@"输入错误" message:@"请输入有效的数字\n\n\n"];
 						    [errorDialog show];
@@ -690,37 +643,13 @@ static void showUserAgreementAlert() {
 				      // 将保存的逗号分隔字符串转换为数组
 				      NSString *savedKeywords = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYfilterUsers"] ?: @"";
 				      NSArray *keywordArray = [savedKeywords length] > 0 ? [savedKeywords componentsSeparatedByString:@","] : @[];
-
-				      // 创建并显示关键词列表视图
 				      DYYYKeywordListView *keywordListView = [[DYYYKeywordListView alloc] initWithTitle:@"过滤用户列表" keywords:keywordArray];
-
-				      // 设置确认回调
 				      keywordListView.onConfirm = ^(NSArray *keywords) {
 					// 将关键词数组转换为逗号分隔的字符串
 					NSString *keywordString = [keywords componentsJoinedByString:@","];
-
-					// 保存到用户默认设置
 					setUserDefaults(keywordString, @"DYYYfilterUsers");
-
-					// 更新UI显示
 					item.detail = keywordString;
-
-					// 刷新表格视图
-					UIViewController *topVC = topView();
-					if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
-						dispatch_async(dispatch_get_main_queue(), ^{
-						  UITableView *tableView = nil;
-						  for (UIView *subview in topVC.view.subviews) {
-							  if ([subview isKindOfClass:[UITableView class]]) {
-								  tableView = (UITableView *)subview;
-								  break;
-							  }
-						  }
-						  if (tableView) {
-							  [tableView reloadData];
-						  }
-						});
-					}
+					[self refreshTableView];
 				      };
 
 				      // 显示关键词列表视图
@@ -733,40 +662,15 @@ static void showUserAgreementAlert() {
 				      // 将保存的逗号分隔字符串转换为数组
 				      NSString *savedKeywords = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYfilterKeywords"] ?: @"";
 				      NSArray *keywordArray = [savedKeywords length] > 0 ? [savedKeywords componentsSeparatedByString:@","] : @[];
-
-				      // 创建并显示关键词列表视图
 				      DYYYKeywordListView *keywordListView = [[DYYYKeywordListView alloc] initWithTitle:@"设置过滤关键词" keywords:keywordArray];
-
-				      // 设置确认回调
 				      keywordListView.onConfirm = ^(NSArray *keywords) {
 					// 将关键词数组转换为逗号分隔的字符串
 					NSString *keywordString = [keywords componentsJoinedByString:@","];
 
-					// 保存到用户默认设置
 					setUserDefaults(keywordString, @"DYYYfilterKeywords");
-
-					// 更新UI显示
 					item.detail = keywordString;
-
-					// 刷新表格视图
-					UIViewController *topVC = topView();
-					if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
-						dispatch_async(dispatch_get_main_queue(), ^{
-						  UITableView *tableView = nil;
-						  for (UIView *subview in topVC.view.subviews) {
-							  if ([subview isKindOfClass:[UITableView class]]) {
-								  tableView = (UITableView *)subview;
-								  break;
-							  }
-						  }
-						  if (tableView) {
-							  [tableView reloadData];
-						  }
-						});
-					}
+					[self refreshTableView];
 				      };
-
-				      // 显示关键词列表视图
 				      [keywordListView show];
 				    };
 			    } else if ([item.identifier isEqualToString:@"DYYYfiltertimelimit"]) {
@@ -779,21 +683,7 @@ static void showUserAgreementAlert() {
 					    NSString *trimmedText = [text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
 					    setUserDefaults(trimmedText, @"DYYYfiltertimelimit");
 					    item.detail = trimmedText ?: @"";
-					    UIViewController *topVC = topView();
-					    if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
-						    dispatch_async(dispatch_get_main_queue(), ^{
-						      UITableView *tableView = nil;
-						      for (UIView *subview in topVC.view.subviews) {
-							      if ([subview isKindOfClass:[UITableView class]]) {
-								      tableView = (UITableView *)subview;
-								      break;
-							      }
-						      }
-						      if (tableView) {
-							      [tableView reloadData];
-						      }
-						    });
-					    }
+					    [self refreshTableView];
 					  },
 					  nil);
 				    };
@@ -1058,7 +948,7 @@ static void showUserAgreementAlert() {
 			      @"detail" : @"",
 			      @"cellType" : @6,
 			      @"imageName" : @"ic_eyeslash_outlined_16"},
-				@{@"identifier" : @"DYYYHideFollowPromptView",
+			    @{@"identifier" : @"DYYYHideFollowPromptView",
 			      @"title" : @"移除头像加号",
 			      @"detail" : @"",
 			      @"cellType" : @6,
@@ -1402,12 +1292,11 @@ static void showUserAgreementAlert() {
 			      @"detail" : @"",
 			      @"cellType" : @6,
 			      @"imageName" : @"ic_eyeslash_outlined_16"},
-				@{@"identifier" : @"DYYYHideScancode",
-				  @"title" : @"隐藏输入扫码",
-				  @"detail" : @"",
+			    @{@"identifier" : @"DYYYHideScancode",
+			      @"title" : @"隐藏输入扫码",
+			      @"detail" : @"",
 			      @"cellType" : @6,
-			      @"imageName" : @"ic_eyeslash_outlined_16"
-				}
+			      @"imageName" : @"ic_eyeslash_outlined_16"}
 		    ];
 
 		    for (NSDictionary *dict in infoSettings) {
@@ -1428,12 +1317,12 @@ static void showUserAgreementAlert() {
 			      @"detail" : @"",
 			      @"cellType" : @6,
 			      @"imageName" : @"ic_eyeslash_outlined_16"},
-				@{@"identifier" : @"DYYYHideLiveRoomClose",
+			    @{@"identifier" : @"DYYYHideLiveRoomClose",
 			      @"title" : @"隐藏关闭按钮",
 			      @"detail" : @"",
 			      @"cellType" : @6,
 			      @"imageName" : @"ic_eyeslash_outlined_16"},
-				@{@"identifier" : @"DYYYHideLiveRoomFullscreen",
+			    @{@"identifier" : @"DYYYHideLiveRoomFullscreen",
 			      @"title" : @"隐藏横屏按钮",
 			      @"detail" : @"",
 			      @"cellType" : @6,
@@ -1563,13 +1452,13 @@ static void showUserAgreementAlert() {
 			      @"detail" : @"",
 			      @"cellType" : @6,
 			      @"imageName" : @"ic_eyeslash_outlined_16"},
-			     @{@"identifier" : @"DYYYHidePanelBiserial",
+			    @{@"identifier" : @"DYYYHidePanelBiserial",
 			      @"title" : @"隐藏双列快捷入口",
 			      @"detail" : @"",
 			      @"cellType" : @6,
 			      @"imageName" : @"ic_eyeslash_outlined_16"}
 		    ];
-		    
+
 		    for (NSDictionary *dict in modernpanelSettings) {
 			    AWESettingItemModel *item = [self createSettingItem:dict];
 			    [modernpanels addObject:item];
@@ -1713,29 +1602,9 @@ static void showUserAgreementAlert() {
 				      keywordListView.onConfirm = ^(NSArray *keywords) {
 					// 将关键词数组转换为逗号分隔的字符串
 					NSString *keywordString = [keywords componentsJoinedByString:@","];
-
-					// 保存到用户默认设置
 					setUserDefaults(keywordString, @"DYYYHideOtherChannel");
-
-					// 更新UI显示
 					item.detail = keywordString;
-
-					// 刷新表格视图
-					UIViewController *topVC = topView();
-					if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
-						dispatch_async(dispatch_get_main_queue(), ^{
-						  UITableView *tableView = nil;
-						  for (UIView *subview in topVC.view.subviews) {
-							  if ([subview isKindOfClass:[UITableView class]]) {
-								  tableView = (UITableView *)subview;
-								  break;
-							  }
-						  }
-						  if (tableView) {
-							  [tableView reloadData];
-						  }
-						});
-					}
+					[self refreshTableView];
 				      };
 
 				      // 显示关键词列表视图
@@ -1883,26 +1752,9 @@ static void showUserAgreementAlert() {
 					    NSString *trimmedText = [text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
 					    setUserDefaults(trimmedText, @"DYYYInterfaceDownload");
 
-					    // 更新UI显示
 					    item.detail = trimmedText.length > 0 ? trimmedText : @"不填关闭";
 
-					    // 刷新设置表格
-					    UIViewController *topVC = topView();
-					    if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
-						    dispatch_async(dispatch_get_main_queue(), ^{
-						      UITableView *tableView = nil;
-						      for (UIView *subview in topVC.view.subviews) {
-							      if ([subview isKindOfClass:[UITableView class]]) {
-								      tableView = (UITableView *)subview;
-								      break;
-							      }
-						      }
-
-						      if (tableView) {
-							      [tableView reloadData];
-						      }
-						    });
-					    }
+					    [self refreshTableView];
 					  },
 					  nil);
 				    };
@@ -1915,9 +1767,9 @@ static void showUserAgreementAlert() {
 		    NSMutableArray<AWESettingItemModel *> *hotUpdateItems = [NSMutableArray array];
 
 		    // 获取当前热更新状态
-		    abTestBlockEnabled = [[NSUserDefaults standardUserDefaults] boolForKey:@"ABTestBlockEnabled"];
+		    abTestBlockEnabled = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYABTestBlockEnabled"];
 		    AWESettingItemModel *disableHotUpdateItem = [[%c(AWESettingItemModel) alloc] init];
-		    disableHotUpdateItem.identifier = @"ABTestBlockEnabled";
+		    disableHotUpdateItem.identifier = @"DYYYABTestBlockEnabled";
 		    disableHotUpdateItem.title = @"禁用下发配置";
 		    disableHotUpdateItem.detail = @"";
 		    disableHotUpdateItem.type = 1000;
@@ -1945,7 +1797,6 @@ static void showUserAgreementAlert() {
 				    disableHotUpdateItem.isSwitchOn = newValue;
 				    abTestBlockEnabled = newValue;
 
-				    // 保存设置
 				    [[NSUserDefaults standardUserDefaults] setBool:newValue forKey:@"ABTestBlockEnabled"];
 				    [[NSUserDefaults standardUserDefaults] synchronize];
 
@@ -1954,48 +1805,17 @@ static void showUserAgreementAlert() {
 				    onceToken = 0;
 				    loadFixedABTestData();
 
-				    // 刷新表格以反映状态变化
-				    UIViewController *topVC = topView();
-				    if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
-					    dispatch_async(dispatch_get_main_queue(), ^{
-					      UITableView *tableView = nil;
-					      for (UIView *subview in topVC.view.subviews) {
-						      if ([subview isKindOfClass:[UITableView class]]) {
-							      tableView = (UITableView *)subview;
-							      break;
-						      }
-					      }
-					      if (tableView) {
-						      [tableView reloadData];
-					      }
-					    });
-				    }
+				    [self refreshTableView];
 				  }];
 		      } else {
 			      // 如果是关闭功能，直接执行不需要确认
 			      disableHotUpdateItem.isSwitchOn = newValue;
 			      abTestBlockEnabled = newValue;
 
-			      // 保存设置
 			      [[NSUserDefaults standardUserDefaults] setBool:newValue forKey:@"ABTestBlockEnabled"];
 			      [[NSUserDefaults standardUserDefaults] synchronize];
 
-			      // 刷新表格以反映状态变化
-			      UIViewController *topVC = topView();
-			      if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
-				      dispatch_async(dispatch_get_main_queue(), ^{
-					UITableView *tableView = nil;
-					for (UIView *subview in topVC.view.subviews) {
-						if ([subview isKindOfClass:[UITableView class]]) {
-							tableView = (UITableView *)subview;
-							break;
-						}
-					}
-					if (tableView) {
-						[tableView reloadData];
-					}
-				      });
-			      }
+			      [self refreshTableView];
 		      }
 		    };
 
@@ -2063,7 +1883,6 @@ static void showUserAgreementAlert() {
 		      documentPicker.delegate = pickerDelegate;
 		      objc_setAssociatedObject(documentPicker, &kABTestPickerDelegateKey, pickerDelegate, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
-		      // 显示文档选择器
 		      UIViewController *topVC = topView();
 		      [topVC presentViewController:documentPicker animated:YES completion:nil];
 		    };
@@ -2125,13 +1944,10 @@ static void showUserAgreementAlert() {
 			// 显示结果提示
 			[DYYYManager showToast:message];
 		      };
-
-		      // 保存代理对象的引用，防止它被提前释放
 		      static char kPickerDelegateKey;
 		      documentPicker.delegate = pickerDelegate;
 		      objc_setAssociatedObject(documentPicker, &kPickerDelegateKey, pickerDelegate, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
-		      // 显示文件选择器
 		      UIViewController *topVC = topView();
 		      [topVC presentViewController:documentPicker animated:YES completion:nil];
 		    };
@@ -2183,11 +1999,6 @@ static void showUserAgreementAlert() {
 			      @"detail" : @"",
 			      @"cellType" : @6,
 			      @"imageName" : @"ic_at_outlined_20"},
-			    @{@"identifier" : @"DYYYisEnableAutoTheme",
-			      @"title" : @"启用自动背景切换",
-			      @"detail" : @"",
-			      @"cellType" : @6,
-			      @"imageName" : @"ic_gearsimplify_outlined_20"},
 			    @{@"identifier" : @"DYYYisEnableModern",
 			      @"title" : @"启用新版玻璃面板",
 			      @"detail" : @"",
@@ -2383,22 +2194,7 @@ static void showUserAgreementAlert() {
 			    speedSettingsItem.detail = trimmedText;
 
 			    // 刷新表格以反映更改
-			    UIViewController *topVC = topView();
-			    if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
-				    dispatch_async(dispatch_get_main_queue(), ^{
-				      UITableView *tableView = nil;
-				      for (UIView *subview in topVC.view.subviews) {
-					      if ([subview isKindOfClass:[UITableView class]]) {
-						      tableView = (UITableView *)subview;
-						      break;
-					      }
-				      }
-
-				      if (tableView) {
-					      [tableView reloadData];
-				      }
-				    });
-			    }
+			    [self refreshTableView];
 			  },
 			  nil);
 		    };
@@ -2468,22 +2264,7 @@ static void showUserAgreementAlert() {
 				    buttonSizeItem.detail = [NSString stringWithFormat:@"%.0f", (CGFloat)size];
 
 				    // 刷新表格
-				    UIViewController *topVC = topView();
-				    if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
-					    dispatch_async(dispatch_get_main_queue(), ^{
-					      UITableView *tableView = nil;
-					      for (UIView *subview in topVC.view.subviews) {
-						      if ([subview isKindOfClass:[UITableView class]]) {
-							      tableView = (UITableView *)subview;
-							      break;
-						      }
-					      }
-
-					      if (tableView) {
-						      [tableView reloadData];
-					      }
-					    });
-				    }
+				    [self refreshTableView];
 			    } else {
 				    [DYYYManager showToast:@"请输入20-60之间的有效数值"];
 			    }
@@ -2532,22 +2313,7 @@ static void showUserAgreementAlert() {
 				    // 更新UI显示
 				    clearButtonSizeItem.detail = [NSString stringWithFormat:@"%.0f", (CGFloat)size];
 				    // 刷新表格
-				    UIViewController *topVC = topView();
-				    if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
-					    dispatch_async(dispatch_get_main_queue(), ^{
-					      UITableView *tableView = nil;
-					      for (UIView *subview in topVC.view.subviews) {
-						      if ([subview isKindOfClass:[UITableView class]]) {
-							      tableView = (UITableView *)subview;
-							      break;
-						      }
-					      }
-
-					      if (tableView) {
-						      [tableView reloadData];
-					      }
-					    });
-				    }
+				    [self refreshTableView];
 			    } else {
 				    [DYYYManager showToast:@"请输入20-60之间的有效数值"];
 			    }
@@ -2687,7 +2453,6 @@ static void showUserAgreementAlert() {
 		    documentPicker.delegate = pickerDelegate;
 		    objc_setAssociatedObject(documentPicker, &kDYYYBackupPickerDelegateKey, pickerDelegate, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
-		    // 显示文档选择器
 		    UIViewController *topVC = topView();
 		    [topVC presentViewController:documentPicker animated:YES completion:nil];
 		  };
@@ -2763,30 +2528,13 @@ static void showUserAgreementAlert() {
 
 		      [DYYYManager showToast:@"设置已恢复，请重启应用以应用所有更改"];
 
-		      // 刷新设置表格
-		      UIViewController *topVC = topView();
-		      if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
-			      dispatch_async(dispatch_get_main_queue(), ^{
-				UITableView *tableView = nil;
-				for (UIView *subview in topVC.view.subviews) {
-					if ([subview isKindOfClass:[UITableView class]]) {
-						tableView = (UITableView *)subview;
-						break;
-					}
-				}
-
-				if (tableView) {
-					[tableView reloadData];
-				}
-			      });
-		      }
+		      [self refreshTableView];
 		    };
 
 		    static char kDYYYRestorePickerDelegateKey;
 		    documentPicker.delegate = pickerDelegate;
 		    objc_setAssociatedObject(documentPicker, &kDYYYRestorePickerDelegateKey, pickerDelegate, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
-		    // 显示文档选择器
 		    UIViewController *topVC = topView();
 		    [topVC presentViewController:documentPicker animated:YES completion:nil];
 		  };
@@ -3050,22 +2798,7 @@ static void showUserAgreementAlert() {
 				[self updateDependentItemsForSetting:@"DYYYInterfaceDownload" value:text];
 			}
 
-			UIViewController *topVC = topView();
-			if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
-				dispatch_async(dispatch_get_main_queue(), ^{
-				  UITableView *tableView = nil;
-				  for (UIView *subview in topVC.view.subviews) {
-					  if ([subview isKindOfClass:[UITableView class]]) {
-						  tableView = (UITableView *)subview;
-						  break;
-					  }
-				  }
-
-				  if (tableView) {
-					  [tableView reloadData];
-				  }
-				});
-			}
+			[self refreshTableView];
 		      },
 		      nil);
 		};
@@ -3155,12 +2888,27 @@ static void showUserAgreementAlert() {
 
 %new
 - (void)handleConflictsAndDependenciesForSetting:(NSString *)identifier isEnabled:(BOOL)isEnabled {
+
 	UIViewController *topVC = topView();
+	AWESettingBaseViewController *settingsVC = nil;
 	UITableView *tableView = nil;
 
+	UIView *firstLevelView = [topVC.view.subviews firstObject];
+	UIView *secondLevelView = [firstLevelView.subviews firstObject];
+	UIView *thirdLevelView = [secondLevelView.subviews firstObject];
+
+	UIResponder *responder = thirdLevelView;
+	while (responder) {
+		if ([responder isKindOfClass:%c(AWESettingBaseViewController)]) {
+			settingsVC = (AWESettingBaseViewController *)responder;
+			break;
+		}
+		responder = [responder nextResponder];
+	}
+
 	// 查找当前的表格视图
-	if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
-		for (UIView *subview in topVC.view.subviews) {
+	if ([settingsVC isKindOfClass:%c(AWESettingBaseViewController)]) {
+		for (UIView *subview in settingsVC.view.subviews) {
 			if ([subview isKindOfClass:[UITableView class]]) {
 				tableView = (UITableView *)subview;
 				break;
@@ -3223,10 +2971,22 @@ static void showUserAgreementAlert() {
 - (void)updateDependentItemsForSetting:(NSString *)identifier value:(id)value {
 	// 寻找依赖于指定设置项的其他设置项并更新其状态
 	UIViewController *topVC = topView();
-	if (![topVC isKindOfClass:%c(AWESettingBaseViewController)])
-		return;
+	AWESettingBaseViewController *settingsVC = nil;
+	UITableView *tableView = nil;
 
-	AWESettingBaseViewController *settingsVC = (AWESettingBaseViewController *)topVC;
+	UIView *firstLevelView = [topVC.view.subviews firstObject];
+	UIView *secondLevelView = [firstLevelView.subviews firstObject];
+	UIView *thirdLevelView = [secondLevelView.subviews firstObject];
+
+	UIResponder *responder = thirdLevelView;
+	while (responder) {
+		if ([responder isKindOfClass:%c(AWESettingBaseViewController)]) {
+			settingsVC = (AWESettingBaseViewController *)responder;
+			break;
+		}
+		responder = [responder nextResponder];
+	}
+
 	AWESettingsViewModel *viewModel = (AWESettingsViewModel *)[settingsVC viewModel];
 	if (!viewModel || ![viewModel respondsToSelector:@selector(sectionDataArray)])
 		return;
@@ -3287,6 +3047,39 @@ static void showUserAgreementAlert() {
 				   ([item.identifier isEqualToString:@"DYYYClearButtonIcon"] || [item.identifier isEqualToString:@"DYYYEnableFloatClearButtonSize"])) {
 				item.isEnable = [value boolValue];
 			}
+		}
+	}
+}
+
+%new
+- (void)refreshTableView {
+	UIViewController *topVC = topView();
+	AWESettingBaseViewController *settingsVC = nil;
+	UITableView *tableView = nil;
+
+	UIView *firstLevelView = [topVC.view.subviews firstObject];
+	UIView *secondLevelView = [firstLevelView.subviews firstObject];
+	UIView *thirdLevelView = [secondLevelView.subviews firstObject];
+
+	UIResponder *responder = thirdLevelView;
+	while (responder) {
+		if ([responder isKindOfClass:%c(AWESettingBaseViewController)]) {
+			settingsVC = (AWESettingBaseViewController *)responder;
+			break;
+		}
+		responder = [responder nextResponder];
+	}
+
+	if (settingsVC) {
+		for (UIView *subview in settingsVC.view.subviews) {
+			if ([subview isKindOfClass:[UITableView class]]) {
+				tableView = (UITableView *)subview;
+				break;
+			}
+		}
+
+		if (tableView) {
+			[tableView reloadData];
 		}
 	}
 }
