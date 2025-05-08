@@ -9,8 +9,312 @@
     dispatch_once(&onceToken, ^{
         instance = [[CityManager alloc] init];
         [instance loadCityData];
+        [instance loadCountryData];
     });
     return instance;
+}
+
+- (void)loadCountryData {
+    self.countryCodeMap = @{
+        // A
+        @"AF": @"🇦🇫", // 阿富汗 Afghanistan
+        @"AX": @"🇦🇽", // 奥兰群岛 Åland Islands
+        @"AL": @"🇦🇱", // 阿尔巴尼亚 Albania
+        @"DZ": @"🇩🇿", // 阿尔及利亚 Algeria
+        @"AS": @"🇦🇸", // 美属萨摩亚 American Samoa
+        @"AD": @"🇦🇩", // 安道尔 Andorra
+        @"AO": @"🇦🇴", // 安哥拉 Angola
+        @"AI": @"🇦🇮", // 安圭拉 Anguilla
+        @"AQ": @"🇦🇶", // 南极洲 Antarctica
+        @"AG": @"🇦🇬", // 安提瓜和巴布达 Antigua & Barbuda
+        @"AR": @"🇦🇷", // 阿根廷 Argentina
+        @"AM": @"🇦🇲", // 亚美尼亚 Armenia
+        @"AW": @"🇦🇼", // 阿鲁巴 Aruba
+        @"AU": @"🇦🇺", // 澳大利亚 Australia
+        @"AT": @"🇦🇹", // 奥地利 Austria
+        @"AZ": @"🇦🇿", // 阿塞拜疆 Azerbaijan
+
+        // B
+        @"BS": @"🇧🇸", // 巴哈马 Bahamas
+        @"BH": @"🇧🇭", // 巴林 Bahrain
+        @"BD": @"🇧🇩", // 孟加拉国 Bangladesh
+        @"BB": @"🇧🇧", // 巴巴多斯 Barbados
+        @"BY": @"🇧🇾", // 白俄罗斯 Belarus
+        @"BE": @"🇧🇪", // 比利时 Belgium
+        @"BZ": @"🇧🇿", // 伯利兹 Belize
+        @"BJ": @"🇧🇯", // 贝宁 Benin
+        @"BM": @"🇧🇲", // 百慕大 Bermuda
+        @"BT": @"🇧🇹", // 不丹 Bhutan
+        @"BO": @"🇧🇴", // 玻利维亚 Bolivia
+        @"BQ": @"🇧🇶", // 博内尔、圣尤斯特歇斯和萨巴 Bonaire, Sint Eustatius & Saba
+        @"BA": @"🇧🇦", // 波斯尼亚和黑塞哥维那 Bosnia & Herzegovina
+        @"BW": @"🇧🇼", // 博茨瓦纳 Botswana
+        @"BV": @"🇧🇻", // 布维岛 Bouvet Island
+        @"BR": @"🇧🇷", // 巴西 Brazil
+        @"IO": @"🇮🇴", // 英属印度洋领地 British Indian Ocean Territory
+        @"VG": @"🇻🇬", // 英属维尔京群岛 British Virgin Islands
+        @"BN": @"🇧🇳", // 文莱 Brunei
+        @"BG": @"🇧🇬", // 保加利亚 Bulgaria
+        @"BF": @"🇧🇫", // 布基纳法索 Burkina Faso
+        @"BI": @"🇧🇮", // 布隆迪 Burundi
+
+        // C
+        @"KH": @"🇰🇭", // 柬埔寨 Cambodia
+        @"CM": @"🇨🇲", // 喀麦隆 Cameroon
+        @"CA": @"🇨🇦", // 加拿大 Canada
+        @"CV": @"🇨🇻", // 佛得角 Cape Verde
+        @"KY": @"🇰🇾", // 开曼群岛 Cayman Islands
+        @"CF": @"🇨🇫", // 中非共和国 Central African Republic
+        @"TD": @"🇹🇩", // 乍得 Chad
+        @"CL": @"🇨🇱", // 智利 Chile
+        @"CN": @"🇨🇳", // 中国 China
+        @"CX": @"🇨🇽", // 圣诞岛 Christmas Island
+        @"CC": @"🇨🇨", // 科科斯（基林）群岛 Cocos (Keeling) Islands
+        @"CO": @"🇨🇴", // 哥伦比亚 Colombia
+        @"KM": @"🇰🇲", // 科摩罗 Comoros
+        @"CG": @"🇨🇬", // 刚果（布） Congo - Brazzaville
+        @"CD": @"🇨🇩", // 刚果（金） Congo - Kinshasa
+        @"CK": @"🇨🇰", // 库克群岛 Cook Islands
+        @"CR": @"🇨🇷", // 哥斯达黎加 Costa Rica
+        @"CI": @"🇨🇮", // 科特迪瓦 Côte d’Ivoire
+        @"HR": @"🇭🇷", // 克罗地亚 Croatia
+        @"CU": @"🇨🇺", // 古巴 Cuba
+        @"CW": @"🇨🇼", // 库拉索 Curaçao
+        @"CY": @"🇨🇾", // 塞浦路斯 Cyprus
+        @"CZ": @"🇨🇿", // 捷克 Czechia (Czech Republic)
+
+        // D
+        @"DK": @"🇩🇰", // 丹麦 Denmark
+        @"DJ": @"🇩🇯", // 吉布提 Djibouti
+        @"DM": @"🇩🇲", // 多米尼克 Dominica
+        @"DO": @"🇩🇴", // 多米尼加共和国 Dominican Republic
+
+        // E
+        @"EC": @"🇪🇨", // 厄瓜多尔 Ecuador
+        @"EG": @"🇪🇬", // 埃及 Egypt
+        @"SV": @"🇸🇻", // 萨尔瓦多 El Salvador
+        @"GQ": @"🇬🇶", // 赤道几内亚 Equatorial Guinea
+        @"ER": @"🇪🇷", // 厄立特里亚 Eritrea
+        @"EE": @"🇪🇪", // 爱沙尼亚 Estonia
+        @"SZ": @"🇸🇿", // 斯威士兰 Eswatini (formerly Swaziland)
+        @"ET": @"🇪🇹", // 埃塞俄比亚 Ethiopia
+
+        // F
+        @"FK": @"🇫🇰", // 福克兰群岛（马尔维纳斯） Falkland Islands (Malvinas)
+        @"FO": @"🇫🇴", // 法罗群岛 Faroe Islands
+        @"FJ": @"🇫🇯", // 斐济 Fiji
+        @"FI": @"🇫🇮", // 芬兰 Finland
+        @"FR": @"🇫🇷", // 法国 France
+        @"GF": @"🇬🇫", // 法属圭亚那 French Guiana
+        @"PF": @"🇵🇫", // 法属波利尼西亚 French Polynesia
+        @"TF": @"🇹🇫", // 法属南部领地 French Southern Territories
+
+        // G
+        @"GA": @"🇬🇦", // 加蓬 Gabon
+        @"GM": @"🇬🇲", // 冈比亚 Gambia
+        @"GE": @"🇬🇪", // 格鲁吉亚 Georgia
+        @"DE": @"🇩🇪", // 德国 Germany
+        @"GH": @"🇬🇭", // 加纳 Ghana
+        @"GI": @"🇬🇮", // 直布罗陀 Gibraltar
+        @"GR": @"🇬🇷", // 希腊 Greece
+        @"GL": @"🇬🇱", // 格陵兰 Greenland
+        @"GD": @"🇬🇩", // 格林纳达 Grenada
+        @"GP": @"🇬🇵", // 瓜德罗普 Guadeloupe
+        @"GU": @"🇬🇺", // 关岛 Guam
+        @"GT": @"🇬🇹", // 危地马拉 Guatemala
+        @"GG": @"🇬🇬", // 根西 Guernsey
+        @"GN": @"🇬🇳", // 几内亚 Guinea
+        @"GW": @"🇬🇼", // 几内亚比绍 Guinea-Bissau
+        @"GY": @"🇬🇾", // 圭亚那 Guyana
+
+        // H
+        @"HT": @"🇭🇹", // 海地 Haiti
+        @"HM": @"🇭🇲", // 赫德岛和麦克唐纳群岛 Heard & McDonald Islands
+        @"HN": @"🇭🇳", // 洪都拉斯 Honduras
+        @"HK": @"🇭🇰", // 中国香港特别行政区 Hong Kong SAR China
+        @"HU": @"🇭🇺", // 匈牙利 Hungary
+
+        // I
+        @"IS": @"🇮🇸", // 冰岛 Iceland
+        @"IN": @"🇮🇳", // 印度 India
+        @"ID": @"🇮🇩", // 印度尼西亚 Indonesia
+        @"IR": @"🇮🇷", // 伊朗 Iran
+        @"IQ": @"🇮🇶", // 伊拉克 Iraq
+        @"IE": @"🇮🇪", // 爱尔兰 Ireland
+        @"IM": @"🇮🇲", // 马恩岛 Isle of Man
+        @"IL": @"🇮🇱", // 以色列 Israel
+        @"IT": @"🇮🇹", // 意大利 Italy
+
+        // J
+        @"JM": @"🇯🇲", // 牙买加 Jamaica
+        @"JP": @"🇯🇵", // 日本 Japan
+        @"JE": @"🇯🇪", // 泽西 Jersey
+        @"JO": @"🇯🇴", // 约旦 Jordan
+
+        // K
+        @"KZ": @"🇰🇿", // 哈萨克斯坦 Kazakhstan
+        @"KE": @"🇰🇪", // 肯尼亚 Kenya
+        @"KI": @"🇰🇮", // 基里巴斯 Kiribati
+        @"KW": @"🇰🇼", // 科威特 Kuwait
+        @"KG": @"🇰🇬", // 吉尔吉斯斯坦 Kyrgyzstan
+
+        // L
+        @"LA": @"🇱🇦", // 老挝 Laos
+        @"LV": @"🇱🇻", // 拉脱维亚 Latvia
+        @"LB": @"🇱🇧", // 黎巴嫩 Lebanon
+        @"LS": @"🇱🇸", // 莱索托 Lesotho
+        @"LR": @"🇱🇷", // 利比里亚 Liberia
+        @"LY": @"🇱🇾", // 利比亚 Libya
+        @"LI": @"🇱🇮", // 列支敦士登 Liechtenstein
+        @"LT": @"🇱🇹", // 立陶宛 Lithuania
+        @"LU": @"🇱🇺", // 卢森堡 Luxembourg
+
+        // M
+        @"MO": @"🇲🇴", // 中国澳门特别行政区 Macao SAR China
+        @"MG": @"🇲🇬", // 马达加斯加 Madagascar
+        @"MW": @"🇲🇼", // 马拉维 Malawi
+        @"MY": @"🇲🇾", // 马来西亚 Malaysia
+        @"MV": @"🇲🇻", // 马尔代夫 Maldives
+        @"ML": @"🇲🇱", // 马里 Mali
+        @"MT": @"🇲🇹", // 马耳他 Malta
+        @"MH": @"🇲🇭", // 马绍尔群岛 Marshall Islands
+        @"MQ": @"🇲🇶", // 马提尼克 Martinique
+        @"MR": @"🇲🇷", // 毛里塔尼亚 Mauritania
+        @"MU": @"🇲🇺", // 毛里求斯 Mauritius
+        @"YT": @"🇾🇹", // 马约特 Mayotte
+        @"MX": @"🇲🇽", // 墨西哥 Mexico
+        @"FM": @"🇫🇲", // 密克罗尼西亚 Micronesia
+        @"MD": @"🇲🇩", // 摩尔多瓦 Moldova
+        @"MC": @"🇲🇨", // 摩纳哥 Monaco
+        @"MN": @"🇲🇳", // 蒙古 Mongolia
+        @"ME": @"🇲🇪", // 黑山 Montenegro
+        @"MS": @"🇲🇸", // 蒙特塞拉特 Montserrat
+        @"MA": @"🇲🇦", // 摩洛哥 Morocco
+        @"MZ": @"🇲🇿", // 莫桑比克 Mozambique
+        @"MM": @"🇲🇲", // 缅甸 Myanmar (Burma)
+
+        // N
+        @"NA": @"🇳🇦", // 纳米比亚 Namibia
+        @"NR": @"🇳🇷", // 瑙鲁 Nauru
+        @"NP": @"🇳🇵", // 尼泊尔 Nepal
+        @"NL": @"🇳🇱", // 荷兰 Netherlands
+        @"NC": @"🇳🇨", // 新喀里多尼亚 New Caledonia
+        @"NZ": @"🇳🇿", // 新西兰 New Zealand
+        @"NI": @"🇳🇮", // 尼加拉瓜 Nicaragua
+        @"NE": @"🇳🇪", // 尼日尔 Niger
+        @"NG": @"🇳🇬", // 尼日利亚 Nigeria
+        @"NU": @"🇳🇺", // 纽埃 Niue
+        @"NF": @"🇳🇫", // 诺福克岛 Norfolk Island
+        @"KP": @"🇰🇵", // 朝鲜 North Korea
+        @"MK": @"🇲🇰", // 北马其顿 North Macedonia (formerly Macedonia)
+        @"MP": @"🇲🇵", // 北马里亚纳群岛 Northern Mariana Islands
+        @"NO": @"🇳🇴", // 挪威 Norway
+
+        // O
+        @"OM": @"🇴🇲", // 阿曼 Oman
+
+        // P
+        @"PK": @"🇵🇰", // 巴基斯坦 Pakistan
+        @"PW": @"🇵🇼", // 帕劳 Palau
+        @"PS": @"🇵🇸", // 巴勒斯坦领土 Palestinian Territories
+        @"PA": @"🇵🇦", // 巴拿马 Panama
+        @"PG": @"🇵🇬", // 巴布亚新几内亚 Papua New Guinea
+        @"PY": @"🇵🇾", // 巴拉圭 Paraguay
+        @"PE": @"🇵🇪", // 秘鲁 Peru
+        @"PH": @"🇵🇭", // 菲律宾 Philippines
+        @"PN": @"🇵🇳", // 皮特凯恩群岛 Pitcairn Islands
+        @"PL": @"🇵🇱", // 波兰 Poland
+        @"PT": @"🇵🇹", // 葡萄牙 Portugal
+        @"PR": @"🇵🇷", // 波多黎各 Puerto Rico
+
+        // Q
+        @"QA": @"🇶🇦", // 卡塔尔 Qatar
+
+        // R
+        @"RE": @"🇷🇪", // 留尼汪 Réunion
+        @"RO": @"🇷🇴", // 罗马尼亚 Romania
+        @"RU": @"🇷🇺", // 俄罗斯 Russia
+        @"RW": @"🇷🇼", // 卢旺达 Rwanda
+
+        // S
+        @"BL": @"🇧🇱", // 圣巴泰勒米 St. Barthélemy
+        @"SH": @"🇸🇭", // 圣赫勒拿 St. Helena
+        @"KN": @"🇰🇳", // 圣基茨和尼维斯 St. Kitts & Nevis
+        @"LC": @"🇱🇨", // 圣卢西亚 St. Lucia
+        @"MF": @"🇲🇫", // 法属圣马丁 St. Martin (French part)
+        @"PM": @"🇵🇲", // 圣皮埃尔和密克隆 St. Pierre & Miquelon
+        @"VC": @"🇻🇨", // 圣文森特和格林纳丁斯 St. Vincent & Grenadines
+        @"WS": @"🇼🇸", // 萨摩亚 Samoa
+        @"SM": @"🇸🇲", // 圣马力诺 San Marino
+        @"ST": @"🇸🇹", // 圣多美和普林西比 São Tomé & Príncipe
+        @"SA": @"🇸🇦", // 沙特阿拉伯 Saudi Arabia
+        @"SN": @"🇸🇳", // 塞内加尔 Senegal
+        @"RS": @"🇷🇸", // 塞尔维亚 Serbia
+        @"SC": @"🇸🇨", // 塞舌尔 Seychelles
+        @"SL": @"🇸🇱", // 塞拉利昂 Sierra Leone
+        @"SG": @"🇸🇬", // 新加坡 Singapore
+        @"SX": @"🇸🇽", // 荷属圣马丁 Sint Maarten (Dutch part)
+        @"SK": @"🇸🇰", // 斯洛伐克 Slovakia
+        @"SI": @"🇸🇮", // 斯洛文尼亚 Slovenia
+        @"SB": @"🇸🇧", // 所罗门群岛 Solomon Islands
+        @"SO": @"🇸🇴", // 索马里 Somalia
+        @"ZA": @"🇿🇦", // 南非 South Africa
+        @"GS": @"🇬🇸", // 南乔治亚和南桑威奇群岛 South Georgia & South Sandwich Islands
+        @"KR": @"🇰🇷", // 韩国 South Korea
+        @"SS": @"🇸🇸", // 南苏丹 South Sudan
+        @"ES": @"🇪🇸", // 西班牙 Spain
+        @"LK": @"🇱🇰", // 斯里兰卡 Sri Lanka
+        @"SD": @"🇸🇩", // 苏丹 Sudan
+        @"SR": @"🇸🇷", // 苏里南 Suriname
+        @"SJ": @"🇸🇯", // 斯瓦尔巴和扬马延 Svalbard & Jan Mayen
+        @"SE": @"🇸🇪", // 瑞典 Sweden
+        @"CH": @"🇨🇭", // 瑞士 Switzerland
+        @"SY": @"🇸🇾", // 叙利亚 Syria
+
+        // T
+        @"TW": @"🇹🇼", // 中国台湾 Taiwan
+        @"TJ": @"🇹🇯", // 塔吉克斯坦 Tajikistan
+        @"TZ": @"🇹🇿", // 坦桑尼亚 Tanzania
+        @"TH": @"🇹🇭", // 泰国 Thailand
+        @"TL": @"🇹🇱", // 东帝汶 Timor-Leste
+        @"TG": @"🇹🇬", // 多哥 Togo
+        @"TK": @"🇹🇰", // 托克劳 Tokelau
+        @"TO": @"🇹🇴", // 汤加 Tonga
+        @"TT": @"🇹🇹", // 特立尼达和多巴哥 Trinidad & Tobago
+        @"TN": @"🇹🇳", // 突尼斯 Tunisia
+        @"TR": @"🇹🇷", // 土耳其 Turkey
+        @"TM": @"🇹🇲", // 土库曼斯坦 Turkmenistan
+        @"TC": @"🇹🇨", // 特克斯和凯科斯群岛 Turks & Caicos Islands
+        @"TV": @"🇹🇻", // 图瓦卢 Tuvalu
+
+        // U
+        @"UG": @"🇺🇬", // 乌干达 Uganda
+        @"UA": @"🇺🇦", // 乌克兰 Ukraine
+        @"AE": @"🇦🇪", // 阿拉伯联合酋长国 United Arab Emirates
+        @"GB": @"🇬🇧", // 英国 United Kingdom
+        @"US": @"🇺🇸", // 美国 United States
+        @"UM": @"🇺🇲", // 美国本土外小岛屿 U.S. Outlying Islands
+        @"UY": @"🇺🇾", // 乌拉圭 Uruguay
+        @"UZ": @"🇺🇿", // 乌兹别克斯坦 Uzbekistan
+
+        // V
+        @"VU": @"🇻🇺", // 瓦努阿图 Vanuatu
+        @"VA": @"🇻🇦", // 梵蒂冈 Vatican City
+        @"VE": @"🇻🇪", // 委内瑞拉 Venezuela
+        @"VN": @"🇻🇳", // 越南 Vietnam
+        @"VI": @"🇻🇮", // 美属维尔京群岛 U.S. Virgin Islands
+
+        // W
+        @"WF": @"🇼🇫", // 瓦利斯和富图纳 Wallis & Futuna
+        @"EH": @"🇪🇭", // 西撒哈拉 Western Sahara (status disputed)
+
+        // Y
+        @"YE": @"🇾🇪", // 也门 Yemen
+
+        // Z
+        @"ZM": @"🇿🇲", // 赞比亚 Zambia
+        @"ZW": @"🇿🇼", // 津巴布韦 Zimbabwe
+    };
 }
 
 - (void)loadCityData {
@@ -441,12 +745,24 @@
     return provinceCodeName;
 }
 
+- (NSString *)getCountryFlagWithCode:(NSString *)code {
+    if (!code || code.length < 2) {
+        return nil;
+    }
+    NSString *countryFlag = self.countryCodeMap[code];
+    
+    if (!countryFlag) {
+        return nil;
+    }
+    return countryFlag;
+}
+
 + (void)fetchLocationWithGeonameId:(NSString *)geonameId completionHandler:(void (^)(NSDictionary *locationInfo, NSError *error))completionHandler {
      NSString *username = [[NSUserDefaults standardUserDefaults] stringForKey:@"DYYYGeonamesUsername"];
     if (!username || [username length] == 0) {
         username = @"your_username"; 
     }
-    NSString *urlString = [NSString stringWithFormat:@"https://secure.geonames.org/getJSON?geonameId=%@&lang=zh&username=%@", geonameId, username];
+    NSString *urlString = [NSString stringWithFormat:@"https://secure.geonames.org/getJSON?geonameId=%@&lang=en&username=%@", geonameId, username];
     NSURL *url = [NSURL URLWithString:urlString];
     
     NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithURL:url completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
