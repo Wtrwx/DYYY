@@ -1454,29 +1454,162 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
         if (cityCode.length > 0) {
             NSString *cityName = [CityManager.sharedInstance getCityNameWithCode:cityCode];
             NSString *provinceName = [CityManager.sharedInstance getProvinceNameWithCode:cityCode];
-            
-            // 如果常规匹配没有找到城市名，检查是否是国外地址代码
+           // 使用 GeoNames API
             if (!cityName || cityName.length == 0) {
-                // 尝试国外匹配：检查前缀是否与国外代码匹配
-                for (int i = 1; i <= cityCode.length && i <= 3; i++) {
-                    NSString *prefixCode = [cityCode substringToIndex:i];
-                    NSString *foreignCountryName = [CityManager.sharedInstance getCityNameWithCode:prefixCode];
-                    if (foreignCountryName && foreignCountryName.length > 0) {
-                        label.text = [NSString stringWithFormat:@"%@  IP属地：%@", text, foreignCountryName];
-                        break;
+                NSString *cacheKey = cityCode;
+                
+                static NSCache *geoNamesCache = nil;
+                static dispatch_once_t onceToken;
+                dispatch_once(&onceToken, ^{
+                    geoNamesCache = [[NSCache alloc] init];
+                    geoNamesCache.name = @"com.dyyy.geonames.cache";
+                    geoNamesCache.countLimit = 1000;
+                });
+                
+                NSDictionary *cachedData = [geoNamesCache objectForKey:cacheKey];
+                
+                if (!cachedData) {
+                    NSString *cachesDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject];
+                    NSString *geoNamesCacheDir = [cachesDir stringByAppendingPathComponent:@"DYYYGeoNamesCache"];
+                    
+                    NSFileManager *fileManager = [NSFileManager defaultManager];
+                    if (![fileManager fileExistsAtPath:geoNamesCacheDir]) {
+                        [fileManager createDirectoryAtPath:geoNamesCacheDir withIntermediateDirectories:YES attributes:nil error:nil];
+                    }
+                    
+                    NSString *cacheFilePath = [geoNamesCacheDir stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.plist", cacheKey]];
+                    
+                    if ([fileManager fileExistsAtPath:cacheFilePath]) {
+                        cachedData = [NSDictionary dictionaryWithContentsOfFile:cacheFilePath];
+                        if (cachedData) {
+                            [geoNamesCache setObject:cachedData forKey:cacheKey];
+                        }
                     }
                 }
+                
+                if (cachedData) {
+                    NSString *countryCode = cachedData[@"countryCode"];
+                    NSString *adminCode1 = cachedData[@"adminCode1"];
+					NSString *adminName1 = cachedData[@"adminName1"];
+                    NSString *localName = cachedData[@"name"];
+                    NSString *displayLocation = @"未知";
+					NSString *countryFlag = [CityManager.sharedInstance getCountryFlagWithCode:countryCode];
+                    
+                    if (countryCode.length > 0) {
+                        if (![countryCode isEqualToString:@"CN"] && ![countryCode isEqualToString:localName]) {
+						// 检查 adminCode1 是否为数字
+						BOOL isNumeric = [adminCode1 rangeOfCharacterFromSet:[[NSCharacterSet decimalDigitCharacterSet] invertedSet]].location == NSNotFound;
+						
+						if (isNumeric) {
+							// 如果 adminCode1 是数字，使用 adminName1
+							displayLocation = [NSString stringWithFormat:@"%@ %@, %@", countryFlag, localName, adminName1];
+						} else {
+							// 如果 adminCode1 不是数字，使用 adminCode1
+							displayLocation = [NSString stringWithFormat:@"%@ %@, %@", countryFlag, localName, adminCode1];
+						}
+                        } else if (localName.length > 0 && ![countryCode isEqualToString:localName]) {
+                            // 只有国家和地点名
+                            displayLocation = [NSString stringWithFormat:@"%@ %@", countryFlag, localName];
+                        } else {
+                            // 只有国家名
+                            displayLocation = countryFlag;
+                        }
+                    } else if (localName.length > 0) {
+                        displayLocation = localName;
+                    }
+                  
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        NSString *currentText = label.text ?: @"";
+                        
+                        if ([currentText containsString:@"IP："]) {
+                            NSRange range = [currentText rangeOfString:@"IP："];
+                            if (range.location != NSNotFound) {
+                                NSString *baseText = [currentText substringToIndex:range.location];
+                                if (![currentText containsString:displayLocation]) {
+                                    label.text = [NSString stringWithFormat:@"%@IP：%@", baseText, displayLocation];
+                                }
+                            }
+                        } else {
+                            NSString *baseText = label.text ?: @"";
+                            if (baseText.length > 0) {
+                                label.text = [NSString stringWithFormat:@"%@  IP：%@", baseText, displayLocation];
+                            }
+                        }
+                    });
+                } else {
+                    [CityManager fetchLocationWithGeonameId:cityCode completionHandler:^(NSDictionary *locationInfo, NSError *error) {
+                        if (locationInfo) {
+						NSString *countryCode = cachedData[@"countryCode"];
+						NSString *adminCode1 = cachedData[@"adminCode1"];
+						NSString *adminName1 = cachedData[@"adminName1"];
+						NSString *localName = cachedData[@"name"];
+						NSString *displayLocation = @"未知";
+						NSString *countryFlag = [CityManager.sharedInstance getCountryFlagWithCode:countryCode];
+                    
+
+                            // 根据返回数据构建位置显示文本
+                            if (countryCode.length > 0) {
+                                if (![countryCode isEqualToString:@"CN"] && ![countryCode isEqualToString:localName]) {
+								// 检查 adminCode1 是否为数字
+								BOOL isNumeric = [adminCode1 rangeOfCharacterFromSet:[[NSCharacterSet decimalDigitCharacterSet] invertedSet]].location == NSNotFound;
+								
+								if (isNumeric) {
+									// 如果 adminCode1 是数字，使用 adminName1
+									displayLocation = [NSString stringWithFormat:@"%@ %@, %@", countryFlag, localName, adminName1];
+								} else {
+									// 如果 adminCode1 不是数字，使用 adminCode1
+									displayLocation = [NSString stringWithFormat:@"%@ %@, %@", countryFlag, localName, adminCode1];
+								}
+                                } else if (localName.length > 0 && ![countryCode isEqualToString:localName]) {
+                                    // 只有国家和地点名
+                                    displayLocation = [NSString stringWithFormat:@"%@ %@", countryFlag, localName];
+                                } else {
+                                    // 只有国家名
+                                    displayLocation = countryFlag;
+                                }
+                            } else if (localName.length > 0) {
+                                displayLocation = localName;
+                            }
+       
+                            [geoNamesCache setObject:locationInfo forKey:cacheKey];
+                            
+                            NSString *cachesDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject];
+                            NSString *geoNamesCacheDir = [cachesDir stringByAppendingPathComponent:@"DYYYGeoNamesCache"];
+                            NSString *cacheFilePath = [geoNamesCacheDir stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.plist", cacheKey]];
+                            
+                            [locationInfo writeToFile:cacheFilePath atomically:YES];
+                            
+                            dispatch_async(dispatch_get_main_queue(), ^{
+                                NSString *currentText = label.text ?: @"";
+                                
+                                if ([currentText containsString:@"IP："]) {
+                                    NSRange range = [currentText rangeOfString:@"IP："];
+                                    if (range.location != NSNotFound) {
+                                        NSString *baseText = [currentText substringToIndex:range.location];
+                                        if (![currentText containsString:displayLocation]) {
+                                            label.text = [NSString stringWithFormat:@"%@IP：%@", baseText, displayLocation];
+                                        }
+                                    }
+                                } else {
+                                    NSString *baseText = label.text ?: @"";
+                                    if (baseText.length > 0) {
+                                        label.text = [NSString stringWithFormat:@"%@  IP：%@", baseText, displayLocation];
+                                    }
+                                }
+                            });
+                        }
+                    }];
+                }
             } else if (![text containsString:cityName]) {
-                // 国内地址常规处理
                 if (!self.model.ipAttribution) {
                     BOOL isDirectCity = [provinceName isEqualToString:cityName] ||
                             ([cityCode hasPrefix:@"11"] || [cityCode hasPrefix:@"12"] || 
                              [cityCode hasPrefix:@"31"] || [cityCode hasPrefix:@"50"]);
 
                     if (isDirectCity) {
-                        label.text = [NSString stringWithFormat:@"%@  IP属地：%@", text, cityName];
+                        label.text = [NSString stringWithFormat:@"%@  IP：%@", text, cityName];
                     } else {
-                        label.text = [NSString stringWithFormat:@"%@  IP属地：%@ %@", text, provinceName, cityName];
+                        label.text = [NSString stringWithFormat:@"%@  IP：%@ %@", text, provinceName, cityName];
                     }
                 } else {
                     BOOL isDirectCity = [provinceName isEqualToString:cityName] ||
@@ -1487,7 +1620,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
                     if (containsProvince && !isDirectCity) {
                         label.text = [NSString stringWithFormat:@"%@ %@", text, cityName];
                     } else if (containsProvince && isDirectCity) {
-                        label.text = [NSString stringWithFormat:@"%@  IP属地：%@", text, cityName];
+                        label.text = [NSString stringWithFormat:@"%@  IP：%@", text, cityName];
                     } else if (isDirectCity && containsProvince) {
                         label.text = text;
                     } else if (containsProvince) {
@@ -1499,7 +1632,7 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
             }
         }
     }
-	// 应用IP属地标签上移
+	// 应用IP标签上移
 	NSString *ipScaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYNicknameScale"];
 	if (ipScaleValue.length > 0) {
 		UIFont *originalFont = label.font;
