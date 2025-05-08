@@ -1454,20 +1454,136 @@ static void DYYYAddCustomViewToParent(UIView *parentView, float transparency) {
         if (cityCode.length > 0) {
             NSString *cityName = [CityManager.sharedInstance getCityNameWithCode:cityCode];
             NSString *provinceName = [CityManager.sharedInstance getProvinceNameWithCode:cityCode];
-            
-            // 如果常规匹配没有找到城市名，检查是否是国外地址代码
+           // 使用 GeoNames API
             if (!cityName || cityName.length == 0) {
-                // 尝试国外匹配：检查前缀是否与国外代码匹配
-                for (int i = 1; i <= cityCode.length && i <= 3; i++) {
-                    NSString *prefixCode = [cityCode substringToIndex:i];
-                    NSString *foreignCountryName = [CityManager.sharedInstance getCityNameWithCode:prefixCode];
-                    if (foreignCountryName && foreignCountryName.length > 0) {
-                        label.text = [NSString stringWithFormat:@"%@  IP属地：%@", text, foreignCountryName];
-                        break;
+                NSString *cacheKey = cityCode;
+                
+                static NSCache *geoNamesCache = nil;
+                static dispatch_once_t onceToken;
+                dispatch_once(&onceToken, ^{
+                    geoNamesCache = [[NSCache alloc] init];
+                    geoNamesCache.name = @"com.dyyy.geonames.cache";
+                    geoNamesCache.countLimit = 1000;
+                });
+                
+                NSDictionary *cachedData = [geoNamesCache objectForKey:cacheKey];
+                
+                if (!cachedData) {
+                    NSString *cachesDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject];
+                    NSString *geoNamesCacheDir = [cachesDir stringByAppendingPathComponent:@"DYYYGeoNamesCache"];
+                    
+                    NSFileManager *fileManager = [NSFileManager defaultManager];
+                    if (![fileManager fileExistsAtPath:geoNamesCacheDir]) {
+                        [fileManager createDirectoryAtPath:geoNamesCacheDir withIntermediateDirectories:YES attributes:nil error:nil];
+                    }
+                    
+                    NSString *cacheFilePath = [geoNamesCacheDir stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.plist", cacheKey]];
+                    
+                    if ([fileManager fileExistsAtPath:cacheFilePath]) {
+                        cachedData = [NSDictionary dictionaryWithContentsOfFile:cacheFilePath];
+                        if (cachedData) {
+                            [geoNamesCache setObject:cachedData forKey:cacheKey];
+                        }
                     }
                 }
+                
+                if (cachedData) {
+                    NSString *countryName = cachedData[@"countryName"];
+                    NSString *adminName1 = cachedData[@"adminName1"];
+                    NSString *localName = cachedData[@"name"];
+                    NSString *displayLocation = @"未知";
+                    
+                    if (countryName.length > 0) {
+                        if (adminName1.length > 0 && localName.length > 0 && 
+                            ![countryName isEqualToString:@"中国"] && 
+                            ![countryName isEqualToString:localName]) {
+                            // 国外位置：国家 + 州/省 + 地点
+                            displayLocation = [NSString stringWithFormat:@"%@ %@ %@", countryName, adminName1, localName];
+                        } else if (localName.length > 0 && ![countryName isEqualToString:localName]) {
+                            // 只有国家和地点名
+                            displayLocation = [NSString stringWithFormat:@"%@ %@", countryName, localName];
+                        } else {
+                            // 只有国家名
+                            displayLocation = countryName;
+                        }
+                    } else if (localName.length > 0) {
+                        displayLocation = localName;
+                    }
+                  
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        NSString *currentText = label.text ?: @"";
+                        
+                        if ([currentText containsString:@"IP属地："]) {
+                            NSRange range = [currentText rangeOfString:@"IP属地："];
+                            if (range.location != NSNotFound) {
+                                NSString *baseText = [currentText substringToIndex:range.location];
+                                if (![currentText containsString:displayLocation]) {
+                                    label.text = [NSString stringWithFormat:@"%@IP属地：%@", baseText, displayLocation];
+                                }
+                            }
+                        } else {
+                            NSString *baseText = label.text ?: @"";
+                            if (baseText.length > 0) {
+                                label.text = [NSString stringWithFormat:@"%@  IP属地：%@", baseText, displayLocation];
+                            }
+                        }
+                    });
+                } else {
+                    [CityManager fetchLocationWithGeonameId:cityCode completionHandler:^(NSDictionary *locationInfo, NSError *error) {
+                        if (locationInfo) {
+                            NSString *countryName = locationInfo[@"countryName"];
+                            NSString *adminName1 = locationInfo[@"adminName1"];  // 州/省级名称
+                            NSString *localName = locationInfo[@"name"];         // 当前地点名称
+                            NSString *displayLocation = @"未知";
+                            
+                            // 根据返回数据构建位置显示文本
+                            if (countryName.length > 0) {
+                                if (adminName1.length > 0 && localName.length > 0 && 
+                                    ![countryName isEqualToString:@"中国"] && 
+                                    ![countryName isEqualToString:localName]) {
+                                    // 国外位置：国家 + 州/省 + 地点
+                                    displayLocation = [NSString stringWithFormat:@"%@ %@ %@", countryName, adminName1, localName];
+                                } else if (localName.length > 0 && ![countryName isEqualToString:localName]) {
+                                    // 只有国家和地点名
+                                    displayLocation = [NSString stringWithFormat:@"%@ %@", countryName, localName];
+                                } else {
+                                    // 只有国家名
+                                    displayLocation = countryName;
+                                }
+                            } else if (localName.length > 0) {
+                                displayLocation = localName;
+                            }
+       
+                            [geoNamesCache setObject:locationInfo forKey:cacheKey];
+                            
+                            NSString *cachesDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject];
+                            NSString *geoNamesCacheDir = [cachesDir stringByAppendingPathComponent:@"DYYYGeoNamesCache"];
+                            NSString *cacheFilePath = [geoNamesCacheDir stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.plist", cacheKey]];
+                            
+                            [locationInfo writeToFile:cacheFilePath atomically:YES];
+                            
+                            dispatch_async(dispatch_get_main_queue(), ^{
+                                NSString *currentText = label.text ?: @"";
+                                
+                                if ([currentText containsString:@"IP属地："]) {
+                                    NSRange range = [currentText rangeOfString:@"IP属地："];
+                                    if (range.location != NSNotFound) {
+                                        NSString *baseText = [currentText substringToIndex:range.location];
+                                        if (![currentText containsString:displayLocation]) {
+                                            label.text = [NSString stringWithFormat:@"%@IP属地：%@", baseText, displayLocation];
+                                        }
+                                    }
+                                } else {
+                                    NSString *baseText = label.text ?: @"";
+                                    if (baseText.length > 0) {
+                                        label.text = [NSString stringWithFormat:@"%@  IP属地：%@", baseText, displayLocation];
+                                    }
+                                }
+                            });
+                        }
+                    }];
+                }
             } else if (![text containsString:cityName]) {
-                // 国内地址常规处理
                 if (!self.model.ipAttribution) {
                     BOOL isDirectCity = [provinceName isEqualToString:cityName] ||
                             ([cityCode hasPrefix:@"11"] || [cityCode hasPrefix:@"12"] || 
@@ -2172,33 +2288,69 @@ static CGFloat currentScale = 1.0;
 }
 %end
 
-// 禁用AWEPlayVideoViewController中的HDR
-%hook AWEPlayVideoViewController
-- (void)setHDRVideoMode:(NSInteger)mode {
+%hook AWEFeedABSettings
++ (BOOL)enableHDRBrightnessOpt {
     if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-        %orig(0); 
+        return NO; // 关闭HDR亮度优化
+    }
+    return %orig;
+}
++ (BOOL)hdrAutomaticIdentification {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
+        return NO; // 关闭HDR自动识别
+    }
+    return %orig;
+}
+%end
+%hook BDSimPlayerMediaViewController
+- (void)setEnableHDR:(BOOL)enable {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
+        %orig(NO); 
     } else {
+        %orig;
+    }
+}
+- (void)setEnablePlayHDRMode {
+    if (![[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
         %orig; 
     }
 }
 %end
-// 禁用BDSimMediaPlayer中的HDR
-%hook BDSimMediaPlayer
-- (void)setHDRVideoMode:(NSInteger)mode {
+%hook AWEVideoPlayerConfiguration
++ (void)setHDRBrightnessStrategy:(id)strategy {
+    if (![[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
+        %orig;
+    }
+}
+%end
+%hook BDSimPlayerBizConfig
+- (BOOL)enableHDRBrightnessOpt {
     if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-        %orig(0);
+        return NO; 
+    }
+    return %orig;
+}
+%end
+%hook AWEProtectEyesManager
+- (void)setHDRlutImage:(id)image {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
+        %orig(nil); 
     } else {
         %orig;
     }
 }
 %end
-// 禁用BDSimPlayerMediaViewController中的HDR
-%hook BDSimPlayerMediaViewController
-- (void)setHDRVideoMode:(NSInteger)mode {
+%hook BDSimMediaPlayer
+- (void)setEnableHDR:(BOOL)enable {
     if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-        %orig(0);
+        %orig(NO); 
     } else {
         %orig;
+    }
+}
+- (void)setEnablePlayHDRMode {
+    if (![[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
+        %orig; 
     }
 }
 %end
