@@ -1769,7 +1769,7 @@ static void showUserAgreementAlert() {
 		    // 获取当前热更新状态
 		    abTestBlockEnabled = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYABTestBlockEnabled"];
 		    AWESettingItemModel *disableHotUpdateItem = [[%c(AWESettingItemModel) alloc] init];
-		    disableHotUpdateItem.identifier = @"abTestBlockEnabled";
+		    disableHotUpdateItem.identifier = @"aBTestBlockEnabled";
 		    disableHotUpdateItem.title = @"禁用下发配置";
 		    disableHotUpdateItem.detail = @"";
 		    disableHotUpdateItem.type = 1000;
@@ -1797,7 +1797,7 @@ static void showUserAgreementAlert() {
 				    disableHotUpdateItem.isSwitchOn = newValue;
 				    abTestBlockEnabled = newValue;
 
-				    [[NSUserDefaults standardUserDefaults] setBool:newValue forKey:@"DYYYABTestBlockEnabled"];
+				    [[NSUserDefaults standardUserDefaults] setBool:newValue forKey:@"ABTestBlockEnabled"];
 				    [[NSUserDefaults standardUserDefaults] synchronize];
 
 				    // 重置全局变量，下次加载时会重新读取文件
@@ -1812,7 +1812,7 @@ static void showUserAgreementAlert() {
 			      disableHotUpdateItem.isSwitchOn = newValue;
 			      abTestBlockEnabled = newValue;
 
-			      [[NSUserDefaults standardUserDefaults] setBool:newValue forKey:@"DYYYABTestBlockEnabled"];
+			      [[NSUserDefaults standardUserDefaults] setBool:newValue forKey:@"ABTestBlockEnabled"];
 			      [[NSUserDefaults standardUserDefaults] synchronize];
 
 			      [self refreshTableView];
@@ -2001,6 +2001,11 @@ static void showUserAgreementAlert() {
 			      @"imageName" : @"ic_at_outlined_20"},
 			    @{@"identifier" : @"DYYYisEnableModern",
 			      @"title" : @"启用新版玻璃面板",
+			      @"detail" : @"",
+			      @"cellType" : @6,
+			      @"imageName" : @"ic_gearsimplify_outlined_20"},
+			    @{@"identifier" : @"DYYYPanelcells",
+			      @"title" : @"启用新面板单元格",
 			      @"detail" : @"",
 			      @"cellType" : @6,
 			      @"imageName" : @"ic_gearsimplify_outlined_20"},
