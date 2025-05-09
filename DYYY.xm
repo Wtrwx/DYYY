@@ -50,6 +50,54 @@
 
 %end
 
+%hook AWEPlayInteractionFollowPromptView
+
+- (void)didMoveToSuperview {
+    %orig;
+
+    for (UIGestureRecognizer *gesture in self.gestureRecognizers) {
+        if ([gesture isKindOfClass:[UITapGestureRecognizer class]]) {
+            [self removeGestureRecognizer:gesture];
+        }
+    }
+    
+    UITapGestureRecognizer *tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTapWithConfirmation:)];
+    [self addGestureRecognizer:tapGesture];
+}
+
+%new
+- (void)handleTapWithConfirmation:(UITapGestureRecognizer *)gesture {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYfollowTips"]) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [DYYYBottomAlertView showAlertWithTitle:@"关注确认"
+                                            message:@"是否确认关注？"
+                                        cancelAction:nil
+                                       confirmAction:^{
+                                           [self performOriginalTapAction];
+                                       }];
+        });
+    } else {
+        [self performOriginalTapAction];
+    }
+}
+
+%new
+- (void)performOriginalTapAction {
+    UIResponder *responder = [self nextResponder];
+    while (responder != nil) {
+        if ([responder respondsToSelector:@selector(onFollowViewClicked:)]) {
+            [responder performSelector:@selector(onFollowViewClicked:) withObject:nil];
+            break;
+        }
+        if ([responder respondsToSelector:@selector(followUser)]) {
+            [responder performSelector:@selector(followUser)];
+            break;
+        }
+        responder = [responder nextResponder];
+    }
+}
+
+%end
 %end
 
 %hook AWENormalModeTabBarGeneralPlusButton
@@ -1534,73 +1582,43 @@
 }
 %end
 
-%hook AWEFeedABSettings
-+ (BOOL)enableHDRBrightnessOpt {
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-        return NO; // 关闭HDR亮度优化
-    }
-    return %orig;
-}
-+ (BOOL)hdrAutomaticIdentification {
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-        return NO; // 关闭HDR自动识别
-    }
-    return %orig;
-}
-%end
-%hook BDSimPlayerMediaViewController
-- (void)setEnableHDR:(BOOL)enable {
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-        %orig(NO); 
-    } else {
-        %orig;
-    }
-}
-- (void)setEnablePlayHDRMode {
-    if (![[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-        %orig; 
-    }
-}
-%end
-%hook AWEVideoPlayerConfiguration
-+ (void)setHDRBrightnessStrategy:(id)strategy {
-    if (![[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-        %orig;
-    }
-}
-%end
-%hook BDSimPlayerBizConfig
-- (BOOL)enableHDRBrightnessOpt {
+%hook AWEHDRModelManager
++ (BOOL)enableVideoHDR {
     if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
         return NO; 
     }
     return %orig;
 }
-%end
-%hook AWEProtectEyesManager
-- (void)setHDRlutImage:(id)image {
++ (BOOL)useOneKeyHDR {
     if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-        %orig(nil); 
-    } else {
-        %orig;
+        return NO; 
     }
+    return %orig; 
 }
 %end
-%hook BDSimMediaPlayer
-- (void)setEnableHDR:(BOOL)enable {
+%hook VEHDRDetectionUtils
++ (BOOL)isHDRVideo:(id)arg0 {
     if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-        %orig(NO); 
-    } else {
-        %orig;
+        return NO; 
     }
+    return %orig; 
 }
-- (void)setEnablePlayHDRMode {
-    if (![[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-        %orig; 
++ (id)detectionHDRType:(id)arg0 {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
+        return nil; 
     }
+    return %orig; 
 }
 %end
-
+%hook BmfFilterSDR2HDR
+- (VideoFrame *)process:(VideoFrame *)frame {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
+        return frame; 
+    }
+    return %orig; 
+}
+%end
+ 
 // 设置修改顶栏标题
 %hook AWEHPTopTabItemTextContentView
 
