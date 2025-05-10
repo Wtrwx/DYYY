@@ -1074,7 +1074,7 @@ static void showUserAgreementAlert() {
 			      @"cellType" : @6,
 			      @"imageName" : @"ic_eyeslash_outlined_16"},
 			    @{@"identifier" : @"DYYYHideGroupInputActionBar",
-			      @"title" : @"隐藏群聊页工具栏",
+			      @"title" : @"隐藏聊天页工具栏",
 			      @"detail" : @"",
 			      @"cellType" : @6,
 			      @"imageName" : @"ic_eyeslash_outlined_16"},
@@ -1763,233 +1763,451 @@ static void showUserAgreementAlert() {
 			    [downloadItems addObject:item];
 		    }
 
-		    // 【热更新】分类
-		    NSMutableArray<AWESettingItemModel *> *hotUpdateItems = [NSMutableArray array];
+			// 【热更新】分类
+			NSMutableArray<AWESettingItemModel *> *hotUpdateItems = [NSMutableArray array];
+			NSArray *hotUpdateSettings = @[
+				@{@"identifier" : @"DYYYABTestBlockEnabled",
+				@"title" : @"禁用下发配置",
+				@"detail" : @"",
+				@"cellType" : @6,
+				@"imageName" : @"ic_fire_outlined_20"},
+				@{@"identifier" : @"DYYYABTestPatchEnabled",
+				@"title" : @"启用补丁模式",
+				@"detail" : @"",
+				@"cellType" : @6,
+				@"imageName" : @"ic_enterpriseservice_outlined"},
+				@{@"identifier" : @"SaveCurrentABTestData",
+				@"title" : @"保存当前配置",
+				@"detail" : @"",
+				@"cellType" : @26,
+				@"imageName" : @"ic_memorycard_outlined_20"},
+				@{@"identifier" : @"LoadABTestConfigFile",
+				@"title" : @"本地选择配置",
+				@"detail" : @"",
+				@"cellType" : @26,
+				@"imageName" : @"ic_phonearrowup_outlined_20"},
+				@{@"identifier" : @"DeleteABTestConfigFile",
+				@"title" : @"删除本地配置",
+				@"detail" : @"",
+				@"cellType" : @26,
+				@"imageName" : @"ic_trash_outlined_20"}
+			];
 
-		    // 获取当前热更新状态
-		    abTestBlockEnabled = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYABTestBlockEnabled"];
-		    AWESettingItemModel *disableHotUpdateItem = [[%c(AWESettingItemModel) alloc] init];
-		    disableHotUpdateItem.identifier = @"ABTestBlockEnabled";
-		    disableHotUpdateItem.title = @"禁用下发配置";
-		    disableHotUpdateItem.detail = @"";
-		    disableHotUpdateItem.type = 1000;
-		    disableHotUpdateItem.svgIconImageName = @"ic_fire_outlined_20";
-		    disableHotUpdateItem.cellType = 6;
-		    disableHotUpdateItem.colorStyle = 0;
-		    disableHotUpdateItem.isEnable = YES;
-		    disableHotUpdateItem.isSwitchOn = abTestBlockEnabled;
-
-		    disableHotUpdateItem.switchChangedBlock = ^{
-		      BOOL newValue = !disableHotUpdateItem.isSwitchOn;
-
-		      // 当用户尝试启用"禁用下发配置"时显示确认弹窗
-		      if (newValue) {
-			      [DYYYBottomAlertView showAlertWithTitle:@"禁用下发配置"
-				  message:@"请尽量保证在禁用热更新前导入正确配置，否则会导致插件部分功能失效。确定要继续吗？"
-				  cancelButtonText:@"取消"
-				  confirmButtonText:@"确定"
-				  cancelAction:^{
-				    // 取消操作，恢复开关状态
-				    disableHotUpdateItem.isSwitchOn = !newValue;
-				  }
-				  confirmAction:^{
-				    // 用户确认后执行原来的逻辑
-				    disableHotUpdateItem.isSwitchOn = newValue;
-				    abTestBlockEnabled = newValue;
-
-				    [[NSUserDefaults standardUserDefaults] setBool:newValue forKey:@"DYYYABTestBlockEnabled"];
-				    [[NSUserDefaults standardUserDefaults] synchronize];
-
-				    // 重置全局变量，下次加载时会重新读取文件
-				    gFixedABTestData = nil;
-				    onceToken = 0;
-				    loadFixedABTestData();
-
-				    [self refreshTableView];
-				  }];
-		      } else {
-			      // 如果是关闭功能，直接执行不需要确认
-			      disableHotUpdateItem.isSwitchOn = newValue;
-			      abTestBlockEnabled = newValue;
-
-			      [[NSUserDefaults standardUserDefaults] setBool:newValue forKey:@"DYYYABTestBlockEnabled"];
-			      [[NSUserDefaults standardUserDefaults] synchronize];
-
-			      [self refreshTableView];
-		      }
-		    };
-
-		    [hotUpdateItems addObject:disableHotUpdateItem];
-
-		    // 添加"保存当前配置"按钮
-		    AWESettingItemModel *saveCurrentConfigItem = [[%c(AWESettingItemModel) alloc] init];
-		    saveCurrentConfigItem.identifier = @"SaveCurrentABTestData";
-		    saveCurrentConfigItem.title = @"保存当前配置";
-		    saveCurrentConfigItem.detail = @"";
-		    saveCurrentConfigItem.type = 0;
-		    saveCurrentConfigItem.svgIconImageName = @"ic_memorycard_outlined_20";
-		    saveCurrentConfigItem.cellType = 26;
-		    saveCurrentConfigItem.colorStyle = 0;
-		    saveCurrentConfigItem.isEnable = YES;
-
-		    saveCurrentConfigItem.cellTappedBlock = ^{
-		      // 获取当前ABTest配置数据
-		      NSDictionary *currentData = getCurrentABTestData();
-
-		      if (!currentData) {
-			      [DYYYManager showToast:@"获取ABTest配置失败"];
-			      return;
-		      }
-
-		      // 转换为JSON数据
-		      NSError *error;
-		      NSData *jsonData = [NSJSONSerialization dataWithJSONObject:currentData options:NSJSONWritingPrettyPrinted error:&error];
-
-		      if (error) {
-			      [DYYYManager showToast:@"序列化配置数据失败"];
-			      return;
-		      }
-
-		      // 创建带时间戳的文件名
-		      NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
-		      [formatter setDateFormat:@"yyyyMMdd_HHmmss"];
-		      NSString *timestamp = [formatter stringFromDate:[NSDate date]];
-		      NSString *filename = [NSString stringWithFormat:@"ABTest_Config_%@.json", timestamp];
-
-		      // 创建临时文件
-		      NSString *tempDir = NSTemporaryDirectory();
-		      NSString *tempFilePath = [tempDir stringByAppendingPathComponent:filename];
-
-		      // 写入临时文件
-		      BOOL success = [jsonData writeToFile:tempFilePath atomically:YES];
-
-		      if (!success) {
-			      [DYYYManager showToast:@"创建临时文件失败"];
-			      return;
-		      }
-
-		      // 创建文档选择器让用户选择保存位置
-		      NSURL *tempFileURL = [NSURL fileURLWithPath:tempFilePath];
-		      UIDocumentPickerViewController *documentPicker = [[UIDocumentPickerViewController alloc] initWithURLs:@[ tempFileURL ] inMode:UIDocumentPickerModeExportToService];
-
-		      DYYYBackupPickerDelegate *pickerDelegate = [[DYYYBackupPickerDelegate alloc] init];
-		      pickerDelegate.tempFilePath = tempFilePath; // 设置临时文件路径，以便之后清理
-		      pickerDelegate.completionBlock = ^(NSURL *url) {
-			// 保存成功
-			[DYYYManager showToast:@"ABTest配置已保存"];
-		      };
-
-		      static char kABTestPickerDelegateKey;
-		      documentPicker.delegate = pickerDelegate;
-		      objc_setAssociatedObject(documentPicker, &kABTestPickerDelegateKey, pickerDelegate, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-
-		      UIViewController *topVC = topView();
-		      [topVC presentViewController:documentPicker animated:YES completion:nil];
-		    };
-		    [hotUpdateItems addObject:saveCurrentConfigItem];
-
-		    // 添加"选择本地配置"按钮
-		    AWESettingItemModel *loadConfigItem = [[%c(AWESettingItemModel) alloc] init];
-		    loadConfigItem.identifier = @"LoadABTestConfigFile";
-		    loadConfigItem.title = @"本地选择配置";
-		    loadConfigItem.detail = @"";
-		    loadConfigItem.type = 0;
-		    loadConfigItem.svgIconImageName = @"ic_phonearrowup_outlined_20";
-		    loadConfigItem.cellType = 26;
-		    loadConfigItem.colorStyle = 0;
-		    loadConfigItem.isEnable = YES;
-
-		    loadConfigItem.cellTappedBlock = ^{
-		      UIDocumentPickerViewController *documentPicker = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:@[ @"public.json" ] inMode:UIDocumentPickerModeImport];
-
-		      // 创建代理对象来处理文件选择
-		      DYYYBackupPickerDelegate *pickerDelegate = [[DYYYBackupPickerDelegate alloc] init];
-		      pickerDelegate.completionBlock = ^(NSURL *url) {
-			// 获取选择的文件路径
-			NSString *sourcePath = [url path];
-
-			NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-			NSString *documentsDirectory = [paths firstObject];
-			NSString *dyyyFolderPath = [documentsDirectory stringByAppendingPathComponent:@"DYYY"];
-			NSString *destPath = [dyyyFolderPath stringByAppendingPathComponent:@"abtest_data_fixed.json"];
-
-			// 确保DYYY目录存在
-			if (![[NSFileManager defaultManager] fileExistsAtPath:dyyyFolderPath]) {
-				[[NSFileManager defaultManager] createDirectoryAtPath:dyyyFolderPath withIntermediateDirectories:YES attributes:nil error:nil];
-			}
-
-			NSError *error;
-			// 如果目标文件已存在，先删除
-			if ([[NSFileManager defaultManager] fileExistsAtPath:destPath]) {
-				[[NSFileManager defaultManager] removeItemAtPath:destPath error:&error];
-				if (error) {
-					NSLog(@"[ABTest] 删除旧配置文件失败: %@", error);
+			for (NSDictionary *dict in hotUpdateSettings) {
+				AWESettingItemModel *item = [self createSettingItem:dict];
+				
+				if ([item.identifier isEqualToString:@"DYYYABTestBlockEnabled"]) {
+					item.switchChangedBlock = ^{
+						BOOL newValue = !item.isSwitchOn;
+						
+						if (newValue) {
+							[DYYYBottomAlertView showAlertWithTitle:@"禁用下发配置"
+								message:@"请尽量保证在禁用热更新前导入正确配置，否则会导致插件部分功能失效。确定要继续吗？"
+								cancelButtonText:@"取消"
+								confirmButtonText:@"确定"
+								cancelAction:^{
+									item.isSwitchOn = !newValue;
+								}
+								confirmAction:^{
+									item.isSwitchOn = newValue;
+									setUserDefaults(@(newValue), @"DYYYABTestBlockEnabled");
+									
+									// 找到并更新互斥的开关状态
+									UIViewController *topVC = topView();
+									AWESettingBaseViewController *settingsVC = nil;
+									UITableView *tableView = nil;
+									
+									// 查找当前视图控制器
+									if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
+										settingsVC = (AWESettingBaseViewController *)topVC;
+									} else {
+										UIView *firstLevelView = [topVC.view.subviews firstObject];
+										UIView *secondLevelView = [firstLevelView.subviews firstObject];
+										UIView *thirdLevelView = [secondLevelView.subviews firstObject];
+										
+										UIResponder *responder = thirdLevelView;
+										while (responder) {
+											if ([responder isKindOfClass:%c(AWESettingBaseViewController)]) {
+												settingsVC = (AWESettingBaseViewController *)responder;
+												break;
+											}
+											responder = [responder nextResponder];
+										}
+									}
+									
+									// 更新配置并查找互斥项
+									if (settingsVC) {
+										AWESettingsViewModel *viewModel = (AWESettingsViewModel *)[settingsVC viewModel];
+										if (viewModel && [viewModel respondsToSelector:@selector(sectionDataArray)]) {
+											NSArray *sectionDataArray = [viewModel sectionDataArray];
+											for (AWESettingSectionModel *section in sectionDataArray) {
+												if ([section respondsToSelector:@selector(itemArray)]) {
+													NSArray *itemArray = section.itemArray;
+													for (id itemObj in itemArray) {
+														if ([itemObj isKindOfClass:%c(AWESettingItemModel)]) {
+															AWESettingItemModel *currentItem = (AWESettingItemModel *)itemObj;
+															if ([currentItem.identifier isEqualToString:@"DYYYABTestPatchEnabled"]) {
+																// 更新互斥项状态
+																currentItem.isEnable = !newValue;
+																if (newValue) {
+																	currentItem.isSwitchOn = NO;
+																	setUserDefaults(@(NO), @"DYYYABTestPatchEnabled");
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+										
+										// 刷新表格视图
+										for (UIView *subview in settingsVC.view.subviews) {
+											if ([subview isKindOfClass:[UITableView class]]) {
+												tableView = (UITableView *)subview;
+												break;
+											}
+										}
+										
+										if (tableView) {
+											dispatch_async(dispatch_get_main_queue(), ^{
+												[tableView reloadData];
+											});
+										}
+									}
+									
+									// 重置全局变量
+									gFixedABTestData = nil;
+									onceToken = 0;
+									loadFixedABTestData();
+								}];
+						} else {
+							item.isSwitchOn = newValue;
+							setUserDefaults(@(newValue), @"DYYYABTestBlockEnabled");
+							
+							// 当关闭时，启用互斥的选项
+							UIViewController *topVC = topView();
+							AWESettingBaseViewController *settingsVC = nil;
+							UITableView *tableView = nil;
+							
+							// 查找当前视图控制器
+							if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
+								settingsVC = (AWESettingBaseViewController *)topVC;
+							} else {
+								UIView *firstLevelView = [topVC.view.subviews firstObject];
+								UIView *secondLevelView = [firstLevelView.subviews firstObject];
+								UIView *thirdLevelView = [secondLevelView.subviews firstObject];
+								
+								UIResponder *responder = thirdLevelView;
+								while (responder) {
+									if ([responder isKindOfClass:%c(AWESettingBaseViewController)]) {
+										settingsVC = (AWESettingBaseViewController *)responder;
+										break;
+									}
+									responder = [responder nextResponder];
+								}
+							}
+							
+							// 更新互斥选项状态
+							if (settingsVC) {
+								AWESettingsViewModel *viewModel = (AWESettingsViewModel *)[settingsVC viewModel];
+								if (viewModel && [viewModel respondsToSelector:@selector(sectionDataArray)]) {
+									NSArray *sectionDataArray = [viewModel sectionDataArray];
+									for (AWESettingSectionModel *section in sectionDataArray) {
+										if ([section respondsToSelector:@selector(itemArray)]) {
+											NSArray *itemArray = section.itemArray;
+											for (id itemObj in itemArray) {
+												if ([itemObj isKindOfClass:%c(AWESettingItemModel)]) {
+													AWESettingItemModel *currentItem = (AWESettingItemModel *)itemObj;
+													if ([currentItem.identifier isEqualToString:@"DYYYABTestPatchEnabled"]) {
+														// 启用互斥项
+														currentItem.isEnable = YES;
+													}
+												}
+											}
+										}
+									}
+								}
+								
+								// 刷新表格视图
+								for (UIView *subview in settingsVC.view.subviews) {
+									if ([subview isKindOfClass:[UITableView class]]) {
+										tableView = (UITableView *)subview;
+										break;
+									}
+								}
+								
+								if (tableView) {
+									dispatch_async(dispatch_get_main_queue(), ^{
+										[tableView reloadData];
+									});
+								}
+							}
+						}
+					};
+				} else if ([item.identifier isEqualToString:@"DYYYABTestPatchEnabled"]) {
+					item.switchChangedBlock = ^{
+						BOOL newValue = !item.isSwitchOn;
+						
+						if (newValue) {
+							[DYYYBottomAlertView showAlertWithTitle:@"热更新补丁模式"
+								message:@"这是一个全新的、更稳定的热更新配置模式，请您确保导入正确的配置文件。"
+								cancelButtonText:@"取消"
+								confirmButtonText:@"确定"
+								cancelAction:^{
+									item.isSwitchOn = !newValue;
+								}
+								confirmAction:^{
+									item.isSwitchOn = newValue;
+									setUserDefaults(@(newValue), @"DYYYABTestPatchEnabled");
+									
+									// 找到并更新互斥的开关状态
+									UIViewController *topVC = topView();
+									AWESettingBaseViewController *settingsVC = nil;
+									UITableView *tableView = nil;
+									
+									// 查找当前视图控制器
+									if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
+										settingsVC = (AWESettingBaseViewController *)topVC;
+									} else {
+										UIView *firstLevelView = [topVC.view.subviews firstObject];
+										UIView *secondLevelView = [firstLevelView.subviews firstObject];
+										UIView *thirdLevelView = [secondLevelView.subviews firstObject];
+										
+										UIResponder *responder = thirdLevelView;
+										while (responder) {
+											if ([responder isKindOfClass:%c(AWESettingBaseViewController)]) {
+												settingsVC = (AWESettingBaseViewController *)responder;
+												break;
+											}
+											responder = [responder nextResponder];
+										}
+									}
+									
+									// 更新配置并查找互斥项
+									if (settingsVC) {
+										AWESettingsViewModel *viewModel = (AWESettingsViewModel *)[settingsVC viewModel];
+										if (viewModel && [viewModel respondsToSelector:@selector(sectionDataArray)]) {
+											NSArray *sectionDataArray = [viewModel sectionDataArray];
+											for (AWESettingSectionModel *section in sectionDataArray) {
+												if ([section respondsToSelector:@selector(itemArray)]) {
+													NSArray *itemArray = section.itemArray;
+													for (id itemObj in itemArray) {
+														if ([itemObj isKindOfClass:%c(AWESettingItemModel)]) {
+															AWESettingItemModel *currentItem = (AWESettingItemModel *)itemObj;
+															if ([currentItem.identifier isEqualToString:@"DYYYABTestBlockEnabled"]) {
+																// 更新互斥项状态
+																currentItem.isEnable = !newValue;
+																if (newValue) {
+																	currentItem.isSwitchOn = NO;
+																	setUserDefaults(@(NO), @"DYYYABTestBlockEnabled");
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+										
+										// 刷新表格视图
+										for (UIView *subview in settingsVC.view.subviews) {
+											if ([subview isKindOfClass:[UITableView class]]) {
+												tableView = (UITableView *)subview;
+												break;
+											}
+										}
+										
+										if (tableView) {
+											dispatch_async(dispatch_get_main_queue(), ^{
+												[tableView reloadData];
+											});
+										}
+									}
+									
+									// 重置全局变量
+									gFixedABTestData = nil;
+									onceToken = 0;
+									loadFixedABTestData();
+								}];
+						} else {
+							item.isSwitchOn = newValue;
+							setUserDefaults(@(newValue), @"DYYYABTestPatchEnabled");
+							
+							// 当关闭时，启用互斥的选项
+							UIViewController *topVC = topView();
+							AWESettingBaseViewController *settingsVC = nil;
+							UITableView *tableView = nil;
+							
+							// 查找当前视图控制器
+							if ([topVC isKindOfClass:%c(AWESettingBaseViewController)]) {
+								settingsVC = (AWESettingBaseViewController *)topVC;
+							} else {
+								UIView *firstLevelView = [topVC.view.subviews firstObject];
+								UIView *secondLevelView = [firstLevelView.subviews firstObject];
+								UIView *thirdLevelView = [secondLevelView.subviews firstObject];
+								
+								UIResponder *responder = thirdLevelView;
+								while (responder) {
+									if ([responder isKindOfClass:%c(AWESettingBaseViewController)]) {
+										settingsVC = (AWESettingBaseViewController *)responder;
+										break;
+									}
+									responder = [responder nextResponder];
+								}
+							}
+							
+							// 更新互斥选项状态
+							if (settingsVC) {
+								AWESettingsViewModel *viewModel = (AWESettingsViewModel *)[settingsVC viewModel];
+								if (viewModel && [viewModel respondsToSelector:@selector(sectionDataArray)]) {
+									NSArray *sectionDataArray = [viewModel sectionDataArray];
+									for (AWESettingSectionModel *section in sectionDataArray) {
+										if ([section respondsToSelector:@selector(itemArray)]) {
+											NSArray *itemArray = section.itemArray;
+											for (id itemObj in itemArray) {
+												if ([itemObj isKindOfClass:%c(AWESettingItemModel)]) {
+													AWESettingItemModel *currentItem = (AWESettingItemModel *)itemObj;
+													if ([currentItem.identifier isEqualToString:@"DYYYABTestBlockEnabled"]) {
+														// 启用互斥项
+														currentItem.isEnable = YES;
+													}
+												}
+											}
+										}
+									}
+								}
+								
+								// 刷新表格视图
+								for (UIView *subview in settingsVC.view.subviews) {
+									if ([subview isKindOfClass:[UITableView class]]) {
+										tableView = (UITableView *)subview;
+										break;
+									}
+								}
+								
+								if (tableView) {
+									dispatch_async(dispatch_get_main_queue(), ^{
+										[tableView reloadData];
+									});
+								}
+							}
+						}
+					};
 				}
+				else if ([item.identifier isEqualToString:@"SaveCurrentABTestData"]) {
+					item.cellTappedBlock = ^{
+						NSDictionary *currentData = getCurrentABTestData();
+						
+						if (!currentData) {
+							[DYYYManager showToast:@"获取ABTest配置失败"];
+							return;
+						}
+						
+						NSError *error;
+						NSData *jsonData = [NSJSONSerialization dataWithJSONObject:currentData options:NSJSONWritingPrettyPrinted error:&error];
+						
+						if (error) {
+							[DYYYManager showToast:@"序列化配置数据失败"];
+							return;
+						}
+						
+						NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+						[formatter setDateFormat:@"yyyyMMdd_HHmmss"];
+						NSString *timestamp = [formatter stringFromDate:[NSDate date]];
+						NSString *filename = [NSString stringWithFormat:@"ABTest_Config_%@.json", timestamp];
+						
+						NSString *tempDir = NSTemporaryDirectory();
+						NSString *tempFilePath = [tempDir stringByAppendingPathComponent:filename];
+						
+						BOOL success = [jsonData writeToFile:tempFilePath atomically:YES];
+						
+						if (!success) {
+							[DYYYManager showToast:@"创建临时文件失败"];
+							return;
+						}
+						
+						NSURL *tempFileURL = [NSURL fileURLWithPath:tempFilePath];
+						UIDocumentPickerViewController *documentPicker = [[UIDocumentPickerViewController alloc] initWithURLs:@[ tempFileURL ] inMode:UIDocumentPickerModeExportToService];
+						
+						DYYYBackupPickerDelegate *pickerDelegate = [[DYYYBackupPickerDelegate alloc] init];
+						pickerDelegate.tempFilePath = tempFilePath;
+						pickerDelegate.completionBlock = ^(NSURL *url) {
+							[DYYYManager showToast:@"ABTest配置已保存"];
+						};
+						
+						static char kABTestPickerDelegateKey;
+						documentPicker.delegate = pickerDelegate;
+						objc_setAssociatedObject(documentPicker, &kABTestPickerDelegateKey, pickerDelegate, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+						
+						UIViewController *topVC = topView();
+						[topVC presentViewController:documentPicker animated:YES completion:nil];
+					};
+				} else if ([item.identifier isEqualToString:@"LoadABTestConfigFile"]) {
+					item.cellTappedBlock = ^{
+						UIDocumentPickerViewController *documentPicker = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:@[ @"public.json" ] inMode:UIDocumentPickerModeImport];
+						
+						DYYYBackupPickerDelegate *pickerDelegate = [[DYYYBackupPickerDelegate alloc] init];
+						pickerDelegate.completionBlock = ^(NSURL *url) {
+							NSString *sourcePath = [url path];
+							
+							NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+							NSString *documentsDirectory = [paths firstObject];
+							NSString *dyyyFolderPath = [documentsDirectory stringByAppendingPathComponent:@"DYYY"];
+							NSString *destPath = [dyyyFolderPath stringByAppendingPathComponent:@"abtest_data_fixed.json"];
+							
+							if (![[NSFileManager defaultManager] fileExistsAtPath:dyyyFolderPath]) {
+								[[NSFileManager defaultManager] createDirectoryAtPath:dyyyFolderPath withIntermediateDirectories:YES attributes:nil error:nil];
+							}
+							
+							NSError *error;
+							if ([[NSFileManager defaultManager] fileExistsAtPath:destPath]) {
+								[[NSFileManager defaultManager] removeItemAtPath:destPath error:&error];
+							}
+							
+							BOOL success = [[NSFileManager defaultManager] copyItemAtPath:sourcePath toPath:destPath error:&error];
+							
+							NSString *message = success ? @"配置文件已导入，请禁用下发配置，重启抖音生效" : [NSString stringWithFormat:@"导入失败: %@", error.localizedDescription];
+							[DYYYManager showToast:message];
+							
+							if (success) {
+								gFixedABTestData = nil;
+								onceToken = 0;
+								loadFixedABTestData();
+							}
+						};
+						
+						static char kPickerDelegateKey;
+						documentPicker.delegate = pickerDelegate;
+						objc_setAssociatedObject(documentPicker, &kPickerDelegateKey, pickerDelegate, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+						
+						UIViewController *topVC = topView();
+						[topVC presentViewController:documentPicker animated:YES completion:nil];
+					};
+				} else if ([item.identifier isEqualToString:@"DeleteABTestConfigFile"]) {
+					item.cellTappedBlock = ^{
+						NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+						NSString *documentsDirectory = [paths firstObject];
+						NSString *dyyyFolderPath = [documentsDirectory stringByAppendingPathComponent:@"DYYY"];
+						NSString *configPath = [dyyyFolderPath stringByAppendingPathComponent:@"abtest_data_fixed.json"];
+						
+						if ([[NSFileManager defaultManager] fileExistsAtPath:configPath]) {
+							NSError *error = nil;
+							BOOL success = [[NSFileManager defaultManager] removeItemAtPath:configPath error:&error];
+							
+							NSString *message = success ? @"本地配置已删除成功" : [NSString stringWithFormat:@"删除失败: %@", error.localizedDescription];
+							[DYYYManager showToast:message];
+							
+							if (success) {
+								gFixedABTestData = nil;
+								onceToken = 0;
+							}
+						} else {
+							[DYYYManager showToast:@"本地配置不存在"];
+						}
+					};
+				}
+				
+				[hotUpdateItems addObject:item];
 			}
-
-			// 复制文件
-			BOOL success = [[NSFileManager defaultManager] copyItemAtPath:sourcePath toPath:destPath error:&error];
-
-			NSString *message;
-			if (success) {
-				// 重置全局变量，下次加载时会重新读取文件
-				gFixedABTestData = nil;
-				onceToken = 0;
-				loadFixedABTestData();
-				message = @"配置文件已导入，请禁用下发配置，重启抖音生效";
-			} else {
-				message = [NSString stringWithFormat:@"导入失败: %@", error.localizedDescription];
-			}
-
-			// 显示结果提示
-			[DYYYManager showToast:message];
-		      };
-		      static char kPickerDelegateKey;
-		      documentPicker.delegate = pickerDelegate;
-		      objc_setAssociatedObject(documentPicker, &kPickerDelegateKey, pickerDelegate, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-
-		      UIViewController *topVC = topView();
-		      [topVC presentViewController:documentPicker animated:YES completion:nil];
-		    };
-
-		    [hotUpdateItems addObject:loadConfigItem];
-		    // 添加"删除本地配置"按钮
-		    AWESettingItemModel *deleteConfigItem = [[%c(AWESettingItemModel) alloc] init];
-		    deleteConfigItem.identifier = @"DeleteABTestConfigFile";
-		    deleteConfigItem.title = @"删除本地配置";
-		    deleteConfigItem.detail = @"";
-		    deleteConfigItem.type = 0;
-		    deleteConfigItem.svgIconImageName = @"ic_trash_outlined_20";
-		    deleteConfigItem.cellType = 26;
-		    deleteConfigItem.colorStyle = 0;
-		    deleteConfigItem.isEnable = YES;
-
-		    deleteConfigItem.cellTappedBlock = ^{
-		      // 目标路径
-		      NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-		      NSString *documentsDirectory = [paths firstObject];
-		      NSString *dyyyFolderPath = [documentsDirectory stringByAppendingPathComponent:@"DYYY"];
-		      NSString *configPath = [dyyyFolderPath stringByAppendingPathComponent:@"abtest_data_fixed.json"];
-
-		      if ([[NSFileManager defaultManager] fileExistsAtPath:configPath]) {
-			      NSError *error = nil;
-			      BOOL success = [[NSFileManager defaultManager] removeItemAtPath:configPath error:&error];
-
-			      if (success) {
-				      // 重置全局变量
-				      gFixedABTestData = nil;
-				      onceToken = 0;
-				      [DYYYManager showToast:@"本地配置已删除成功"];
-			      } else {
-				      NSString *errorMsg = [NSString stringWithFormat:@"删除失败: %@", error.localizedDescription];
-				      [DYYYManager showToast:errorMsg];
-			      }
-		      } else {
-			      [DYYYManager showToast:@"本地配置不存在"];
-		      }
-		    };
-
-		    [hotUpdateItems addObject:deleteConfigItem];
 
 		    // 【交互增强】分类
 		    NSMutableArray<AWESettingItemModel *> *interactionItems = [NSMutableArray array];
@@ -2003,7 +2221,7 @@ static void showUserAgreementAlert() {
 			      @"title" : @"启用自动勾选原图",
 			      @"detail" : @"",
 			      @"cellType" : @6,
-			      @"imageName" : @"ic_gearsimplify_outlined_20"},
+			      @"imageName" : @"ic_image_outlined_20"},
 			    @{@"identifier" : @"DYYYisEnableModern",
 			      @"title" : @"启用新版玻璃面板",
 			      @"detail" : @"",
@@ -2632,7 +2850,6 @@ static void showUserAgreementAlert() {
 		  cleanCacheItem.cellType = 26;
 		  cleanCacheItem.colorStyle = 0;
 		  cleanCacheItem.isEnable = YES;
-
 		  cleanCacheItem.cellTappedBlock = ^{
 		    [DYYYBottomAlertView showAlertWithTitle:@"清理缓存"
 						    message:@"确定要清理缓存吗？\n这将删除临时文件和缓存"
@@ -2641,40 +2858,26 @@ static void showUserAgreementAlert() {
 					       cancelAction:nil
 					      confirmAction:^{
 						NSFileManager *fileManager = [NSFileManager defaultManager];
-						NSError *error = nil;
 						NSUInteger totalSize = 0;
 
+						// 临时目录
 						NSString *tempDir = NSTemporaryDirectory();
 
+						// Library目录下的缓存目录
 						NSArray<NSString *> *customDirs = @[ @"Caches", @"BDByteCast", @"kitelog" ];
 						NSString *libraryDir = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES).firstObject;
 
-						NSMutableArray<NSString *> *allPaths = [NSMutableArray arrayWithObjects:tempDir, nil];
+						NSMutableArray<NSString *> *allPaths = [NSMutableArray arrayWithObject:tempDir];
 						for (NSString *sub in customDirs) {
-							NSString *full = [libraryDir stringByAppendingPathComponent:sub];
-							[allPaths addObject:full];
+							NSString *fullPath = [libraryDir stringByAppendingPathComponent:sub];
+							if ([fileManager fileExistsAtPath:fullPath]) {
+								[allPaths addObject:fullPath];
+							}
 						}
 
+						// 遍历所有目录并清理
 						for (NSString *basePath in allPaths) {
-							if (![fileManager fileExistsAtPath:basePath]) {
-								continue;
-							}
-							NSDirectoryEnumerator<NSString *> *enumerator = [fileManager enumeratorAtPath:basePath];
-							NSString *relPath = nil;
-							while ((relPath = [enumerator nextObject])) {
-								NSString *fullPath = [basePath stringByAppendingPathComponent:relPath];
-
-								NSDictionary<NSFileAttributeKey, id> *attrs = [fileManager attributesOfItemAtPath:fullPath error:nil];
-								if (attrs) {
-									totalSize += [attrs fileSize];
-								}
-
-								NSError *delErr = nil;
-								[fileManager removeItemAtPath:fullPath error:&delErr];
-								if (delErr) {
-									NSLog(@"删除失败 %@: %@", fullPath, delErr);
-								}
-							}
+							totalSize += [DYYYUtils clearDirectoryContents:basePath];
 						}
 
 						float sizeInMB = totalSize / 1024.0 / 1024.0;
@@ -2857,6 +3060,14 @@ static void showUserAgreementAlert() {
 		// 双击打开菜单依赖于双击打开评论未启用
 		BOOL commentEnabled = getUserDefaults(@"DYYYEnableDoubleOpenComment");
 		item.isEnable = !commentEnabled;
+	} else if ([item.identifier isEqualToString:@"DYYYABTestBlockEnabled"]) {
+		// 双击打开评论依赖于双击打开菜单未启用
+		BOOL blockEnabled = getUserDefaults(@"DYYYABTestPatchEnabled");
+		item.isEnable = !blockEnabled;
+	} else if ([item.identifier isEqualToString:@"DYYYABTestPatchEnabled"]) {
+		// 双击打开菜单依赖于双击打开评论未启用
+		BOOL patchEnabled = getUserDefaults(@"DYYYABTestBlockEnabled");
+		item.isEnable = !patchEnabled;
 	} else if ([item.identifier isEqualToString:@"DYYYDoubleInterfaceDownload"]) {
 		// 接口保存功能依赖于接口解析URL是否设置
 		NSString *interfaceUrl = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYInterfaceDownload"];
@@ -2949,6 +3160,20 @@ static void showUserAgreementAlert() {
 			setUserDefaults(@(NO), @"DYYYEnableDoubleOpenComment");
 			[self updateDependentItemsForSetting:@"DYYYEnableDoubleOpenComment" value:@(NO)];
 		}
+	} else if ([identifier isEqualToString:@"DYYYABTestPatchEnabled"]) {
+		[self updateDependentItemsForSetting:identifier value:@(isEnabled)];
+
+		if (isEnabled) {
+			setUserDefaults(@(NO), @"DYYYABTestBlockEnabled");
+			[self updateDependentItemsForSetting:@"DYYYABTestBlockEnabled" value:@(NO)];
+		}
+	} else if ([identifier isEqualToString:@"DYYYABTestBlockEnabled"]) {
+		[self updateDependentItemsForSetting:identifier value:@(isEnabled)];
+
+		if (isEnabled) {
+			setUserDefaults(@(NO), @"DYYYABTestPatchEnabled");
+			[self updateDependentItemsForSetting:@"DYYYABTestPatchEnabled" value:@(NO)];
+		}
 	}
 	// 新增依赖处理
 	else if ([identifier isEqualToString:@"DYYYisEnableArea"]) {
@@ -3035,6 +3260,14 @@ static void showUserAgreementAlert() {
 			} else if ([identifier isEqualToString:@"DYYYEnableDoubleOpenAlertController"]) {
 				if ([item.identifier isEqualToString:@"DYYYEnableDoubleOpenComment"]) {
 					// 如果"双击打开菜单"被禁用，则启用"双击打开评论"选项
+					item.isEnable = ![value boolValue];
+				}
+			} else if ([identifier isEqualToString:@"DYYYABTestBlockEnabled"]) {
+				if ([item.identifier isEqualToString:@"DYYYABTestPatchEnabled"]) {
+					item.isEnable = ![value boolValue];
+				}
+			} else if ([identifier isEqualToString:@"DYYYABTestPatchEnabled"]) {
+				if ([item.identifier isEqualToString:@"DYYYABTestBlockEnabled"]) {
 					item.isEnable = ![value boolValue];
 				}
 			}

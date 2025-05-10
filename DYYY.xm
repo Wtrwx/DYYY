@@ -291,6 +291,22 @@
 }
 %end
 
+%hook AWEMarkView
+
+- (void)layoutSubviews {
+    %orig;
+
+    UIViewController *vc = [self firstAvailableUIViewController];
+    
+    if ([vc isKindOfClass:%c(AWEPlayInteractionViewController)]) {
+        if (self.markLabel) {
+            self.markLabel.textColor = [UIColor whiteColor];
+        }
+    }
+}
+
+%end
+
 %hook AWEDanmakuItemTextInfo
 - (void)setDanmakuTextColor:(id)arg1 {
 
@@ -1538,34 +1554,30 @@
 }
 %end
 
-%hook AWEHDRModelManager
-+ (BOOL)enableVideoHDR {
-	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-		return NO;
-	}
-	return %orig;
-}
-+ (BOOL)useOneKeyHDR {
-	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-		return NO;
-	}
-	return %orig;
-}
-%end
+// 禁用HDR高亮
+%hook AWEFeedABSettings
 
-%hook VEHDRDetectionUtils
-+ (BOOL)isHDRVideo:(id)arg0 {
-	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-		return NO;
-	}
-	return %orig;
++ (BOOL)enableHDRBrightnessOpt {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
+        return NO;
+    }
+    return %orig;
 }
-+ (id)detectionHDRType:(id)arg0 {
-	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-		return nil;
-	}
-	return %orig;
+
++ (double)hdrBrightnessThreshold {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
+        return 999.0;
+    }
+    return %orig;
 }
+
++ (BOOL)hdrAutomaticIdentification {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
+        return NO;
+    }
+    return %orig;
+}
+
 %end
 
 // 启用自动勾选原图
@@ -1590,13 +1602,12 @@
 
 %end
 
-%hook BmfFilterSDR2HDR
-- (VideoFrame *)process:(VideoFrame *)frame {
-	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-		return frame;
-	}
-	return %orig;
+%hook AWESharePanelStyleOptionsManager
+
++ (unsigned long long)styleOptionsOfContext:(id)context {
+    return 101;
 }
+
 %end
 
 %ctor {

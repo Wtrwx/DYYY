@@ -12,9 +12,11 @@
 @end
 
 BOOL abTestBlockEnabled = NO;
+BOOL abTestPatchEnabled = NO;
 NSDictionary *gFixedABTestData = nil;
 dispatch_once_t onceToken;
 BOOL gDataLoaded = NO;
+BOOL gFileExists = NO;
 static NSDate *lastLoadAttemptTime = nil;
 static const NSTimeInterval kMinLoadInterval = 60.0;
 BOOL gABTestDataFixed = NO;
@@ -39,6 +41,13 @@ void ensureABTestDataLoaded(void) {
 		  }
 	  }
 
+	  // 检查文件是否存在
+	  if (![fileManager fileExistsAtPath:jsonFilePath]) {
+		  gFileExists = NO;
+		  gDataLoaded = YES;
+		  return;
+	  }
+
 	  NSError *error = nil;
 	  NSData *jsonData = [NSData dataWithContentsOfFile:jsonFilePath options:0 error:&error];
 
@@ -47,12 +56,12 @@ void ensureABTestDataLoaded(void) {
 		  if (loadedData && !error) {
 			  // 成功加载数据，保存到全局变量
 			  gFixedABTestData = [loadedData copy];
+			  gFileExists = YES;
 			  gDataLoaded = YES;
 			  return;
 		  }
 	  }
-
-	  gFixedABTestData = @{};
+	  gFileExists = NO;
 	  gDataLoaded = YES;
 	});
 }
@@ -60,18 +69,18 @@ void ensureABTestDataLoaded(void) {
 // 优化防止频繁加载
 NSDictionary *loadFixedABTestData(void) {
 	if (gDataLoaded) {
-		return gFixedABTestData;
+		return gFileExists ? gFixedABTestData : nil;
 	}
 
 	NSDate *now = [NSDate date];
 	if (lastLoadAttemptTime && [now timeIntervalSinceDate:lastLoadAttemptTime] < kMinLoadInterval) {
-		return gFixedABTestData;
+		return gFileExists ? gFixedABTestData : nil;
 	}
 
 	lastLoadAttemptTime = now;
 
 	ensureABTestDataLoaded();
-	return gFixedABTestData;
+	return gFileExists ? gFixedABTestData : nil;
 }
 
 static NSDictionary *fixedABTestData(void) {
@@ -83,7 +92,7 @@ static NSDictionary *fixedABTestData(void) {
 		ensureABTestDataLoaded();
 	}
 
-	return gFixedABTestData;
+	return gFileExists ? gFixedABTestData : nil;
 }
 
 // 获取当前ABTest数据
@@ -91,6 +100,10 @@ NSDictionary *getCurrentABTestData(void) {
 	if (abTestBlockEnabled) {
 		if (!gDataLoaded) {
 			ensureABTestDataLoaded();
+		}
+		if (!gFileExists) {
+			AWEABTestManager *manager = [%c(AWEABTestManager) sharedManager];
+			return manager ? [manager abTestData] : nil;
 		}
 		return gFixedABTestData;
 	}
@@ -152,22 +165,28 @@ static NSMutableDictionary *gCaseCache = nil;
 	%orig;
 }
 
-
 // 拦截一致性ABTest值获取方法
 - (id)getValueOfConsistentABTestWithKey:(id)arg1 {
     if (gABTestDataFixed) {
         return %orig;
     }
 
-    if (abTestBlockEnabled && arg1) {
+    if ((abTestBlockEnabled || abTestPatchEnabled) && arg1) {
         if (!gDataLoaded) {
             ensureABTestDataLoaded();
+        }
+        if (!gFileExists) {
+            return %orig; 
         }
         NSString *key = (NSString *)arg1;
         id localValue = [gFixedABTestData objectForKey:key];
         
         if (localValue) {
             return localValue;
+        }
+
+        if (abTestPatchEnabled) {
+            return %orig;
         }
 
         return nil;
@@ -181,11 +200,11 @@ static NSMutableDictionary *gCaseCache = nil;
 %ctor {
     %init;
     abTestBlockEnabled = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYABTestBlockEnabled"];
+    abTestPatchEnabled = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYABTestPatchEnabled"];
 
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         AWEABTestManager *manager = [%c(AWEABTestManager) sharedManager];
-        if (manager && gFixedABTestData) {
-            NSLog(@"[DYYY] 正在设置固定ABTest数据");
+        if (manager && gFixedABTestData && abTestBlockEnabled && !abTestPatchEnabled) {
             [manager setAbTestData:gFixedABTestData];
 
             if ([manager respondsToSelector:@selector(_saveABTestData:)]) {
@@ -194,7 +213,10 @@ static NSMutableDictionary *gCaseCache = nil;
 
             gABTestDataFixed = YES;
         } else {
-            NSLog(@"[DYYY] 无法设置ABTest数据: manager=%@, data=%@", manager, gFixedABTestData ? @"已加载" : @"未加载");
+            NSLog(@"[DYYY] 无法设置ABTest数据: manager=%@, data=%@, 模式=%@", 
+                manager, 
+                gFixedABTestData ? @"已加载" : @"未加载",
+                abTestPatchEnabled ? @"补丁模式" : (abTestBlockEnabled ? @"完全替换模式" : @"未启用"));
         }
     });
 }
