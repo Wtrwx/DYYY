@@ -45,7 +45,9 @@ static void setUserDefaults(id object, NSString *key) {
 			  @"DYYYABTestBlockEnabled" : @[ @"DYYYABTestPatchEnabled" ],
 			  @"DYYYABTestPatchEnabled" : @[ @"DYYYABTestBlockEnabled" ],
 			  @"DYYYEnabshijianjindu" : @[ @"DYYYHideTimeProgress" ],
-			  @"DYYYHideTimeProgress" : @[ @"DYYYEnabshijianjindu" ]
+			  @"DYYYHideTimeProgress" : @[ @"DYYYEnabshijianjindu" ],
+			  @"DYYYHideLOTAnimationView" : @[ @"DYYYHideFollowPromptView" ],
+			  @"DYYYHideFollowPromptView" : @[ @"DYYYHideLOTAnimationView" ]
 		  },
 
 		  // ===== 互斥激活配置 =====
