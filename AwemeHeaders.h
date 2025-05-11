@@ -949,21 +949,6 @@ typedef NS_ENUM(NSInteger, MediaType) {
 @interface AWEDemaciaChapterProgressSlider : UIView
 @end
 
-// HDR
-@interface AWEHDRModelManager : NSObject
-+ (BOOL)enableVideoHDR;
-+ (BOOL)useOneKeyHDR;
-@end
-@interface VideoFrame : NSObject
-@end
-@interface VEHDRDetectionUtils : NSObject
-+ (BOOL)isHDRVideo:(id)video;
-+ (id)detectionHDRType:(id)video;
-@end
-@interface BmfFilterSDR2HDR : NSObject
-- (VideoFrame *)process:(VideoFrame *)frame;
-@end
-
 @interface AWEABTestManager : NSObject
 @property(retain, nonatomic) NSDictionary *abTestData;
 @property(retain, nonatomic) NSMutableDictionary *consistentABTestDic;
@@ -972,4 +957,13 @@ typedef NS_ENUM(NSInteger, MediaType) {
 - (void)_saveABTestData:(id)arg1;
 - (id)abTestData;
 + (id)sharedManager;
+@end
+
+@interface IESLiveRoomComponent : NSObject
+@end
+
+@interface HTSLiveStreamQualityFragment : IESLiveRoomComponent
+@property (nonatomic, strong) NSArray *streamQualityArray;
+- (NSArray *)getQualities;
+- (void)setResolutionWithIndex:(NSInteger)index isManual:(BOOL)manual beginChange:(void(^)(void))beginChangeBlock completion:(void(^)(void))completionBlock;
 @end

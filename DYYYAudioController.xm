@@ -32,7 +32,7 @@ static bool getUserDefaults(NSString *key) { return [[NSUserDefaults standardUse
 }
 
 - (BOOL)setCategory:(AVAudioSessionCategory)category mode:(AVAudioSessionMode)mode options:(AVAudioSessionCategoryOptions)options error:(NSError **)outError {
- 
+ 
     if (getUserDefaults(DYYYALLOW_KEY) &&
         ([category isEqualToString:AVAudioSessionCategoryPlayback] ||
         [category isEqualToString:AVAudioSessionCategoryPlayAndRecord] ||
