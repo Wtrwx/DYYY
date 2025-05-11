@@ -1205,10 +1205,11 @@
     %orig;
 
     if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideDiscover"]) {
-        UIView *firstSubview = self.subviews.firstObject;
-        if ([firstSubview isKindOfClass:[UIImageView class]]) {
-            ((UIImageView *)firstSubview).image = nil;
-        }
+        if ([self.accessibilityLabel isEqualToString:@"搜索"] && self.superview) {
+			for (UIView *subview in self.subviews) {
+			subview.hidden = YES;
+			}
+		}
     }
 }
 
