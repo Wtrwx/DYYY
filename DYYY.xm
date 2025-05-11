@@ -1554,32 +1554,6 @@
 }
 %end
 
-// 禁用HDR高亮
-%hook AWEFeedABSettings
-
-+ (BOOL)enableHDRBrightnessOpt {
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-        return NO;
-    }
-    return %orig;
-}
-
-+ (double)hdrBrightnessThreshold {
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-        return 999.0;
-    }
-    return %orig;
-}
-
-+ (BOOL)hdrAutomaticIdentification {
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYDisableHDR"]) {
-        return NO;
-    }
-    return %orig;
-}
-
-%end
-
 // 启用自动勾选原图
 %hook AWEIMPhotoPickerFunctionModel
 
