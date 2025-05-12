@@ -15,34 +15,6 @@
 
 #import "DYYYConstants.h"
 
-%hook AWEDPlayerFeedPlayerViewController
-
-- (void)setIsAutoPlay:(BOOL)arg0 {
-	float defaultSpeed = [[NSUserDefaults standardUserDefaults] floatForKey:@"DYYYDefaultSpeed"];
-
-	if (defaultSpeed > 0 && defaultSpeed != 1) {
-		[self setVideoControllerPlaybackRate:defaultSpeed];
-	}
-
-	%orig(arg0);
-}
-
-%end
-
-%hook AWEAwemePlayVideoViewController
-
-- (void)setIsAutoPlay:(BOOL)arg0 {
-	float defaultSpeed = [[NSUserDefaults standardUserDefaults] floatForKey:@"DYYYDefaultSpeed"];
-
-	if (defaultSpeed > 0 && defaultSpeed != 1) {
-		[self setVideoControllerPlaybackRate:defaultSpeed];
-	}
-
-	%orig(arg0);
-}
-
-%end
-
 %hook AWEPlayInteractionUserAvatarElement
 - (void)onFollowViewClicked:(UITapGestureRecognizer *)gesture {
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYfollowTips"]) {
@@ -526,29 +498,13 @@
     if (transparentValue.length > 0) {
         CGFloat alphaValue = transparentValue.floatValue;
         if (alphaValue >= 0.0 && alphaValue <= 1.0) {
-            originalView.alpha = alphaValue;
+            for (UIView *subview in originalView.subviews) {
+                subview.alpha = alphaValue;
+            }
         }
     }
 
     return originalView;
-}
-
-- (void)viewDidLoad {
-    %orig;
-    [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(keepAlpha) userInfo:nil repeats:YES];
-}
-
-%new
-- (void)keepAlpha {
-    NSString *transparentValue = [[NSUserDefaults standardUserDefaults] stringForKey:@"DYYYGlobalTransparency"];
-    if (transparentValue.length > 0) {
-        CGFloat alphaValue = transparentValue.floatValue;
-        if (alphaValue >= 0.0 && alphaValue <= 1.0) {
-            if (self.viewIfLoaded) {
-                self.viewIfLoaded.alpha = alphaValue;
-            }
-        }
-    }
 }
 
 %end
