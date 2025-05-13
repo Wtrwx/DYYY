@@ -1015,6 +1015,11 @@ static void showUserAgreementAlert() {
 			      @"title" : @"隐藏全屏观看",
 			      @"detail" : @"",
 			      @"cellType" : @6,
+			      @"imageName" : @"ic_eyeslash_outlined_16"},
+			    @{@"identifier" : @"DYYYHideDescriptionArrow",
+			      @"title" : @"隐藏文案箭头",
+			      @"detail" : @"",
+			      @"cellType" : @6,
 			      @"imageName" : @"ic_eyeslash_outlined_16"}
 		    ];
 
