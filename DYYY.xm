@@ -499,6 +499,8 @@
         CGFloat alphaValue = transparentValue.floatValue;
         if (alphaValue >= 0.0 && alphaValue <= 1.0) {
             for (UIView *subview in originalView.subviews) {
+				// 透明度白名单视图不做处理
+				if (subview.tag == DYYY_IGNORE_GLOBAL_ALPHA_TAG) { continue; }
                 subview.alpha = alphaValue;
             }
         }
@@ -643,7 +645,7 @@ static CGFloat rightLabelRightMargin = -1;
         CGRect sliderOriginalFrameInParent = [self convertRect:self.bounds toView:parentView];
         CGRect sliderFrame = self.frame;
 
-        CGFloat verticalOffset = -12.5;
+        CGFloat verticalOffset = - 12.5;
         NSString *offsetValueString = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYTimelineVerticalPosition"];
         if (offsetValueString.length > 0) {
             CGFloat configOffset = [offsetValueString floatValue];
@@ -703,7 +705,7 @@ static CGFloat rightLabelRightMargin = -1;
             [rightLabel sizeToFit];
 
             if (rightLabelRightMargin == -1) {
-                rightLabelRightMargin = sliderFrame.origin.x + sliderFrame.size.width - rightLabel.frame.size.width; // Store the right margin the first time
+                rightLabelRightMargin = sliderFrame.origin.x + sliderFrame.size.width - rightLabel.frame.size.width;
             }
 
             rightLabel.frame = CGRectMake(rightLabelRightMargin, labelYPosition, rightLabel.frame.size.width, labelHeight);

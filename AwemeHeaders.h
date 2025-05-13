@@ -2,7 +2,7 @@
 #import <Photos/Photos.h>
 
 #define DYYYGetBool(key) [[NSUserDefaults standardUserDefaults] boolForKey:key]
-
+#define DYYY_IGNORE_GLOBAL_ALPHA_TAG 114514
 typedef NS_ENUM(NSInteger, MediaType) {
   MediaTypeVideo,
   MediaTypeImage,
@@ -19,15 +19,21 @@ typedef NS_ENUM(NSInteger, MediaType) {
 @end
 
 @interface AWEURLModel : NSObject
+@property (nonatomic, copy) NSArray *originURLList;
+@property (nonatomic, assign) NSInteger imageWidth;
+@property (nonatomic, assign) NSInteger imageHeight;
+@property (nonatomic, copy) NSString *URLKey;
 - (NSArray *)originURLList;
 - (id)URI;
 - (NSURL *)getDYYYSrcURLDownload;
 @end
 
 @interface AWEVideoModel : NSObject
+@property (nonatomic, strong) AWEURLModel *playLowBitURL;
 @property(retain, nonatomic) AWEURLModel *playURL;
 @property(copy, nonatomic) NSArray *manualBitrateModels;
 @property(copy, nonatomic) NSArray *bitrateModels;
+@property(copy, nonatomic) NSArray *bitrateRawData;
 @property(nonatomic, strong) URLModel *h264URL;
 @property(nonatomic, strong) URLModel *coverURL;
 @end
@@ -963,7 +969,7 @@ typedef NS_ENUM(NSInteger, MediaType) {
 @end
 
 @interface HTSLiveStreamQualityFragment : IESLiveRoomComponent
-@property (nonatomic, strong) NSArray *streamQualityArray;
+@property(nonatomic, strong) NSArray *streamQualityArray;
 - (NSArray *)getQualities;
-- (void)setResolutionWithIndex:(NSInteger)index isManual:(BOOL)manual beginChange:(void(^)(void))beginChangeBlock completion:(void(^)(void))completionBlock;
+- (void)setResolutionWithIndex:(NSInteger)index isManual:(BOOL)manual beginChange:(void (^)(void))beginChangeBlock completion:(void (^)(void))completionBlock;
 @end
