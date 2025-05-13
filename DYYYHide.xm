@@ -776,6 +776,20 @@
 
 %end
 
+// 隐藏文案箭头
+%hook AWEPlayInteractionDescriptionLabel
+- (void)layoutSubviews {
+    %orig;
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideDescriptionArrow"]) {
+        for (UIView *subview in [self subviews]) {
+            if ([subview isKindOfClass:[UIImageView class]]) {
+                [(UIImageView *)subview setHidden:YES];
+            }
+        }
+    }
+}
+%end
+
 // 隐藏双指缩放虾线
 %hook AWELoadingAndVolumeView
 
