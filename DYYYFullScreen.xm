@@ -362,7 +362,6 @@ static CGFloat currentScale = 1.0;
                 newTransform = CGAffineTransformTranslate(newTransform, left_tx/scale, ty/scale);
                 
                 self.transform = newTransform;
-
             } 
         }
     }
