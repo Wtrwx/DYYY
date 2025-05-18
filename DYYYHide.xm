@@ -644,7 +644,16 @@
 			return;
 		}
 	}
-	
+}
+
+%end
+
+// 隐藏返回按钮
+%hook AWEButton
+- (void)layoutSubviews {
+	%orig;
+
+	NSString *accessibilityLabel = self.accessibilityLabel;
 	if ([accessibilityLabel isEqualToString:@"返回"]) {
 		if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideBack"]) {
 			[self removeFromSuperview];
@@ -652,7 +661,6 @@
 		}
 	}
 }
-
 %end
 
 %hook ACCGestureResponsibleStickerView
