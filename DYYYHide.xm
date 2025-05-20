@@ -1,5 +1,17 @@
 #import "AwemeHeaders.h"
 
+%hook AWEFeedTabJumpGuideView
+
+- (void)layoutSubviews {
+    %orig; 
+
+    if (DYYYGetBool(@"DYYYHideJumpGuide")) {
+        [self removeFromSuperview];
+    }
+}
+
+%end
+
 %hook UIView
 - (void)layoutSubviews {
 	%orig;
