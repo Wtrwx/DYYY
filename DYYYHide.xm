@@ -3,14 +3,12 @@
 %hook AWEFeedTabJumpGuideView
 
 - (void)layoutSubviews {
-    %orig; 
-
-    if (DYYYGetBool(@"DYYYHideJumpGuide")) {
-        [self removeFromSuperview];
-    }
+    %orig;
+    [self removeFromSuperview];
 }
 
 %end
+
 
 %hook UIView
 - (void)layoutSubviews {
