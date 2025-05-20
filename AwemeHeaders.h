@@ -172,6 +172,9 @@ typedef NS_ENUM(NSInteger, MediaType) {
 @interface AWEHPSearchBubbleEntranceView : UIView
 @end
 
+@interface AWEFeedTabJumpGuideView : UIView
+@end
+
 @interface AWEPlayInteractionViewController : UIViewController
 @property(nonatomic, strong) UIView *view;
 @property(nonatomic, strong) NSString *referString;
