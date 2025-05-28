@@ -2897,18 +2897,6 @@ static AWEIMReusableCommonCell *currentCell;
 - (void)viewDidLayoutSubviews {
 	%orig;
 
-	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideCommentTips"]) {
-		[self.view removeFromSuperview];
-	}
-}
-
-%end
-
-%hook AWECommentPanelListSwiftImpl.CommentBottomTipsContainerViewController
-
-- (void)viewDidLayoutSubviews {
-	%orig;
-
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideReply"]) {
 		[self.view removeFromSuperview];
 	}

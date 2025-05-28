@@ -171,9 +171,6 @@ typedef NS_ENUM(NSInteger, MediaType) {
 
 @interface AWEIMFeedVideoQuickReplayInputViewController : UIViewController
 @end
-@interface AWECommentPanelListSwiftImpl
-.CommentBottomTipsContainerViewController : UIViewController
-                                            @end
 
 @interface AWEHPSearchBubbleEntranceView : UIView
 @end
