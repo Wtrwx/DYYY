@@ -3962,6 +3962,25 @@ static AWEIMReusableCommonCell *currentCell;
 }
 %end
 
+%hook UIImageView
+- (void)layoutSubviews {
+	%orig;
+	if([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideCommentDiscover"]) {
+		if (!self.accessibilityLabel) {
+			UIView *parentView = self.superview;
+
+			if (parentView && [parentView class] == [UIView class] && [parentView.accessibilityLabel isEqualToString:@"搜索"]) {
+				self.hidden = YES;
+			}
+
+			else if (parentView && [NSStringFromClass([parentView class]) isEqualToString:@"AWESearchEntryHalfScreenElement"] && [parentView.accessibilityLabel isEqualToString:@"搜索"]) {
+				self.hidden = YES;
+			}
+		}
+	}
+}
+%end
+
 // 移除极速版我的片面红包横幅
 %hook AWELuckyCatBannerView
 - (id)initWithFrame:(CGRect)frame {
