@@ -2421,6 +2421,16 @@ static AWEIMReusableCommonCell *currentCell;
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideCommentViews"]) {
 		[self setHidden:YES];
 	}
+
+	if([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYMusicCopyText"]) {
+    	UILabel *label = nil;
+		if ([self respondsToSelector:@selector(preTitleLabel)]) {
+			label = [self valueForKey:@"preTitleLabel"];
+		}
+		if (label && [label isKindOfClass:[UILabel class]]) {
+			label.text = @"";
+		}
+	}
 }
 
 %end
