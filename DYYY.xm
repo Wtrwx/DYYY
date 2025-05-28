@@ -2434,21 +2434,24 @@ static AWEIMReusableCommonCell *currentCell;
 }
 
 - (void)p_didClickSong {
+	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYMusicCopyText"]) {
+		// 通过 KVC 拿到内部的 songButton
+		UIButton *btn = nil;
+		if ([self respondsToSelector:@selector(songButton)]) {
+			btn = (UIButton *)[self valueForKey:@"songButton"];
+		}
 
-    // 通过 KVC 拿到内部的 songButton
-    UIButton *btn = nil;
-    if ([self respondsToSelector:@selector(songButton)]) {
-        btn = (UIButton *)[self valueForKey:@"songButton"];
-    }
-
-    // 获取歌曲名并复制到剪贴板
-    if (btn && [btn isKindOfClass:[UIButton class]]) {
-        NSString *song = btn.currentTitle;
-        if (song.length) {
-            [UIPasteboard generalPasteboard].string = song;
-            [DYYYToast showSuccessToastWithMessage:@"歌曲名已复制"];
-        }
-    }
+		// 获取歌曲名并复制到剪贴板
+		if (btn && [btn isKindOfClass:[UIButton class]]) {
+			NSString *song = btn.currentTitle;
+			if (song.length) {
+				[UIPasteboard generalPasteboard].string = song;
+				[DYYYToast showSuccessToastWithMessage:@"歌曲名已复制"];
+			}
+		}
+	} else {
+		%orig;
+	}
 }
 
 %end
