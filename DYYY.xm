@@ -2897,6 +2897,18 @@ static AWEIMReusableCommonCell *currentCell;
 - (void)viewDidLayoutSubviews {
 	%orig;
 
+	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideCommentTips"]) {
+		[self.view removeFromSuperview];
+	}
+}
+
+%end
+
+%hook AWECommentPanelListSwiftImpl.CommentBottomTipsContainerViewController
+
+- (void)viewDidLayoutSubviews {
+	%orig;
+
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideReply"]) {
 		[self.view removeFromSuperview];
 	}
@@ -2993,7 +3005,7 @@ static AWEIMReusableCommonCell *currentCell;
 	%orig;
 	if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideGradient"]) {
 		UIView *parent = self.superview;
-		if ([parent.accessibilityLabel isEqualToString:@"暂停，按钮"] || [parent.accessibilityLabel isEqualToString:@"播放，按钮"]) {
+		if ([parent.accessibilityLabel isEqualToString:@"暂停，按钮"] || [parent.accessibilityLabel isEqualToString:@"播放，按钮"] || [parent.accessibilityLabel isEqualToString:@"切换视角，按钮"]) {
 			[self removeFromSuperview];
 		}
 		return;
