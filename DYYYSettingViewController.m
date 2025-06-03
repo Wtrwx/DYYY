@@ -549,8 +549,8 @@ extern CFStringRef kUTTypeMovie;
     
     CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
     CGFloat screenHeight = [UIScreen mainScreen].bounds.size.height;
-    CGFloat containerWidth = MIN(screenWidth - 80, 320); 
-    CGFloat containerHeight = MIN(screenHeight - 80, 450);
+    CGFloat containerWidth = MIN(screenWidth - 80, 480); 
+    CGFloat containerHeight = MIN(screenHeight - 80, 320);
     
     self.containerBlurView.frame = CGRectMake(0, 0, containerWidth, containerHeight);
     self.containerBlurView.center = self.view.center;
