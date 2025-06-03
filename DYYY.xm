@@ -2869,7 +2869,7 @@ static AWEIMReusableCommonCell *currentCell;
 }
 %end
 
-//%hook AWEPlayInteractionUserAvatarView
+/*%hook AWEPlayInteractionUserAvatarView
 - (void)layoutSubviews {
     %orig;
     
@@ -2883,7 +2883,7 @@ static AWEIMReusableCommonCell *currentCell;
         }
     }
 }
-%end//
+%end*/
 
 %hook AWENormalModeTabBar
 
