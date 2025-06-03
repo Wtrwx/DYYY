@@ -370,8 +370,17 @@ extern CFStringRef kUTTypeMovie;
                 @{@"title": @"隐藏聊天评论", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideChatCommentBg"},
                 @{@"title": @"隐藏章节进度", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideChapterProgress"},
                 @{@"title": @"隐藏设置关于", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideSettingsAbout"},
-                @{@"title": @"隐藏键盘AI", @"type": @"switch", @"value": @NO, @"key": @"DYYYHidekeyboardai"}
-                
+                @{@"title": @"隐藏键盘上AI", @"type": @"switch", @"value": @NO, @"key": @"DYYYHidekeyboardai"},
+                @{@"title": @"隐藏上次看到", @"type": @"switch", @"value": @NO, @"key": @"DYYYHidePopover"},
+                @{@"title": @"隐藏展开渐变", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideGradient"},
+                @{@"title": @"隐藏关闭按钮", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideLiveRoomClose"},
+                @{@"title": @"隐藏横屏按钮", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideLiveRoomFullscreen"},
+                @{@"title": @"隐藏返回按钮", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideBack"},
+                @{@"title": @"隐藏设置关于", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideSettingsAbout"},
+                @{@"title": @"隐藏商品信息", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideLiveGoodsMsg"},
+                @{@"title": @"隐藏点赞动画", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideLiveLikeAnimation"},
+                @{@"title": @"隐藏输入扫码", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideScancode"},
+                @{@"title": @"隐藏私信回复", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideReply"}
             ]]
         } mutableCopy],
         
@@ -393,7 +402,8 @@ extern CFStringRef kUTTypeMovie;
                 @{@"title": @"移除短剧", @"type": @"switch", @"value": @NO, @"key": @"DYYYHidePlaylet"},
                 @{@"title": @"移除看剧", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideCinema"},
                 @{@"title": @"移除少儿", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideKidsV2"},
-                @{@"title": @"移除游戏", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideGame"}
+                @{@"title": @"移除游戏", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideGame"},
+                @{@"title": @"移除顶栏", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideOtherChannel", @"placeholder": @"逗号分隔"}
             ]]
         } mutableCopy],
         
@@ -480,6 +490,7 @@ extern CFStringRef kUTTypeMovie;
                 @{@"title": @"保存预览页表情包", @"type": @"switch", @"value": @NO, @"key": @"DYYYForceDownloadPreviewEmotion"},
                 @{@"title": @"保存聊天页表情包", @"type": @"switch", @"value": @NO, @"key": @"DYYYForceDownloadIMEmotion"},
                 @{@"title": @"长按评论复制文案", @"type": @"switch", @"value": @NO, @"key": @"DYYYCommentCopyText"}
+                @{@"title": @"下载完成震动反馈", @"type": @"switch", @"value": @NO, @"key": @"DYYYHapticFeedbackEnabled"}
             ]]
         } mutableCopy],
         
@@ -496,7 +507,10 @@ extern CFStringRef kUTTypeMovie;
                 @{@"title": @"启用一键清屏按钮", @"type": @"switch", @"value": @NO, @"key": @"DYYYEnableFloatClearButton"},
                 @{@"title": @"快捷清屏按钮大小", @"type": @"input", @"value": @"40", @"key": @"DYYYEnableFloatClearButtonSize", @"placeholder": @"默认40"},
                 @{@"title": @"清屏移除时间进度", @"type": @"switch", @"value": @NO, @"key": @"DYYYEnabshijianjindu"},
-                @{@"title": @"清屏隐藏时间进度", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideTimeProgress"}
+                @{@"title": @"清屏隐藏时间进度", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideTimeProgress"},
+                @{@"title": @"清屏隐藏滑条", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideSlider"},
+                @{@"title": @"清屏隐藏底栏", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideTabBar"},
+                @{@"title": @"清屏隐藏倍速", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideSpeed"},
             ]]
         } mutableCopy]
     ]];
