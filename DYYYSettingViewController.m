@@ -403,7 +403,7 @@ extern CFStringRef kUTTypeMovie;
                 @{@"title": @"移除看剧", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideCinema"},
                 @{@"title": @"移除少儿", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideKidsV2"},
                 @{@"title": @"移除游戏", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideGame"},
-                @{@"title": @"移除其他", @"type": @"input", @"value": @"", @"key": @"DYYYHideOtherChannel", @"placeholder": @"逗号分隔"}
+                @{@"title": @"移除其他", @"type": @"input", @"value": @"", @"key": @"DYYYHideOtherChannel", @"placeholder": @"不填关闭"}
             ]]
         } mutableCopy],
         
