@@ -489,7 +489,7 @@ extern CFStringRef kUTTypeMovie;
                 @{@"title": @"保存评论区表情包", @"type": @"switch", @"value": @NO, @"key": @"DYYYForceDownloadEmotion"},
                 @{@"title": @"保存预览页表情包", @"type": @"switch", @"value": @NO, @"key": @"DYYYForceDownloadPreviewEmotion"},
                 @{@"title": @"保存聊天页表情包", @"type": @"switch", @"value": @NO, @"key": @"DYYYForceDownloadIMEmotion"},
-                @{@"title": @"长按评论复制文案", @"type": @"switch", @"value": @NO, @"key": @"DYYYCommentCopyText"}
+                @{@"title": @"长按评论复制文案", @"type": @"switch", @"value": @NO, @"key": @"DYYYCommentCopyText"},
                 @{@"title": @"下载完成震动反馈", @"type": @"switch", @"value": @NO, @"key": @"DYYYHapticFeedbackEnabled"}
             ]]
         } mutableCopy],
@@ -510,7 +510,7 @@ extern CFStringRef kUTTypeMovie;
                 @{@"title": @"清屏隐藏时间进度", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideTimeProgress"},
                 @{@"title": @"清屏隐藏滑条", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideSlider"},
                 @{@"title": @"清屏隐藏底栏", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideTabBar"},
-                @{@"title": @"清屏隐藏倍速", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideSpeed"},
+                @{@"title": @"清屏隐藏倍速", @"type": @"switch", @"value": @NO, @"key": @"DYYYHideSpeed"}
             ]]
         } mutableCopy]
     ]];
