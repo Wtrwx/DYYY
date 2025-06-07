@@ -2335,7 +2335,7 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
 			    UIDocumentPickerViewController *documentPicker = [[UIDocumentPickerViewController alloc] initWithURLs:@[[NSURL fileURLWithPath:tempPath]] inMode:UIDocumentPickerModeExportToService];
 
 			    DYYYBackupPickerDelegate *pickerDelegate = [[DYYYBackupPickerDelegate alloc] init];
-			    pickerDelegate.tempFilePath = tempPath
+			    pickerDelegate.tempFilePath = tempPath;
 			    pickerDelegate.completionBlock = ^(NSURL *url) {
 			      [DYYYManager showToast:@"本地配置已保存"];
 			    };
