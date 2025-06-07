@@ -479,6 +479,28 @@ static void showUserAgreementAlert() {
 	    }];
 }
 
+// 递归函数：对字典内所有键名进行排序
+static id sortDictionaryKeysRecursively(id object) {
+    if ([object isKindOfClass:[NSDictionary class]]) {
+        NSDictionary *originalDict = (NSDictionary *)object;
+        NSMutableDictionary *sortedDict = [NSMutableDictionary dictionary];
+        NSArray *sortedKeys = [[originalDict allKeys] sortedArrayUsingSelector:@selector(compare:)];
+        for (NSString *key in sortedKeys) {
+            id value = originalDict[key];
+            sortedDict[key] = sortDictionaryKeysRecursively(value);
+        }
+        return [sortedDict copy];
+    } else if ([object isKindOfClass:[NSArray class]]) {
+        NSArray *originalArray = (NSArray *)object;
+        NSMutableArray *sortedArray = [NSMutableArray array];
+        for (id element in originalArray) {
+            [sortedArray addObject:sortDictionaryKeysRecursively(element)];
+        }
+        return [sortedArray copy];
+    }
+    return object;
+}
+
 void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
 	AWESettingBaseViewController *settingsVC = [[%c(AWESettingBaseViewController) alloc] init];
 	if (!hasAgreed) {
@@ -2221,15 +2243,16 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
 			    NSDictionary *currentData = getCurrentABTestData();
 
 			    if (!currentData) {
-				    [DYYYManager showToast:@"获取ABTest配置失败"];
+				    [DYYYManager showToast:@"ABTest配置获取失败"];
 				    return;
 			    }
 
+			    NSDictionary *sortedCurrentData = sortDictionaryKeysRecursively(currentData);
 			    NSError *error;
-			    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:currentData options:NSJSONWritingPrettyPrinted error:&error];
+			    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:sortedCurrentData  options:NSJSONWritingPrettyPrinted error:&error];
 
 			    if (error) {
-				    [DYYYManager showToast:@"序列化配置数据失败"];
+				    [DYYYManager showToast:@"排序数据序列化失败"];
 				    return;
 			    }
 
@@ -2244,7 +2267,7 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
 			    BOOL success = [jsonData writeToFile:tempFilePath atomically:YES];
 
 			    if (!success) {
-				    [DYYYManager showToast:@"创建临时文件失败"];
+				    [DYYYManager showToast:@"临时文件创建失败"];
 				    return;
 			    }
 
@@ -2276,15 +2299,47 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
 
 			    NSString *dyyyFolderPath = [documentsDirectory stringByAppendingPathComponent:@"DYYY"];
 			    NSString *jsonFilePath = [dyyyFolderPath stringByAppendingPathComponent:@"abtest_data_fixed.json"];
-        
-			    NSURL *jsonFileURL = [NSURL fileURLWithPath:jsonFilePath];
-			    UIDocumentPickerViewController *documentPicker = [[UIDocumentPickerViewController alloc] initWithURLs:@[ jsonFileURL ] inMode:UIDocumentPickerModeExportToService];
-        
+
+			    NSData *jsonData = [NSData dataWithContentsOfFile:jsonFilePath];
+			    if (!jsonData) {
+			      [DYYYManager showToast:@"本地配置获取失败"];
+			      return;
+			    }
+
+			    NSError *error;
+			    NSDictionary *originalData = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&error];
+			    if (error || ![originalData isKindOfClass:[NSDictionary class]]) {
+			      [DYYYManager showToast:@"本地配置序列化失败"];
+			      return;
+			    }
+
+			    NSDictionary *sortedData = sortDictionaryKeysRecursively(originalData);
+			    NSData *sortedJsonData = [NSJSONSerialization dataWithJSONObject:sortedData options:NSJSONWritingPrettyPrinted error:&error];
+			    if (error || !sortedJsonData) {
+			      [DYYYManager showToast:@"排序数据序列化失败"];
+			      return;
+			    }
+
+			    // 创建临时文件
+			    NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+			    [formatter setDateFormat:@"yyyyMMdd_HHmmss"];
+			    NSString *timestamp = [formatter stringFromDate:[NSDate date]];
+			    NSString *tempFile = [NSString stringWithFormat:@"abtest_data_fixed_%@.json", timestamp];
+			    NSString *tempPath = [NSTemporaryDirectory() stringByAppendingPathComponent:tempFile];
+
+			    if (![sortedJsonData writeToFile:tempPath atomically:YES]) {
+			      [DYYYManager showToast:@"临时文件创建失败"];
+			      return;
+			    }
+
+			    UIDocumentPickerViewController *documentPicker = [[UIDocumentPickerViewController alloc] initWithURLs:@[[NSURL fileURLWithPath:tempPath]] inMode:UIDocumentPickerModeExportToService];
+
 			    DYYYBackupPickerDelegate *pickerDelegate = [[DYYYBackupPickerDelegate alloc] init];
+			    pickerDelegate.tempFilePath = tempPath
 			    pickerDelegate.completionBlock = ^(NSURL *url) {
-			      [DYYYManager showToast:@"ABTest配置已保存"];
+			      [DYYYManager showToast:@"本地配置已保存"];
 			    };
-        
+
 			    static char kABTestConfigPickerDelegateKey;
 			    documentPicker.delegate = pickerDelegate;
 			    objc_setAssociatedObject(documentPicker, &kABTestConfigPickerDelegateKey, pickerDelegate, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
@@ -2353,7 +2408,7 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
 					    gFixedABTestData = nil;
 					    onceToken = 0;
 					    // 删除成功后修改 SaveABTestConfigFile item 的状态
-					    saveABTestConfigFileItemRef.detail = @"(不存在)";
+					    saveABTestConfigFileItemRef.detail = @"(文件不存在)";
 					    saveABTestConfigFileItemRef.isEnable = NO;
 					    [DYYYSettingsHelper refreshTableView];
 				    }
@@ -2858,9 +2913,12 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
 		  dyyySettings[@"DYYYIconsBase64"] = iconBase64Dict;
 	  }
 
+	  // 对备份设置的字典进行递归排序
+	  NSDictionary *sortedDyyySettings = sortDictionaryKeysRecursively(dyyySettings);
+
 	  // 转换为JSON数据
 	  NSError *error;
-	  NSData *jsonData = [NSJSONSerialization dataWithJSONObject:dyyySettings options:NSJSONWritingPrettyPrinted error:&error];
+	  NSData *jsonData = [NSJSONSerialization dataWithJSONObject:sortedDyyySettings options:NSJSONWritingPrettyPrinted error:&error];
 
 	  if (error) {
 		  [DYYYManager showToast:@"备份失败：无法序列化设置数据"];
