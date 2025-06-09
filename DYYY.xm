@@ -7,6 +7,7 @@
 //
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
+#import <AVFoundation/AVFoundation.h>
 
 #import "AwemeHeaders.h"
 #import "CityManager.h"
@@ -240,7 +241,7 @@
 
 		} else if (xPct >= 0.80) { // 右边缘 → 音量
 			gMode = DYEdgeModeVolume;
-			gStartVal = [[objc_getClass("AVSystemController") sharedAVSystemController] volumeForCategory:@"Audio/Video"];
+			gStartVal = [AVAudioSession sharedInstance].outputVolume;
 
 		} else {
 			gMode = DYEdgeModeNone; // 中间区域走原逻辑
