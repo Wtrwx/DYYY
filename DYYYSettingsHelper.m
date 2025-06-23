@@ -551,7 +551,10 @@ static void showIconOptionsDialog(NSString *title, UIImage *previewImage, NSStri
                 if ([subview isKindOfClass:NSClassFromString(@"AWENavigationBar")]) {
                     id navigationBar = subview;
                     if ([navigationBar respondsToSelector:@selector(titleLabel)]) {
-                        navigationBar.titleLabel.text = title;
+                        UILabel *label = [navigationBar valueForKey:@"titleLabel"];
+                        if ([label isKindOfClass:[UILabel class]]) {
+                            label.text = title;
+                        }
                     }
                     break;
                 }
