@@ -968,36 +968,45 @@
 		return;
 	}
 
-	UILabel *leftLabel = [self viewWithTag:10001];
-	UILabel *rightLabel = [self viewWithTag:10002];
-	if (!leftLabel || !rightLabel) {
-		return;
-	}
+        UILabel *leftLabel = [self viewWithTag:10001];
+        UILabel *rightLabel = [self viewWithTag:10002];
+        if (!leftLabel || !rightLabel) {
+                return;
+        }
 
-	CGFloat padding = 5.0;
-	CGFloat shrinkX = CGRectGetMaxX(leftLabel.frame) + padding;
-	CGFloat shrinkWidth = rightLabel.frame.origin.x - padding - shrinkX;
-	if (shrinkWidth < 0)
-		shrinkWidth = 0;
+        CGFloat padding = 5.0;
+        CGFloat shrinkX = CGRectGetMaxX(leftLabel.frame) + padding;
+        CGFloat shrinkWidth = rightLabel.frame.origin.x - padding - shrinkX;
+        if (shrinkWidth < 0)
+                shrinkWidth = 0;
 
-	NSMutableDictionary *origFrames = objc_getAssociatedObject(self, @selector(dyyy_applyShrinkIfNeeded));
-	if (!origFrames) {
-		origFrames = [NSMutableDictionary dictionary];
-		for (UIView *subview in self.subviews) {
-			NSString *key = [NSString stringWithFormat:@"%p", subview];
-			origFrames[key] = [NSValue valueWithCGRect:subview.frame];
-		}
-		objc_setAssociatedObject(self, @selector(dyyy_applyShrinkIfNeeded), origFrames, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-	}
+        NSMutableDictionary *origFrames = objc_getAssociatedObject(self, @selector(dyyy_applyShrinkIfNeeded));
+        if (!origFrames) {
+                origFrames = [NSMutableDictionary dictionary];
+                for (UIView *subview in self.subviews) {
+                        NSString *key = [NSString stringWithFormat:@"%p", subview];
+                        origFrames[key] = [NSValue valueWithCGRect:subview.frame];
+                }
+                objc_setAssociatedObject(self, @selector(dyyy_applyShrinkIfNeeded), origFrames, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
 
-	for (UIView *subview in self.subviews) {
-		if ([subview isKindOfClass:[UILabel class]])
-			continue;
-		CGRect frame = subview.frame;
-		frame.origin.x = shrinkX;
-		frame.size.width = shrinkWidth;
-		subview.frame = frame;
-	}
+        for (UIView *subview in self.subviews) {
+                NSString *key = [NSString stringWithFormat:@"%p", subview];
+                CGRect origFrame = [origFrames[key] CGRectValue];
+                if ([subview isKindOfClass:[UILabel class]]) {
+                        subview.frame = origFrame;
+                        continue;
+                }
+                CGFloat ratio = origFrame.size.width / MAX(origFrame.size.height, 1.0);
+                if (ratio > 10.0) {
+                        CGRect frame = origFrame;
+                        frame.origin.x = shrinkX;
+                        frame.size.width = shrinkWidth;
+                        subview.frame = frame;
+                } else {
+                        subview.frame = origFrame;
+                }
+        }
 }
 %end
 
@@ -1295,21 +1304,68 @@ static char kDYYYSliderAdjustedFrameKey;
 
 %hook AWEFakeProgressSliderView
 - (void)layoutSubviews {
-	%orig;
-	[self applyCustomProgressStyle];
+        %orig;
+        [self applyCustomProgressStyle];
 }
 
 %new
 - (void)applyCustomProgressStyle {
-	NSString *scheduleStyle = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYScheduleStyle"];
+        if (![[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYisShowScheduleDisplay"]) {
+                return;
+        }
 
-	if ([scheduleStyle isEqualToString:@"进度条两侧左右"]) {
-		for (UIView *subview in self.subviews) {
-			if ([subview class] == [UIView class]) {
-				subview.hidden = YES;
-			}
-		}
-	}
+        NSString *scheduleStyle = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYScheduleStyle"];
+        NSMutableDictionary *origFrames = objc_getAssociatedObject(self, _cmd);
+
+        if (![scheduleStyle isEqualToString:@"进度条两侧左右"]) {
+                if (origFrames) {
+                        for (UIView *subview in self.subviews) {
+                                NSString *key = [NSString stringWithFormat:@"%p", subview];
+                                NSValue *val = origFrames[key];
+                                if (val) {
+                                        subview.frame = [val CGRectValue];
+                                        subview.hidden = NO;
+                                }
+                        }
+                }
+                return;
+        }
+
+        UILabel *leftLabel = [self.superview viewWithTag:10001];
+        UILabel *rightLabel = [self.superview viewWithTag:10002];
+        if (!leftLabel || !rightLabel) {
+                return;
+        }
+
+        CGFloat padding = 5.0;
+        CGFloat shrinkX = CGRectGetMaxX(leftLabel.frame) + padding;
+        CGFloat shrinkWidth = rightLabel.frame.origin.x - padding - shrinkX;
+        if (shrinkWidth < 0)
+                shrinkWidth = 0;
+
+        if (!origFrames) {
+                origFrames = [NSMutableDictionary dictionary];
+                for (UIView *subview in self.subviews) {
+                        NSString *key = [NSString stringWithFormat:@"%p", subview];
+                        origFrames[key] = [NSValue valueWithCGRect:subview.frame];
+                }
+                objc_setAssociatedObject(self, _cmd, origFrames, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
+
+        for (UIView *subview in self.subviews) {
+                NSString *key = [NSString stringWithFormat:@"%p", subview];
+                CGRect origFrame = [origFrames[key] CGRectValue];
+                CGFloat ratio = origFrame.size.width / MAX(origFrame.size.height, 1.0);
+                if (ratio > 10.0) {
+                        CGRect frame = origFrame;
+                        frame.origin.x = shrinkX;
+                        frame.size.width = shrinkWidth;
+                        subview.frame = frame;
+                } else {
+                        subview.frame = origFrame;
+                }
+                subview.hidden = NO;
+        }
 }
 %end
 
