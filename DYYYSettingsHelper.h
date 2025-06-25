@@ -105,7 +105,14 @@
 + (AWESettingItemModel *)createIconCustomizationItemWithIdentifier:(NSString *)identifier
                                   title:(NSString *)title
                                svgIcon:(NSString *)svgIconName
-                            saveFile:(NSString *)saveFilename;
+                           saveFile:(NSString *)saveFilename;
+
+/**
+ * 创建本地Geo数据库选择项
+ */
++ (AWESettingItemModel *)createGeoDatabasePickerItemWithIdentifier:(NSString *)identifier
+                                                         title:(NSString *)title
+                                                      svgIcon:(NSString *)svgIconName;
 
 /**
  * 创建设置分区

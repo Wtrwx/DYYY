@@ -268,11 +268,6 @@ extern "C"
                           @"cellType" : @20,
                           @"imageName" : @"ic_location_outlined_20"
                   },
-                  @{@"identifier" : @"DYYYGeonamesDB",
-                    @"title" : @"本地Geo数据库",
-                    @"detail" : @"txt或db路径",
-                    @"cellType" : @20,
-                    @"imageName" : @"ic_location_outlined_20"},
                   @{@"identifier" : @"DYYYLabelColor",
 		    @"title" : @"属地标签颜色",
 		    @"detail" : @"十六进制",
@@ -342,9 +337,11 @@ extern "C"
 			  };
 		  }
 
-		  [videoItems addObject:item];
-	  }
-	  // 【杂项设置】分类
+                  [videoItems addObject:item];
+          }
+          AWESettingItemModel *geoDBItem = [DYYYSettingsHelper createGeoDatabasePickerItemWithIdentifier:@"DYYYGeonamesDB" title:@"本地Geo数据库" svgIcon:@"ic_location_outlined_20"];
+          [videoItems addObject:geoDBItem];
+          // 【杂项设置】分类
 	  NSMutableArray<AWESettingItemModel *> *miscellaneousItems = [NSMutableArray array];
 	  NSArray *miscellaneousSettings = @[
 		  @{@"identifier" : @"DYYYEnableLiveHighestQuality",

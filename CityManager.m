@@ -517,7 +517,17 @@
 }
 
 + (void)fetchLocationWithGeonameId:(NSString *)geonameId completionHandler:(void (^)(NSDictionary *locationInfo, NSError *error))completionHandler {
-    NSString *dbPath = [[NSUserDefaults standardUserDefaults] stringForKey:@"DYYYGeonamesDB"];
+    NSString *documentsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+    NSString *dyyyFolderPath = [documentsPath stringByAppendingPathComponent:@"DYYY"];
+    NSString *txtPath = [dyyyFolderPath stringByAppendingPathComponent:@"geonames.txt"];
+    NSString *sqlitePath = [dyyyFolderPath stringByAppendingPathComponent:@"geonames.db"];
+    NSString *dbPath = nil;
+    if ([[NSFileManager defaultManager] fileExistsAtPath:sqlitePath]) {
+        dbPath = sqlitePath;
+    } else if ([[NSFileManager defaultManager] fileExistsAtPath:txtPath]) {
+        dbPath = txtPath;
+    }
+
     NSDictionary *localInfo = [self locationFromLocalDatabase:dbPath geonameId:geonameId];
     if (localInfo) {
         completionHandler(localInfo, nil);
