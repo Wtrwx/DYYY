@@ -5396,52 +5396,66 @@ static CGFloat currentScale = 1.0;
                 BOOL isLeftElement = isLeftInteractionStack(self);
 
 		// 右侧元素的处理逻辑
-		if (isRightElement) {
-			NSString *scaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYElementScale"];
-			self.transform = CGAffineTransformIdentity;
-			if (scaleValue.length > 0) {
-				CGFloat scale = [scaleValue floatValue];
-				if (currentScale != scale) {
-					currentScale = scale;
-				}
-				if (scale > 0 && scale != 1.0) {
-					CGFloat ty = 0;
-					for (UIView *view in self.subviews) {
-						CGFloat viewHeight = view.frame.size.height;
-						CGFloat contribution = (viewHeight - viewHeight * scale) / 2;
-						ty += contribution;
-					}
-					CGFloat frameWidth = self.frame.size.width;
-					right_tx = (frameWidth - frameWidth * scale) / 2;
-					self.transform = CGAffineTransformMake(scale, 0, 0, scale, right_tx, ty);
-				} else {
-					self.transform = CGAffineTransformIdentity;
-				}
-			}
-		}
-		// 左侧元素的处理逻辑
-		else if (isLeftElement) {
-			NSString *scaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYNicknameScale"];
-			if (scaleValue.length > 0) {
-				CGFloat scale = [scaleValue floatValue];
-				self.transform = CGAffineTransformIdentity;
-				if (scale > 0 && scale != 1.0) {
-					NSArray *subviews = [self.subviews copy];
-					CGFloat ty = 0;
-					for (UIView *view in subviews) {
-						CGFloat viewHeight = view.frame.size.height;
-						CGFloat contribution = (viewHeight - viewHeight * scale) / 2;
-						ty += contribution;
-					}
-					CGFloat frameWidth = self.frame.size.width;
-					CGFloat left_tx = (frameWidth - frameWidth * scale) / 2 - frameWidth * (1 - scale);
-					CGAffineTransform newTransform = CGAffineTransformMakeScale(scale, scale);
-					newTransform = CGAffineTransformTranslate(newTransform, left_tx / scale, ty / scale);
-					self.transform = newTransform;
-				}
-			}
-		}
-	}
+                if (isRightElement) {
+                        NSString *scaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYElementScale"];
+                        NSString *offsetString = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYElementVerticalOffset"];
+                        CGFloat userOffset = offsetString.length > 0 ? [offsetString floatValue] : 0;
+                        self.transform = CGAffineTransformIdentity;
+                        if (scaleValue.length > 0) {
+                                CGFloat scale = [scaleValue floatValue];
+                                if (currentScale != scale) {
+                                        currentScale = scale;
+                                }
+                                if (scale > 0 && scale != 1.0) {
+                                        CGFloat ty = userOffset;
+                                        for (UIView *view in self.subviews) {
+                                                CGFloat viewHeight = view.frame.size.height;
+                                                CGFloat contribution = (viewHeight - viewHeight * scale) / 2;
+                                                ty += contribution;
+                                        }
+                                        CGFloat frameWidth = self.frame.size.width;
+                                        right_tx = (frameWidth - frameWidth * scale) / 2;
+                                        self.transform = CGAffineTransformMake(scale, 0, 0, scale, right_tx, ty);
+                                } else {
+                                        self.transform = CGAffineTransformMakeTranslation(0, userOffset);
+                                }
+                        } else if (userOffset != 0) {
+                                self.transform = CGAffineTransformMakeTranslation(0, userOffset);
+                        }
+                }
+                // 左侧元素的处理逻辑
+                else if (isLeftElement) {
+                        NSString *scaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYNicknameScale"];
+                        NSString *offsetString = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYElementVerticalOffset"];
+                        CGFloat userOffset = offsetString.length > 0 ? [offsetString floatValue] : 0;
+                        if (scaleValue.length > 0) {
+                                CGFloat scale = [scaleValue floatValue];
+                                self.transform = CGAffineTransformIdentity;
+                                if (scale > 0 && scale != 1.0) {
+                                        NSArray *subviews = [self.subviews copy];
+                                        CGFloat ty = userOffset;
+                                        for (UIView *view in subviews) {
+                                                CGFloat viewHeight = view.frame.size.height;
+                                                CGFloat contribution = (viewHeight - viewHeight * scale) / 2;
+                                                ty += contribution;
+                                        }
+                                        CGFloat frameWidth = self.frame.size.width;
+                                        CGFloat left_tx = (frameWidth - frameWidth * scale) / 2 - frameWidth * (1 - scale);
+                                        CGAffineTransform newTransform = CGAffineTransformMakeScale(scale, scale);
+                                        newTransform = CGAffineTransformTranslate(newTransform, left_tx / scale, ty / scale);
+                                        self.transform = newTransform;
+                                } else if (userOffset != 0) {
+                                        self.transform = CGAffineTransformMakeTranslation(0, userOffset);
+                                }
+                        } else if (userOffset != 0) {
+                                self.transform = CGAffineTransformMakeTranslation(0, userOffset);
+                        }
+                }
+        }
+
+        CGFloat recordedY = self.frame.origin.y + self.transform.ty;
+        [[NSUserDefaults standardUserDefaults] setFloat:recordedY forKey:@"DYYYElementVerticalDistance"];
+        [[NSUserDefaults standardUserDefaults] synchronize];
 }
 - (NSArray<__kindof UIView *> *)arrangedSubviews {
 
@@ -5449,27 +5463,33 @@ static CGFloat currentScale = 1.0;
         if ([viewController isKindOfClass:%c(AWEPlayInteractionViewController)]) {
                 BOOL isLeftElement = isLeftInteractionStack(self);
 
-		if (isLeftElement) {
-			NSString *scaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYNicknameScale"];
-			if (scaleValue.length > 0) {
-				CGFloat scale = [scaleValue floatValue];
-				self.transform = CGAffineTransformIdentity;
-				if (scale > 0 && scale != 1.0) {
-					NSArray *subviews = [self.subviews copy];
-					CGFloat ty = 0;
-					for (UIView *view in subviews) {
-						CGFloat viewHeight = view.frame.size.height;
-						CGFloat contribution = (viewHeight - viewHeight * scale) / 2;
-						ty += contribution;
-					}
-					CGFloat frameWidth = self.frame.size.width;
-					CGFloat left_tx = (frameWidth - frameWidth * scale) / 2 - frameWidth * (1 - scale);
-					CGAffineTransform newTransform = CGAffineTransformMakeScale(scale, scale);
-					newTransform = CGAffineTransformTranslate(newTransform, left_tx / scale, ty / scale);
-					self.transform = newTransform;
-				}
-			}
-		}
+                if (isLeftElement) {
+                        NSString *scaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYNicknameScale"];
+                        NSString *offsetString = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYElementVerticalOffset"];
+                        CGFloat userOffset = offsetString.length > 0 ? [offsetString floatValue] : 0;
+                        if (scaleValue.length > 0) {
+                                CGFloat scale = [scaleValue floatValue];
+                                self.transform = CGAffineTransformIdentity;
+                                if (scale > 0 && scale != 1.0) {
+                                        NSArray *subviews = [self.subviews copy];
+                                        CGFloat ty = userOffset;
+                                        for (UIView *view in subviews) {
+                                                CGFloat viewHeight = view.frame.size.height;
+                                                CGFloat contribution = (viewHeight - viewHeight * scale) / 2;
+                                                ty += contribution;
+                                        }
+                                        CGFloat frameWidth = self.frame.size.width;
+                                        CGFloat left_tx = (frameWidth - frameWidth * scale) / 2 - frameWidth * (1 - scale);
+                                        CGAffineTransform newTransform = CGAffineTransformMakeScale(scale, scale);
+                                        newTransform = CGAffineTransformTranslate(newTransform, left_tx / scale, ty / scale);
+                                        self.transform = newTransform;
+                                } else if (userOffset != 0) {
+                                        self.transform = CGAffineTransformMakeTranslation(0, userOffset);
+                                }
+                        } else if (userOffset != 0) {
+                                self.transform = CGAffineTransformMakeTranslation(0, userOffset);
+                        }
+                }
 	}
 
 	NSArray *originalSubviews = %orig;
