@@ -1285,16 +1285,15 @@ static CGFloat rightLabelRightMargin = -1;
 
 				NSDictionary *cachedData = [geoNamesCache objectForKey:cacheKey];
 
-				if (!cachedData) {
-					NSString *cachesDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject];
-					NSString *geoNamesCacheDir = [cachesDir stringByAppendingPathComponent:@"DYYYGeoNamesCache"];
+                                if (!cachedData) {
+                                        NSString *geoNamesCacheDir = [[DYYYUtils cacheDirectory] stringByAppendingPathComponent:@"GeoNamesCache"];
 
-					NSFileManager *fileManager = [NSFileManager defaultManager];
-					if (![fileManager fileExistsAtPath:geoNamesCacheDir]) {
-						[fileManager createDirectoryAtPath:geoNamesCacheDir withIntermediateDirectories:YES attributes:nil error:nil];
-					}
+                                        NSFileManager *fileManager = [NSFileManager defaultManager];
+                                        if (![fileManager fileExistsAtPath:geoNamesCacheDir]) {
+                                                [fileManager createDirectoryAtPath:geoNamesCacheDir withIntermediateDirectories:YES attributes:nil error:nil];
+                                        }
 
-					NSString *cacheFilePath = [geoNamesCacheDir stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.plist", cacheKey]];
+                                        NSString *cacheFilePath = [geoNamesCacheDir stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.plist", cacheKey]];
 
 					if ([fileManager fileExistsAtPath:cacheFilePath]) {
 						cachedData = [NSDictionary dictionaryWithContentsOfFile:cacheFilePath];
@@ -1377,9 +1376,8 @@ static CGFloat rightLabelRightMargin = -1;
 							       if (![displayLocation isEqualToString:@"未知"]) {
 								       [geoNamesCache setObject:locationInfo forKey:cacheKey];
 
-								       NSString *cachesDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject];
-								       NSString *geoNamesCacheDir = [cachesDir stringByAppendingPathComponent:@"DYYYGeoNamesCache"];
-								       NSString *cacheFilePath = [geoNamesCacheDir stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.plist", cacheKey]];
+                                                                       NSString *geoNamesCacheDir = [[DYYYUtils cacheDirectory] stringByAppendingPathComponent:@"GeoNamesCache"];
+                                                                       NSString *cacheFilePath = [geoNamesCacheDir stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.plist", cacheKey]];
 
 								       [locationInfo writeToFile:cacheFilePath atomically:YES];
 							       }

@@ -1,5 +1,6 @@
 #import "CityManager.h"
 #import <Foundation/Foundation.h>
+#import <sqlite3.h>
 
 @implementation CityManager
 
@@ -469,38 +470,100 @@
     return provinceCodeName;
 }
 
++ (NSDictionary *)locationFromLocalDatabase:(NSString *)dbPath geonameId:(NSString *)geonameId {
+    if (!dbPath || dbPath.length == 0 || !geonameId) {
+        return nil;
+    }
+
+    NSString *ext = [[dbPath pathExtension] lowercaseString];
+    if ([ext isEqualToString:@"txt"]) {
+        NSString *content = [NSString stringWithContentsOfFile:dbPath encoding:NSUTF8StringEncoding error:nil];
+        if (!content) return nil;
+        NSArray *lines = [content componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]];
+        for (NSString *line in lines) {
+            if ([line hasPrefix:geonameId]) {
+                NSArray *parts = [line componentsSeparatedByString:@"\t"];
+                if (parts.count > 8) {
+                    NSString *name = parts[1];
+                    NSString *countryCode = parts[8];
+                    NSString *countryName = [[NSLocale currentLocale] displayNameForKey:NSLocaleCountryCode value:countryCode] ?: countryCode;
+                    return @{ @"name" : name ?: @"", @"countryName" : countryName ?: @"" };
+                }
+            }
+        }
+    } else if ([ext isEqualToString:@"db"]) {
+        sqlite3 *db = NULL;
+        if (sqlite3_open([dbPath UTF8String], &db) == SQLITE_OK) {
+            const char *sql = "SELECT name,countryCode,admin1Code FROM geonames WHERE geonameId=? LIMIT 1";
+            sqlite3_stmt *stmt = NULL;
+            if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK) {
+                sqlite3_bind_text(stmt, 1, [geonameId UTF8String], -1, SQLITE_TRANSIENT);
+                if (sqlite3_step(stmt) == SQLITE_ROW) {
+                    const char *name = (const char *)sqlite3_column_text(stmt, 0);
+                    const char *country = (const char *)sqlite3_column_text(stmt, 1);
+                    NSString *countryCode = country ? [NSString stringWithUTF8String:country] : @"";
+                    NSString *countryName = [[NSLocale currentLocale] displayNameForKey:NSLocaleCountryCode value:countryCode] ?: countryCode;
+                    NSDictionary *result = @{ @"name" : name ? [NSString stringWithUTF8String:name] : @"", @"countryName" : countryName ?: @"" };
+                    sqlite3_finalize(stmt);
+                    sqlite3_close(db);
+                    return result;
+                }
+                sqlite3_finalize(stmt);
+            }
+            sqlite3_close(db);
+        }
+    }
+    return nil;
+}
+
 + (void)fetchLocationWithGeonameId:(NSString *)geonameId completionHandler:(void (^)(NSDictionary *locationInfo, NSError *error))completionHandler {
-     NSString *username = [[NSUserDefaults standardUserDefaults] stringForKey:@"DYYYGeonamesUsername"];
-    if (!username || [username length] == 0) {
-        username = @"your_username"; 
+    NSString *documentsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+    NSString *dyyyFolderPath = [documentsPath stringByAppendingPathComponent:@"DYYY"];
+    NSString *txtPath = [dyyyFolderPath stringByAppendingPathComponent:@"geonames.txt"];
+    NSString *sqlitePath = [dyyyFolderPath stringByAppendingPathComponent:@"geonames.db"];
+    NSString *dbPath = nil;
+    if ([[NSFileManager defaultManager] fileExistsAtPath:sqlitePath]) {
+        dbPath = sqlitePath;
+    } else if ([[NSFileManager defaultManager] fileExistsAtPath:txtPath]) {
+        dbPath = txtPath;
+    }
+
+    NSDictionary *localInfo = [self locationFromLocalDatabase:dbPath geonameId:geonameId];
+    if (localInfo) {
+        completionHandler(localInfo, nil);
+        return;
+    }
+
+    NSString *username = [[NSUserDefaults standardUserDefaults] stringForKey:@"DYYYGeonamesUsername"];
+    if (!username || username.length == 0) {
+        username = @"your_username";
     }
     NSString *urlString = [NSString stringWithFormat:@"https://secure.geonames.org/getJSON?geonameId=%@&lang=zh&username=%@", geonameId, username];
     NSURL *url = [NSURL URLWithString:urlString];
-    
-    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithURL:url completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+
+    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithURL:url
+                                                            completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         if (error) {
             completionHandler(nil, error);
             return;
         }
-        
+
         NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
-        
         if (httpResponse.statusCode != 200) {
             completionHandler(nil, [NSError errorWithDomain:@"com.dyyy.api" code:httpResponse.statusCode userInfo:nil]);
             return;
         }
-        
+
         NSError *jsonError;
         NSDictionary *jsonResult = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-        
         if (jsonError) {
             completionHandler(nil, jsonError);
             return;
         }
-        
+
         completionHandler(jsonResult, nil);
     }];
-    
+
     [task resume];
 }
 @end
