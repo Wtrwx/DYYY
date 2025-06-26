@@ -3,7 +3,6 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 #import "DYYYImagePickerDelegate.h"
-#import "DYYYBackupPickerDelegate.h"
 
 #import "DYYYAboutDialogView.h"
 #import "DYYYCustomInputView.h"
@@ -57,8 +56,7 @@
           @"dependencies" : @{
               // 普通依赖：当源设置开启时，目标设置项可用
               @"DYYYEnableDanmuColor" : @[ @"DYYYdanmuColor" ],
-              @"DYYYisEnableCommentBlur" : @[ @"DYYYisEnableCommentBarTransparent" ],
-              @"DYYYisEnableArea" : @[ @"DYYYGeonamesUsername", @"DYYYGeonamesDB", @"DYYYLabelColor", @"DYYYEnabsuijiyanse" ],
+              @"DYYYisEnableArea" : @[ @"DYYYGeonamesUsername", @"DYYYLabelColor", @"DYYYEnabsuijiyanse" ],
               @"DYYYisShowScheduleDisplay" : @[ @"DYYYScheduleStyle", @"DYYYProgressLabelColor", @"DYYYTimelineVerticalPosition" ],
               @"DYYYEnableNotificationTransparency" : @[ @"DYYYNotificationCornerRadius" ],
               @"DYYYEnableFloatSpeedButton" : @[ @"DYYYAutoRestoreSpeed", @"DYYYSpeedButtonShowX", @"DYYYSpeedButtonSize", @"DYYYSpeedSettings" ],
@@ -391,67 +389,6 @@ static NSArray *allSettingsViewControllers(void) {
           }
         };
     }
-
-    return item;
-}
-
-+ (AWESettingItemModel *)createGeoDatabasePickerItemWithIdentifier:(NSString *)identifier
-                                                         title:(NSString *)title
-                                                      svgIcon:(NSString *)svgIconName {
-    AWESettingItemModel *item = [[NSClassFromString(@"AWESettingItemModel") alloc] init];
-    item.identifier = identifier;
-    item.title = title;
-
-    NSString *documentsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
-    NSString *dyyyFolderPath = [documentsPath stringByAppendingPathComponent:@"DYYY"];
-    NSString *txtPath = [dyyyFolderPath stringByAppendingPathComponent:@"geonames.txt"];
-    NSString *dbPath = [dyyyFolderPath stringByAppendingPathComponent:@"geonames.db"];
-    BOOL fileExists = [[NSFileManager defaultManager] fileExistsAtPath:txtPath] ||
-                      [[NSFileManager defaultManager] fileExistsAtPath:dbPath];
-    item.detail = fileExists ? @"已设置" : @"未设置";
-
-    item.type = 0;
-    item.svgIconImageName = svgIconName;
-    item.cellType = 26;
-    item.colorStyle = 0;
-    item.isEnable = YES;
-
-    __weak AWESettingItemModel *weakItem = item;
-    item.cellTappedBlock = ^{
-        if (![[NSFileManager defaultManager] fileExistsAtPath:dyyyFolderPath]) {
-            [[NSFileManager defaultManager] createDirectoryAtPath:dyyyFolderPath withIntermediateDirectories:YES attributes:nil error:nil];
-        }
-
-        UIDocumentPickerViewController *picker = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:@[ @"public.data", @"public.text" ] inMode:UIDocumentPickerModeImport];
-        picker.allowsMultipleSelection = NO;
-
-        DYYYBackupPickerDelegate *pickerDelegate = [[DYYYBackupPickerDelegate alloc] init];
-        pickerDelegate.completionBlock = ^(NSURL *url) {
-            NSString *ext = url.pathExtension.lowercaseString;
-            NSString *destPath = [dyyyFolderPath stringByAppendingPathComponent:[ext isEqualToString:@"db"] ? @"geonames.db" : @"geonames.txt"];
-            NSError *error = nil;
-            [[NSFileManager defaultManager] removeItemAtPath:destPath error:nil];
-            if ([[NSFileManager defaultManager] copyItemAtURL:url toURL:[NSURL fileURLWithPath:destPath] error:&error]) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    weakItem.detail = @"已设置";
-                    [weakItem refreshCell];
-                    [DYYYUtils showToast:@"导入成功"];
-                });
-            } else {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    NSString *msg = [NSString stringWithFormat:@"导入失败: %@", error.localizedDescription ?: @"未知错误"];
-                    [DYYYUtils showToast:msg];
-                });
-            }
-        };
-
-        static char kDYYYGeoDBPickerDelegateKey;
-        picker.delegate = pickerDelegate;
-        objc_setAssociatedObject(picker, &kDYYYGeoDBPickerDelegateKey, pickerDelegate, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-
-        UIViewController *topVC = topView();
-        [topVC presentViewController:picker animated:YES completion:nil];
-    };
 
     return item;
 }

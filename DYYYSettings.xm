@@ -259,16 +259,16 @@ extern "C"
 		    @"title" : @"时间属地显示",
 		    @"detail" : @"",
 		    @"cellType" : @6,
-                  @"imageName" : @"ic_location_outlined_20"},
-                  @{
-                          @"identifier" : @"DYYYGeonamesUsername",
-                          @"title" : @"国外解析账号",
-                          @"subTitle" : @"使用 Geonames.org 账号解析国外 IP 属地",
-                          @"detail" : @"",
-                          @"cellType" : @20,
-                          @"imageName" : @"ic_location_outlined_20"
-                  },
-                  @{@"identifier" : @"DYYYLabelColor",
+		    @"imageName" : @"ic_location_outlined_20"},
+		  @{
+			  @"identifier" : @"DYYYGeonamesUsername",
+			  @"title" : @"国外解析账号",
+			  @"subTitle" : @"使用 Geonames.org 账号解析国外 IP 属地",
+			  @"detail" : @"",
+			  @"cellType" : @20,
+			  @"imageName" : @"ic_location_outlined_20"
+		  },
+		  @{@"identifier" : @"DYYYLabelColor",
 		    @"title" : @"属地标签颜色",
 		    @"detail" : @"十六进制",
 		    @"cellType" : @26,
@@ -337,11 +337,9 @@ extern "C"
 			  };
 		  }
 
-                  [videoItems addObject:item];
-          }
-          AWESettingItemModel *geoDBItem = [DYYYSettingsHelper createGeoDatabasePickerItemWithIdentifier:@"DYYYGeonamesDB" title:@"本地Geo数据库" svgIcon:@"ic_location_outlined_20"];
-          [videoItems addObject:geoDBItem];
-          // 【杂项设置】分类
+		  [videoItems addObject:item];
+	  }
+	  // 【杂项设置】分类
 	  NSMutableArray<AWESettingItemModel *> *miscellaneousItems = [NSMutableArray array];
 	  NSArray *miscellaneousSettings = @[
 		  @{@"identifier" : @"DYYYEnableLiveHighestQuality",
