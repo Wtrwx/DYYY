@@ -57,12 +57,8 @@
           @"dependencies" : @{
               // 普通依赖：当源设置开启时，目标设置项可用
               @"DYYYEnableDanmuColor" : @[ @"DYYYdanmuColor" ],
-<<<<<<< codex/refactor-geonames解析及本地缓存管理
               @"DYYYisEnableCommentBlur" : @[ @"DYYYisEnableCommentBarTransparent" ],
               @"DYYYisEnableArea" : @[ @"DYYYGeonamesUsername", @"DYYYGeonamesDB", @"DYYYLabelColor", @"DYYYEnabsuijiyanse" ],
-=======
-              @"DYYYisEnableArea" : @[ @"DYYYGeonamesUsername", @"DYYYLabelColor", @"DYYYEnabsuijiyanse" ],
->>>>>>> main
               @"DYYYisShowScheduleDisplay" : @[ @"DYYYScheduleStyle", @"DYYYProgressLabelColor", @"DYYYTimelineVerticalPosition" ],
               @"DYYYEnableNotificationTransparency" : @[ @"DYYYNotificationCornerRadius" ],
               @"DYYYEnableFloatSpeedButton" : @[ @"DYYYAutoRestoreSpeed", @"DYYYSpeedButtonShowX", @"DYYYSpeedButtonSize", @"DYYYSpeedSettings" ],
