@@ -3,6 +3,7 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 #import "DYYYImagePickerDelegate.h"
+#import "DYYYBackupPickerDelegate.h"
 
 #import "DYYYAboutDialogView.h"
 #import "DYYYCustomInputView.h"
