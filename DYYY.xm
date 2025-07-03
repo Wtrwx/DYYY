@@ -1679,25 +1679,22 @@ static NSString *const kDYYYLongPressCopyEnabledKey = @"DYYYLongPressCopyTextEna
 }
 
 - (void)didAddSubview:(UIView *)subview {
-	%orig;
-	if (DYYYGetBool(@"DYYYEnableNotificationTransparency") && [NSStringFromClass([subview class]) containsString:@"AWEInnerNotificationContainerView"]) {
-		[self setupBlurEffectForNotificationView];
-	}
+        %orig;
+        if (DYYYGetBool(@"DYYYEnableNotificationTransparency")) {
+                NSString *className = NSStringFromClass([subview class]);
+                if ([className containsString:@"Notification"] && [className containsString:@"Container"]) {
+                        [self setupBlurEffectForNotificationView];
+                }
+        }
 }
 
 %new
 - (void)setupBlurEffectForNotificationView {
-	UIView *container = nil;
-	for (UIView *subview in self.subviews) {
-		if ([NSStringFromClass([subview class]) containsString:@"AWEInnerNotificationContainerView"]) {
-			container = subview;
-			break;
-		}
-	}
+        UIView *container = [self dyyy_findNotificationContainerInView:self];
 
-	if (!container) {
-		return;
-	}
+        if (!container) {
+                return;
+        }
 
 	UIVisualEffectView *existingBlur = (UIVisualEffectView *)[container viewWithTag:999];
 	if (!existingBlur) {
@@ -1793,7 +1790,22 @@ static NSString *const kDYYYLongPressCopyEnabledKey = @"DYYYLongPressCopyTextEna
 
 			break;
 		}
-	}
+        }
+}
+
+%new
+- (UIView *)dyyy_findNotificationContainerInView:(UIView *)view {
+        NSString *className = NSStringFromClass([view class]);
+        if ([className containsString:@"Notification"] && [className containsString:@"Container"]) {
+                return view;
+        }
+        for (UIView *subview in view.subviews) {
+                UIView *found = [self dyyy_findNotificationContainerInView:subview];
+                if (found) {
+                        return found;
+                }
+        }
+        return nil;
 }
 
 %end
