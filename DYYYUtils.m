@@ -763,41 +763,45 @@ static os_unfair_lock _staticColorCreationLock = OS_UNFAIR_LOCK_INIT;
 
 + (NSURL *)bestVideoURLFromVideoModel:(id)videoModel {
     if (!videoModel) return nil;
+
     NSArray *bitrateModels = nil;
     if ([videoModel respondsToSelector:@"bitrateModels"]) {
         bitrateModels = [videoModel valueForKey:@"bitrateModels"];
     }
 
-    id bestModel = nil;
-    NSInteger highestBitrate = 0;
-    for (id model in bitrateModels) {
-        if ([model respondsToSelector:@"bitrate"]) {
-            NSInteger bitrate = [[model valueForKey:@"bitrate"] integerValue];
-            if (bitrate > highestBitrate) {
-                highestBitrate = bitrate;
-                bestModel = model;
+    NSURL *videoURL = nil;
+    if (bitrateModels.count > 0) {
+        id highestQualityModel = bitrateModels.firstObject;
+        id playAddrObj = [highestQualityModel valueForKey:@"playAddr"];
+        if ([playAddrObj isKindOfClass:%c(AWEURLModel)]) {
+            AWEURLModel *playAddrModel = (AWEURLModel *)playAddrObj;
+            if (playAddrModel.originURLList.count > 0) {
+                videoURL = [NSURL URLWithString:playAddrModel.originURLList.firstObject];
             }
         }
     }
 
-    id playAddrObj = bestModel ? [bestModel valueForKey:@"playAddr"] : nil;
-    if (playAddrObj && [playAddrObj respondsToSelector:@"getDYYYSrcURLDownload"]) {
-        return [playAddrObj getDYYYSrcURLDownload];
+    if (!videoURL && [videoModel respondsToSelector:@"h264URL"]) {
+        id h264URL = [videoModel valueForKey:@"h264URL"];
+        if ([h264URL isKindOfClass:%c(AWEURLModel)]) {
+            AWEURLModel *model = (AWEURLModel *)h264URL;
+            if (model.originURLList.count > 0) {
+                videoURL = [NSURL URLWithString:model.originURLList.firstObject];
+            }
+        }
     }
 
-    if ([videoModel respondsToSelector:@"h264URL"]) {
-        id h264URL = [videoModel valueForKey:@"h264URL"];
-        if ([h264URL respondsToSelector:@"getDYYYSrcURLDownload"]) {
-            return [h264URL getDYYYSrcURLDownload];
-        }
-    }
-    if ([videoModel respondsToSelector:@"playURL"]) {
+    if (!videoURL && [videoModel respondsToSelector:@"playURL"]) {
         id playURL = [videoModel valueForKey:@"playURL"];
-        if ([playURL respondsToSelector:@"getDYYYSrcURLDownload"]) {
-            return [playURL getDYYYSrcURLDownload];
+        if ([playURL isKindOfClass:%c(AWEURLModel)]) {
+            AWEURLModel *model = (AWEURLModel *)playURL;
+            if (model.originURLList.count > 0) {
+                videoURL = [NSURL URLWithString:model.originURLList.firstObject];
+            }
         }
     }
-    return nil;
+
+    return videoURL;
 }
 
 + (void)mergeVideo:(NSURL *)videoURL withAudio:(NSURL *)audioURL output:(NSURL *)outputURL completion:(void (^)(BOOL))completion {
@@ -855,6 +859,12 @@ static os_unfair_lock _staticColorCreationLock = OS_UNFAIR_LOCK_INIT;
             NSURL *audioRemote = nil;
             if ([playURLObj respondsToSelector:@"getDYYYSrcURLDownload"]) {
                 audioRemote = [playURLObj getDYYYSrcURLDownload];
+            }
+            if (!audioRemote && [playURLObj isKindOfClass:%c(AWEURLModel)]) {
+                AWEURLModel *model = (AWEURLModel *)playURLObj;
+                if (model.originURLList.count > 0) {
+                    audioRemote = [NSURL URLWithString:model.originURLList.firstObject];
+                }
             }
             if (audioRemote) {
                 NSString *audioPath = [NSTemporaryDirectory() stringByAppendingPathComponent:[[NSUUID UUID].UUIDString stringByAppendingPathExtension:@"m4a"]];
