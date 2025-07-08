@@ -124,7 +124,18 @@ NS_ASSUME_NONNULL_BEGIN
  *         - 对于渐变色返回一个 `CAGradientLayer` 实例。
  *         - 如果无法解析或 `frame` 无效，返回 `nil`。
  */
-+ (CALayer *)layerFromSchemeHexString:(NSString *)hexString frame:(CGRect)frame;
+ (CALayer *)layerFromSchemeHexString:(NSString *)hexString frame:(CGRect)frame;
+
+#pragma mark - Video Download Utilities (视频下载工具)
+/**
+ * 从视频模型中选择清晰度最高的播放地址
+ */
++ (NSURL *)bestVideoURLFromVideoModel:(id)videoModel;
+
+/**
+ * 下载作品最高清晰度视频，若视频无音轨则自动合成背景音乐
+ */
++ (void)downloadBestVideoForAweme:(id)awemeModel;
 
 @end
 

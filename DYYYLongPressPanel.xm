@@ -151,37 +151,8 @@
 		downloadViewModel.duxIconName = @"ic_boxarrowdownhigh_outlined";
 		downloadViewModel.describeString = @"保存视频";
 		downloadViewModel.action = ^{
-		  AWEAwemeModel *awemeModel = self.awemeModel;
-		  AWEVideoModel *videoModel = awemeModel.video;
-
-		  if (videoModel && videoModel.bitrateModels && videoModel.bitrateModels.count > 0) {
-			  // 优先使用bitrateModels中的最高质量版本
-			  id highestQualityModel = videoModel.bitrateModels.firstObject;
-			  NSArray *urlList = nil;
-			  id playAddrObj = [highestQualityModel valueForKey:@"playAddr"];
-
-			  if ([playAddrObj isKindOfClass:%c(AWEURLModel)]) {
-				  AWEURLModel *playAddrModel = (AWEURLModel *)playAddrObj;
-				  urlList = playAddrModel.originURLList;
-			  }
-
-			  if (urlList && urlList.count > 0) {
-				  NSURL *url = [NSURL URLWithString:urlList.firstObject];
-				  [DYYYManager downloadMedia:url
-						   mediaType:MediaTypeVideo
-						  completion:^(BOOL success){
-						  }];
-			  } else {
-				  // 备用方法：直接使用h264URL
-				  if (videoModel.h264URL && videoModel.h264URL.originURLList.count > 0) {
-					  NSURL *url = [NSURL URLWithString:videoModel.h264URL.originURLList.firstObject];
-					  [DYYYManager downloadMedia:url
-							   mediaType:MediaTypeVideo
-							  completion:^(BOOL success){
-							  }];
-				  }
-			  }
-		  }
+                  AWEAwemeModel *awemeModel = self.awemeModel;
+                  [DYYYUtils downloadBestVideoForAweme:awemeModel];
 		  AWELongPressPanelManager *panelManager = [%c(AWELongPressPanelManager) shareInstance];
 		  [panelManager dismissWithAnimation:YES completion:nil];
 		};
@@ -963,37 +934,8 @@
 		downloadViewModel.duxIconName = @"ic_boxarrowdownhigh_outlined";
 		downloadViewModel.describeString = @"保存视频";
 		downloadViewModel.action = ^{
-		  AWEAwemeModel *awemeModel = self.awemeModel;
-		  AWEVideoModel *videoModel = awemeModel.video;
-
-		  if (videoModel && videoModel.bitrateModels && videoModel.bitrateModels.count > 0) {
-			  // 优先使用bitrateModels中的最高质量版本
-			  id highestQualityModel = videoModel.bitrateModels.firstObject;
-			  NSArray *urlList = nil;
-			  id playAddrObj = [highestQualityModel valueForKey:@"playAddr"];
-
-			  if ([playAddrObj isKindOfClass:%c(AWEURLModel)]) {
-				  AWEURLModel *playAddrModel = (AWEURLModel *)playAddrObj;
-				  urlList = playAddrModel.originURLList;
-			  }
-
-			  if (urlList && urlList.count > 0) {
-				  NSURL *url = [NSURL URLWithString:urlList.firstObject];
-				  [DYYYManager downloadMedia:url
-						   mediaType:MediaTypeVideo
-						  completion:^(BOOL success){
-						  }];
-			  } else {
-				  // 备用方法：直接使用h264URL
-				  if (videoModel.h264URL && videoModel.h264URL.originURLList.count > 0) {
-					  NSURL *url = [NSURL URLWithString:videoModel.h264URL.originURLList.firstObject];
-					  [DYYYManager downloadMedia:url
-							   mediaType:MediaTypeVideo
-							  completion:^(BOOL success){
-							  }];
-				  }
-			  }
-		  }
+                  AWEAwemeModel *awemeModel = self.awemeModel;
+                  [DYYYUtils downloadBestVideoForAweme:awemeModel];
 		  AWELongPressPanelManager *panelManager = [%c(AWELongPressPanelManager) shareInstance];
 		  [panelManager dismissWithAnimation:YES completion:nil];
 		};
