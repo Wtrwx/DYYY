@@ -855,15 +855,14 @@ static os_unfair_lock _staticColorCreationLock = OS_UNFAIR_LOCK_INIT;
         if (!success || !fileURL) return;
         AVURLAsset *asset = [AVURLAsset URLAssetWithURL:fileURL options:nil];
         if ([[asset tracksWithMediaType:AVMediaTypeAudio] count] == 0 && musicModel) {
-            id playURLObj = [musicModel valueForKey:@"playURL"];
             NSURL *audioRemote = nil;
-            if ([playURLObj respondsToSelector:@"getDYYYSrcURLDownload"]) {
-                audioRemote = [playURLObj getDYYYSrcURLDownload];
-            }
-            if (!audioRemote && [playURLObj isKindOfClass:%c(AWEURLModel)]) {
-                AWEURLModel *model = (AWEURLModel *)playURLObj;
-                if (model.originURLList.count > 0) {
-                    audioRemote = [NSURL URLWithString:model.originURLList.firstObject];
+            if ([musicModel respondsToSelector:@"playURL"]) {
+                id playURLObj = [musicModel valueForKey:@"playURL"];
+                if ([playURLObj isKindOfClass:%c(AWEURLModel)]) {
+                    AWEURLModel *model = (AWEURLModel *)playURLObj;
+                    if (model.originURLList.count > 0) {
+                        audioRemote = [NSURL URLWithString:model.originURLList.firstObject];
+                    }
                 }
             }
             if (audioRemote) {
