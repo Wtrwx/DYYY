@@ -124,7 +124,7 @@ NS_ASSUME_NONNULL_BEGIN
  *         - 对于渐变色返回一个 `CAGradientLayer` 实例。
  *         - 如果无法解析或 `frame` 无效，返回 `nil`。
  */
- (CALayer *)layerFromSchemeHexString:(NSString *)hexString frame:(CGRect)frame;
++ (CALayer *)layerFromSchemeHexString:(NSString *)hexString frame:(CGRect)frame;
 
 #pragma mark - Video Download Utilities (视频下载工具)
 /**
