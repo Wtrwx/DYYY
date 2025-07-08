@@ -4659,10 +4659,9 @@ static AWEIMReusableCommonCell *currentCell;
 					      }
 				      } else {
 					      // 视频内容
-                                              if (videoModel) {
-                                                      AWEAwemeModel *awemeModel = self->awemeModel;
-                                                      [DYYYUtils downloadBestVideoForAweme:awemeModel];
-                                              }
+                                             if (videoModel) {
+                                                     [DYYYUtils downloadBestVideoForAweme:awemeModel];
+                                             }
 				      }
 				    }];
 			[actions addObject:downloadAction];
