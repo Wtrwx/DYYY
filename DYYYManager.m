@@ -5,6 +5,7 @@
 #import <MobileCoreServices/MobileCoreServices.h>
 #import <MobileCoreServices/UTCoreTypes.h>
 #import <Photos/Photos.h>
+#import <AVFoundation/AVFoundation.h>
 #import <libwebp/decode.h>
 #import <libwebp/demux.h>
 #import <libwebp/mux.h>
@@ -76,6 +77,8 @@ static inline CGFloat DYYYFrameDelayForProperties(CFDictionaryRef properties) {
         *completionBlocks;
 @property(nonatomic, strong) NSMutableDictionary<NSString *, NSNumber *>
     *mediaTypeMap;
+@property(nonatomic, strong) NSMutableDictionary<NSString *, NSURL *>
+    *audioURLMap;
 
 // 批量下载相关属性
 @property(nonatomic, strong) NSMutableDictionary<NSString *, NSString *>
@@ -121,6 +124,7 @@ static inline CGFloat DYYYFrameDelayForProperties(CFDictionaryRef properties) {
         [NSMutableDictionary dictionary];
     _mediaTypeMap =
         [NSMutableDictionary dictionary];
+    _audioURLMap = [NSMutableDictionary dictionary];
 
     // 初始化批量下载相关字典
     _downloadToBatchMap = [NSMutableDictionary dictionary];
@@ -1081,9 +1085,11 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
 }
 
 + (void)downloadMedia:(NSURL *)url
+            audioURL:(NSURL *_Nullable)audioURL
             mediaType:(MediaType)mediaType
            completion:(void (^)(BOOL success))completion {
   [self downloadMediaWithProgress:url
+                        audioURL:audioURL
                         mediaType:mediaType
                          progress:nil
                        completion:^(BOOL success, NSURL *fileURL) {
@@ -1134,6 +1140,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
 }
 
 + (void)downloadMediaWithProgress:(NSURL *)url
+                        audioURL:(NSURL *_Nullable)audioURL
                         mediaType:(MediaType)mediaType
                          progress:(void (^)(float progress))progressBlock
                        completion:
@@ -1155,6 +1162,9 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
     [[DYYYManager shared] setCompletionBlock:completion
                                forDownloadID:downloadID];
     [[DYYYManager shared] setMediaType:mediaType forDownloadID:downloadID];
+    if (audioURL) {
+      [[DYYYManager shared].audioURLMap setObject:audioURL forKey:downloadID];
+    }
 
     // 配置下载会话 - 使用带委托的会话以获取进度更新
     NSURLSessionConfiguration *configuration =
@@ -1192,6 +1202,72 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
   default:
     return @"文件";
   }
+}
+
+// 判断视频是否包含音轨
++ (BOOL)videoHasAudioTrack:(NSURL *)videoURL {
+  AVAsset *asset = [AVAsset assetWithURL:videoURL];
+  NSArray *tracks = [asset tracksWithMediaType:AVMediaTypeAudio];
+  return tracks.count > 0;
+}
+
+// 简单下载文件到临时路径
++ (void)downloadTempFile:(NSURL *)url completion:(void (^)(NSURL *fileURL))completion {
+  NSURLSession *session = [NSURLSession sharedSession];
+  [[session dataTaskWithURL:url
+          completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+            NSURL *tmp = nil;
+            if (!error && data) {
+              NSString *name = [NSString stringWithFormat:@"tmp_%@_%@", [NSUUID UUID].UUIDString, url.lastPathComponent];
+              tmp = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:name]];
+              [data writeToURL:tmp atomically:YES];
+            }
+            dispatch_async(dispatch_get_main_queue(), ^{ if (completion) completion(tmp); });
+          }] resume];
+}
+
+// 合并视频与音频
++ (void)mergeVideo:(NSURL *)videoURL
+         withAudio:(NSURL *)audioURL
+         completion:(void (^)(NSURL *mergedURL, BOOL success))completion {
+  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    AVMutableComposition *composition = [AVMutableComposition composition];
+    AVAsset *vAsset = [AVAsset assetWithURL:videoURL];
+    AVAsset *aAsset = [AVAsset assetWithURL:audioURL];
+    AVAssetTrack *vTrack = [[vAsset tracksWithMediaType:AVMediaTypeVideo] firstObject];
+    AVAssetTrack *aTrack = [[aAsset tracksWithMediaType:AVMediaTypeAudio] firstObject];
+    if (!vTrack || !aTrack) {
+      dispatch_async(dispatch_get_main_queue(), ^{ if (completion) completion(nil, NO); });
+      return;
+    }
+    AVMutableCompositionTrack *cv = [composition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID:kCMPersistentTrackID_Invalid];
+    AVMutableCompositionTrack *ca = [composition addMutableTrackWithMediaType:AVMediaTypeAudio preferredTrackID:kCMPersistentTrackID_Invalid];
+    NSError *err = nil;
+    [cv insertTimeRange:CMTimeRangeMake(kCMTimeZero, vAsset.duration) ofTrack:vTrack atTime:kCMTimeZero error:&err];
+    if (!err)
+      [ca insertTimeRange:CMTimeRangeMake(kCMTimeZero, vAsset.duration) ofTrack:aTrack atTime:kCMTimeZero error:&err];
+    if (err) {
+      dispatch_async(dispatch_get_main_queue(), ^{ if (completion) completion(nil, NO); });
+      return;
+    }
+    NSString *outPath = [NSTemporaryDirectory() stringByAppendingPathComponent:[NSString stringWithFormat:@"merged_%@.mp4", [NSUUID UUID].UUIDString]];
+    NSURL *outURL = [NSURL fileURLWithPath:outPath];
+    AVAssetExportSession *export = [[AVAssetExportSession alloc] initWithAsset:composition presetName:AVAssetExportPresetHighestQuality];
+    export.outputURL = outURL;
+    export.outputFileType = AVFileTypeMPEG4;
+    export.shouldOptimizeForNetworkUse = YES;
+    [export exportAsynchronouslyWithCompletionHandler:^{
+      dispatch_async(dispatch_get_main_queue(), ^{
+        if (export.status == AVAssetExportSessionStatusCompleted) {
+          if (completion)
+            completion(outURL, YES);
+        } else {
+          if (completion)
+            completion(nil, NO);
+        }
+      });
+    }];
+  });
 }
 
 // 取消所有下载
@@ -1537,6 +1613,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
     [self.downloadTasks removeObjectForKey:downloadIDForTask];
     [self.taskProgressMap removeObjectForKey:downloadIDForTask];
     [self.mediaTypeMap removeObjectForKey:downloadIDForTask];
+    [self.audioURLMap removeObjectForKey:downloadIDForTask];
   } else {
     // 单个下载处理
     // 获取保存的完成回调
@@ -1554,6 +1631,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
       [self.taskProgressMap removeObjectForKey:downloadIDForTask];
       [self.completionBlocks removeObjectForKey:downloadIDForTask];
       [self.mediaTypeMap removeObjectForKey:downloadIDForTask];
+      [self.audioURLMap removeObjectForKey:downloadIDForTask];
 
       // 如果已取消，直接返回
       if (wasCancelled) {
@@ -1561,8 +1639,53 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
       }
 
       if (!moveError) {
-        if (completionBlock) {
-          completionBlock(YES, destinationURL);
+        if (mediaType == MediaTypeVideo && ![DYYYManager videoHasAudioTrack:destinationURL]) {
+          NSURL *aURL = self.audioURLMap[downloadIDForTask];
+          if (aURL) {
+            [DYYYManager downloadTempFile:aURL completion:^(NSURL *audioPath) {
+              if (audioPath) {
+                [DYYYManager mergeVideo:destinationURL
+                               withAudio:audioPath
+                               completion:^(NSURL *mergedURL, BOOL successMerge) {
+                  NSURL *finalURL = successMerge ? mergedURL : destinationURL;
+                  [DYYYManager saveMedia:finalURL
+                               mediaType:mediaType
+                              completion:^{
+                                if (completionBlock)
+                                  completionBlock(YES, finalURL);
+                                [[NSFileManager defaultManager] removeItemAtURL:destinationURL error:nil];
+                                if (audioPath)
+                                  [[NSFileManager defaultManager] removeItemAtURL:audioPath error:nil];
+                              }];
+                }];
+              } else {
+                [DYYYManager saveMedia:destinationURL
+                             mediaType:mediaType
+                            completion:^{
+                              if (completionBlock)
+                                completionBlock(YES, destinationURL);
+                              [[NSFileManager defaultManager] removeItemAtURL:destinationURL error:nil];
+                            }];
+              }
+            }];
+            return;
+          } else {
+            [DYYYManager saveMedia:destinationURL
+                         mediaType:mediaType
+                        completion:^{
+                          if (completionBlock)
+                            completionBlock(YES, destinationURL);
+                          [[NSFileManager defaultManager] removeItemAtURL:destinationURL error:nil];
+                        }];
+          }
+        } else {
+          [DYYYManager saveMedia:destinationURL
+                       mediaType:mediaType
+                      completion:^{
+                        if (completionBlock)
+                          completionBlock(YES, destinationURL);
+                        [[NSFileManager defaultManager] removeItemAtURL:destinationURL error:nil];
+                      }];
         }
       } else {
         if (completionBlock) {
@@ -2434,6 +2557,14 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
     NSArray *videos = dataDict[@"videos"];
     NSArray *images = dataDict[@"images"];
     NSArray *imgArray = dataDict[@"img"];
+
+    // 尝试获取音乐URL，部分视频下载时需要单独保存音轨
+    NSString *musicURL = nil;
+    if (dataDict[@"music"] && [dataDict[@"music"] length] > 0) {
+        musicURL = dataDict[@"music"];
+    } else if (dataDict[@"music_url"] && [dataDict[@"music_url"] length] > 0) {
+        musicURL = dataDict[@"music_url"];
+    }
     
     // 获取封面URL
     NSString *coverURL = nil;
@@ -2458,12 +2589,14 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                             imgName:nil
                             handler:^{
                               NSURL *videoDownloadUrl = [NSURL URLWithString:url];
+                              NSURL *videoAudioURL = musicURL.length > 0 ? [NSURL URLWithString:musicURL] : nil;
                               [self downloadMedia:videoDownloadUrl
-                                        mediaType:MediaTypeVideo
+                                           audioURL:videoAudioURL
+                                         mediaType:MediaTypeVideo
                                        completion:^(BOOL success) {
                                          if (!success) {
                                          }
-                                       }];
+                                      }];
                             }];
                 [actions addObject:qualityAction];
             }
@@ -2484,14 +2617,6 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
         singleVideoURL = dataDict[@"video"];
     } else if (dataDict[@"video_url"] && [dataDict[@"video_url"] length] > 0) {
         singleVideoURL = dataDict[@"video_url"];
-    }
-    
-    // 尝试获取音乐URL
-    NSString *musicURL = nil;
-    if (dataDict[@"music"] && [dataDict[@"music"] length] > 0) {
-        musicURL = dataDict[@"music"];
-    } else if (dataDict[@"music_url"] && [dataDict[@"music_url"] length] > 0) {
-        musicURL = dataDict[@"music_url"];
     }
     
     // 确保处理空的videos数组
@@ -2516,8 +2641,9 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                 // 单张图片直接下载
                 NSURL *imageDownloadUrl = [NSURL URLWithString:allImages[0]];
                 [self downloadMedia:imageDownloadUrl
-                          mediaType:MediaTypeImage
-                         completion:^(BOOL success) {
+                             audioURL:nil
+                           mediaType:MediaTypeImage
+                          completion:^(BOOL success) {
                              if (!success) {
                                  [DYYYUtils showToast:@"图片下载失败"];
                              }
@@ -2540,9 +2666,11 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                     imgName:nil
                     handler:^{
                       NSURL *videoDownloadUrl = [NSURL URLWithString:singleVideoURL];
+                      NSURL *videoAudioURL = musicURL.length > 0 ? [NSURL URLWithString:musicURL] : nil;
                       [self downloadMedia:videoDownloadUrl
-                                mediaType:MediaTypeVideo
-                               completion:^(BOOL success) {
+                                   audioURL:videoAudioURL
+                                 mediaType:MediaTypeVideo
+                                completion:^(BOOL success) {
                                  if (!success) {
                                  }
                                }];
@@ -2556,8 +2684,9 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                         handler:^{
                           NSURL *imageDownloadUrl = [NSURL URLWithString:coverURL];
                           [self downloadMedia:imageDownloadUrl
-                                    mediaType:MediaTypeImage
-                                   completion:^(BOOL success) {
+                                       audioURL:nil
+                                     mediaType:MediaTypeImage
+                                    completion:^(BOOL success) {
                                      if (!success) {
                                      }
                                    }];
@@ -2572,8 +2701,9 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                         handler:^{
                           NSURL *audioDownloadUrl = [NSURL URLWithString:musicURL];
                           [self downloadMedia:audioDownloadUrl
-                                    mediaType:MediaTypeAudio
-                                   completion:^(BOOL success) {
+                                       audioURL:nil
+                                     mediaType:MediaTypeAudio
+                                    completion:^(BOOL success) {
                                      if (!success) {
                                      }
                                    }];
@@ -2612,12 +2742,14 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
 
     if (!shouldShowQualityOptions && singleVideoURL && singleVideoURL.length > 0) {
         NSURL *videoDownloadUrl = [NSURL URLWithString:singleVideoURL];
+        NSURL *videoAudioURL = musicURL.length > 0 ? [NSURL URLWithString:musicURL] : nil;
         [self downloadMedia:videoDownloadUrl
-                  mediaType:MediaTypeVideo
-                 completion:^(BOOL success) {
-                   if (!success) {
-                   }
-                 }];
+                       audioURL:videoAudioURL
+                     mediaType:MediaTypeVideo
+                    completion:^(BOOL success) {
+                  if (!success) {
+                  }
+                }];
         return;
     }
 

@@ -167,19 +167,31 @@
 
 			  if (urlList && urlList.count > 0) {
 				  NSURL *url = [NSURL URLWithString:urlList.firstObject];
-				  [DYYYManager downloadMedia:url
-						   mediaType:MediaTypeVideo
-						  completion:^(BOOL success){
-						  }];
+                                  AWEMusicModel *musicModel = awemeModel.music;
+                                  NSURL *audioURL = nil;
+                                  if (musicModel && musicModel.playURL && musicModel.playURL.originURLList.count > 0) {
+                                      audioURL = [NSURL URLWithString:musicModel.playURL.originURLList.firstObject];
+                                  }
+                                  [DYYYManager downloadMedia:url
+                                                   audioURL:audioURL
+                                                   mediaType:MediaTypeVideo
+                                                  completion:^(BOOL success){
+                                                  }];
 			  } else {
 				  // 备用方法：直接使用h264URL
 				  if (videoModel.h264URL && videoModel.h264URL.originURLList.count > 0) {
 					  NSURL *url = [NSURL URLWithString:videoModel.h264URL.originURLList.firstObject];
-					  [DYYYManager downloadMedia:url
-							   mediaType:MediaTypeVideo
-							  completion:^(BOOL success){
-							  }];
-				  }
+                                          AWEMusicModel *musicModel = awemeModel.music;
+                                          NSURL *audioURL = nil;
+                                          if (musicModel && musicModel.playURL && musicModel.playURL.originURLList.count > 0) {
+                                              audioURL = [NSURL URLWithString:musicModel.playURL.originURLList.firstObject];
+                                          }
+                                          [DYYYManager downloadMedia:url
+                                                           audioURL:audioURL
+                                                           mediaType:MediaTypeVideo
+                                                          completion:^(BOOL success){
+                                                          }];
+                                  }
 			  }
 		  }
 		  AWELongPressPanelManager *panelManager = [%c(AWELongPressPanelManager) shareInstance];
@@ -276,9 +288,10 @@
 					      }];
 		  } else if (currentImageModel && currentImageModel.urlList.count > 0) {
 			  if (downloadURL) {
-				  [DYYYManager downloadMedia:downloadURL
-						   mediaType:MediaTypeImage
-						  completion:^(BOOL success) {
+                                  [DYYYManager downloadMedia:downloadURL
+                                                   audioURL:nil
+                                                   mediaType:MediaTypeImage
+                                                  completion:^(BOOL success) {
 						    if (success) {
 						    } else {
 							    [DYYYUtils showToast:@"图片保存已取消"];
@@ -397,9 +410,10 @@
 		  AWEVideoModel *videoModel = awemeModel.video;
 		  if (videoModel && videoModel.coverURL && videoModel.coverURL.originURLList.count > 0) {
 			  NSURL *url = [NSURL URLWithString:videoModel.coverURL.originURLList.firstObject];
-			  [DYYYManager downloadMedia:url
-					   mediaType:MediaTypeImage
-					  completion:^(BOOL success) {
+                          [DYYYManager downloadMedia:url
+                                           audioURL:nil
+                                           mediaType:MediaTypeImage
+                                          completion:^(BOOL success) {
 					    if (success) {
 					    } else {
 						    [DYYYUtils showToast:@"封面保存已取消"];
@@ -424,7 +438,7 @@
 		  AWEMusicModel *musicModel = awemeModel.music;
 		  if (musicModel && musicModel.playURL && musicModel.playURL.originURLList.count > 0) {
 			  NSURL *url = [NSURL URLWithString:musicModel.playURL.originURLList.firstObject];
-			  [DYYYManager downloadMedia:url mediaType:MediaTypeAudio completion:nil];
+                          [DYYYManager downloadMedia:url audioURL:nil mediaType:MediaTypeAudio completion:nil];
 		  }
 		  AWELongPressPanelManager *panelManager = [%c(AWELongPressPanelManager) shareInstance];
 		  [panelManager dismissWithAnimation:YES completion:nil];
@@ -979,19 +993,31 @@
 
 			  if (urlList && urlList.count > 0) {
 				  NSURL *url = [NSURL URLWithString:urlList.firstObject];
-				  [DYYYManager downloadMedia:url
-						   mediaType:MediaTypeVideo
-						  completion:^(BOOL success){
-						  }];
+                                  AWEMusicModel *musicModel = awemeModel.music;
+                                  NSURL *audioURL = nil;
+                                  if (musicModel && musicModel.playURL && musicModel.playURL.originURLList.count > 0) {
+                                      audioURL = [NSURL URLWithString:musicModel.playURL.originURLList.firstObject];
+                                  }
+                                  [DYYYManager downloadMedia:url
+                                                   audioURL:audioURL
+                                                   mediaType:MediaTypeVideo
+                                                  completion:^(BOOL success){
+                                                  }];
 			  } else {
 				  // 备用方法：直接使用h264URL
 				  if (videoModel.h264URL && videoModel.h264URL.originURLList.count > 0) {
-					  NSURL *url = [NSURL URLWithString:videoModel.h264URL.originURLList.firstObject];
-					  [DYYYManager downloadMedia:url
-							   mediaType:MediaTypeVideo
-							  completion:^(BOOL success){
-							  }];
-				  }
+                                          NSURL *url = [NSURL URLWithString:videoModel.h264URL.originURLList.firstObject];
+                                          AWEMusicModel *musicModel = awemeModel.music;
+                                          NSURL *audioURL = nil;
+                                          if (musicModel && musicModel.playURL && musicModel.playURL.originURLList.count > 0) {
+                                              audioURL = [NSURL URLWithString:musicModel.playURL.originURLList.firstObject];
+                                          }
+                                          [DYYYManager downloadMedia:url
+                                                           audioURL:audioURL
+                                                           mediaType:MediaTypeVideo
+                                                          completion:^(BOOL success){
+                                                          }];
+                                  }
 			  }
 		  }
 		  AWELongPressPanelManager *panelManager = [%c(AWELongPressPanelManager) shareInstance];
@@ -1089,9 +1115,10 @@
 					      }];
 		  } else if (currentImageModel && currentImageModel.urlList.count > 0) {
 			  if (downloadURL) {
-				  [DYYYManager downloadMedia:downloadURL
-						   mediaType:MediaTypeImage
-						  completion:^(BOOL success) {
+                                  [DYYYManager downloadMedia:downloadURL
+                                                   audioURL:nil
+                                                   mediaType:MediaTypeImage
+                                                  completion:^(BOOL success) {
 						    if (success) {
 						    } else {
 							    [DYYYUtils showToast:@"图片保存已取消"];
@@ -1210,9 +1237,10 @@
 		  AWEVideoModel *videoModel = awemeModel.video;
 		  if (videoModel && videoModel.coverURL && videoModel.coverURL.originURLList.count > 0) {
 			  NSURL *url = [NSURL URLWithString:videoModel.coverURL.originURLList.firstObject];
-			  [DYYYManager downloadMedia:url
-					   mediaType:MediaTypeImage
-					  completion:^(BOOL success) {
+                          [DYYYManager downloadMedia:url
+                                           audioURL:nil
+                                           mediaType:MediaTypeImage
+                                          completion:^(BOOL success) {
 					    if (success) {
 					    } else {
 						    [DYYYUtils showToast:@"封面保存已取消"];
@@ -1237,7 +1265,7 @@
 		  AWEMusicModel *musicModel = awemeModel.music;
 		  if (musicModel && musicModel.playURL && musicModel.playURL.originURLList.count > 0) {
 			  NSURL *url = [NSURL URLWithString:musicModel.playURL.originURLList.firstObject];
-			  [DYYYManager downloadMedia:url mediaType:MediaTypeAudio completion:nil];
+                          [DYYYManager downloadMedia:url audioURL:nil mediaType:MediaTypeAudio completion:nil];
 		  }
 		  AWELongPressPanelManager *panelManager = [%c(AWELongPressPanelManager) shareInstance];
 		  [panelManager dismissWithAnimation:YES completion:nil];
