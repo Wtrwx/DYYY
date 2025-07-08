@@ -2169,10 +2169,11 @@ static BOOL isDownloadFlied = NO;
 				}
 
 				NSURL *heifURL = [NSURL URLWithString:urlString];
-				[DYYYManager downloadMedia:heifURL
-						 mediaType:MediaTypeHeic
-						completion:^(BOOL success){
-						}];
+                                [DYYYManager downloadMedia:heifURL
+                                                 audioURL:nil
+                                                 mediaType:MediaTypeHeic
+                                                completion:^(BOOL success){
+                                                }];
 				return;
 			}
 		}
@@ -4624,9 +4625,10 @@ static AWEIMReusableCommonCell *currentCell;
 									  }];
 					      } else if (currentImageModel && currentImageModel.urlList.count > 0) {
 						      if (downloadURL) {
-							      [DYYYManager downloadMedia:downloadURL
-									       mediaType:MediaTypeImage
-									      completion:^(BOOL success) {
+                                                              [DYYYManager downloadMedia:downloadURL
+                                                                               audioURL:nil
+                                                                               mediaType:MediaTypeImage
+                                                                              completion:^(BOOL success) {
 										if (success) {
 										} else {
 											[DYYYUtils showToast:@"图片保存已取消"];
@@ -4778,7 +4780,7 @@ static AWEIMReusableCommonCell *currentCell;
 				    handler:^{
 				      if (musicModel && musicModel.playURL && musicModel.playURL.originURLList.count > 0) {
 					      NSURL *url = [NSURL URLWithString:musicModel.playURL.originURLList.firstObject];
-					      [DYYYManager downloadMedia:url mediaType:MediaTypeAudio completion:nil];
+                                              [DYYYManager downloadMedia:url audioURL:nil mediaType:MediaTypeAudio completion:nil];
 				      }
 				    }];
 			[actions addObject:downloadAudioAction];

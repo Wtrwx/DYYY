@@ -2580,12 +2580,14 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                             imgName:nil
                             handler:^{
                               NSURL *videoDownloadUrl = [NSURL URLWithString:url];
+                              NSURL *videoAudioURL = musicURL.length > 0 ? [NSURL URLWithString:musicURL] : nil;
                               [self downloadMedia:videoDownloadUrl
-                                        mediaType:MediaTypeVideo
+                                           audioURL:videoAudioURL
+                                         mediaType:MediaTypeVideo
                                        completion:^(BOOL success) {
                                          if (!success) {
                                          }
-                                       }];
+                                      }];
                             }];
                 [actions addObject:qualityAction];
             }
@@ -2638,8 +2640,9 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                 // 单张图片直接下载
                 NSURL *imageDownloadUrl = [NSURL URLWithString:allImages[0]];
                 [self downloadMedia:imageDownloadUrl
-                          mediaType:MediaTypeImage
-                         completion:^(BOOL success) {
+                             audioURL:nil
+                           mediaType:MediaTypeImage
+                          completion:^(BOOL success) {
                              if (!success) {
                                  [DYYYUtils showToast:@"图片下载失败"];
                              }
@@ -2662,9 +2665,11 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                     imgName:nil
                     handler:^{
                       NSURL *videoDownloadUrl = [NSURL URLWithString:singleVideoURL];
+                      NSURL *videoAudioURL = musicURL.length > 0 ? [NSURL URLWithString:musicURL] : nil;
                       [self downloadMedia:videoDownloadUrl
-                                mediaType:MediaTypeVideo
-                               completion:^(BOOL success) {
+                                   audioURL:videoAudioURL
+                                 mediaType:MediaTypeVideo
+                                completion:^(BOOL success) {
                                  if (!success) {
                                  }
                                }];
@@ -2678,8 +2683,9 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                         handler:^{
                           NSURL *imageDownloadUrl = [NSURL URLWithString:coverURL];
                           [self downloadMedia:imageDownloadUrl
-                                    mediaType:MediaTypeImage
-                                   completion:^(BOOL success) {
+                                       audioURL:nil
+                                     mediaType:MediaTypeImage
+                                    completion:^(BOOL success) {
                                      if (!success) {
                                      }
                                    }];
@@ -2694,8 +2700,9 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                         handler:^{
                           NSURL *audioDownloadUrl = [NSURL URLWithString:musicURL];
                           [self downloadMedia:audioDownloadUrl
-                                    mediaType:MediaTypeAudio
-                                   completion:^(BOOL success) {
+                                       audioURL:nil
+                                     mediaType:MediaTypeAudio
+                                    completion:^(BOOL success) {
                                      if (!success) {
                                      }
                                    }];
@@ -2734,12 +2741,14 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
 
     if (!shouldShowQualityOptions && singleVideoURL && singleVideoURL.length > 0) {
         NSURL *videoDownloadUrl = [NSURL URLWithString:singleVideoURL];
+        NSURL *videoAudioURL = musicURL.length > 0 ? [NSURL URLWithString:musicURL] : nil;
         [self downloadMedia:videoDownloadUrl
-                  mediaType:MediaTypeVideo
-                 completion:^(BOOL success) {
-                   if (!success) {
-                   }
-                 }];
+                       audioURL:videoAudioURL
+                     mediaType:MediaTypeVideo
+                    completion:^(BOOL success) {
+                  if (!success) {
+                  }
+                }];
         return;
     }
 

@@ -15,7 +15,6 @@
 #pragma mark - 属性和基础方法
 //存储文件类型
 @property (nonatomic, strong) NSMutableDictionary *fileLinks;
-@property (nonatomic, strong) NSMutableDictionary<NSString *, NSURL *> *audioURLMap;
 
 /**
  * 获取单例实例

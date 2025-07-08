@@ -288,9 +288,10 @@
 					      }];
 		  } else if (currentImageModel && currentImageModel.urlList.count > 0) {
 			  if (downloadURL) {
-				  [DYYYManager downloadMedia:downloadURL
-						   mediaType:MediaTypeImage
-						  completion:^(BOOL success) {
+                                  [DYYYManager downloadMedia:downloadURL
+                                                   audioURL:nil
+                                                   mediaType:MediaTypeImage
+                                                  completion:^(BOOL success) {
 						    if (success) {
 						    } else {
 							    [DYYYUtils showToast:@"图片保存已取消"];
@@ -437,7 +438,7 @@
 		  AWEMusicModel *musicModel = awemeModel.music;
 		  if (musicModel && musicModel.playURL && musicModel.playURL.originURLList.count > 0) {
 			  NSURL *url = [NSURL URLWithString:musicModel.playURL.originURLList.firstObject];
-			  [DYYYManager downloadMedia:url mediaType:MediaTypeAudio completion:nil];
+                          [DYYYManager downloadMedia:url audioURL:nil mediaType:MediaTypeAudio completion:nil];
 		  }
 		  AWELongPressPanelManager *panelManager = [%c(AWELongPressPanelManager) shareInstance];
 		  [panelManager dismissWithAnimation:YES completion:nil];
@@ -1114,9 +1115,10 @@
 					      }];
 		  } else if (currentImageModel && currentImageModel.urlList.count > 0) {
 			  if (downloadURL) {
-				  [DYYYManager downloadMedia:downloadURL
-						   mediaType:MediaTypeImage
-						  completion:^(BOOL success) {
+                                  [DYYYManager downloadMedia:downloadURL
+                                                   audioURL:nil
+                                                   mediaType:MediaTypeImage
+                                                  completion:^(BOOL success) {
 						    if (success) {
 						    } else {
 							    [DYYYUtils showToast:@"图片保存已取消"];
@@ -1263,7 +1265,7 @@
 		  AWEMusicModel *musicModel = awemeModel.music;
 		  if (musicModel && musicModel.playURL && musicModel.playURL.originURLList.count > 0) {
 			  NSURL *url = [NSURL URLWithString:musicModel.playURL.originURLList.firstObject];
-			  [DYYYManager downloadMedia:url mediaType:MediaTypeAudio completion:nil];
+                          [DYYYManager downloadMedia:url audioURL:nil mediaType:MediaTypeAudio completion:nil];
 		  }
 		  AWELongPressPanelManager *panelManager = [%c(AWELongPressPanelManager) shareInstance];
 		  [panelManager dismissWithAnimation:YES completion:nil];
