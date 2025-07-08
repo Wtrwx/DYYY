@@ -6,6 +6,7 @@
 #import "DYYYToast.h"
 #import "DYYYManager.h"
 #import "AwemeHeaders.h"
+#import <AVFoundation/AVFoundation.h>
 
 @implementation DYYYUtils
 
@@ -758,6 +759,127 @@ static os_unfair_lock _staticColorCreationLock = OS_UNFAIR_LOCK_INIT;
     return image;
 }
 
+#pragma mark - Video Download Utilities
+
++ (NSURL *)bestVideoURLFromVideoModel:(id)videoModel {
+    if (!videoModel) return nil;
+    NSArray *bitrateModels = nil;
+    if ([videoModel respondsToSelector:@"bitrateModels"]) {
+        bitrateModels = [videoModel valueForKey:@"bitrateModels"];
+    }
+
+    id bestModel = nil;
+    NSInteger highestBitrate = 0;
+    for (id model in bitrateModels) {
+        if ([model respondsToSelector:@"bitrate"]) {
+            NSInteger bitrate = [[model valueForKey:@"bitrate"] integerValue];
+            if (bitrate > highestBitrate) {
+                highestBitrate = bitrate;
+                bestModel = model;
+            }
+        }
+    }
+
+    id playAddrObj = bestModel ? [bestModel valueForKey:@"playAddr"] : nil;
+    if (playAddrObj && [playAddrObj respondsToSelector:@"getDYYYSrcURLDownload"]) {
+        return [playAddrObj getDYYYSrcURLDownload];
+    }
+
+    if ([videoModel respondsToSelector:@"h264URL"]) {
+        id h264URL = [videoModel valueForKey:@"h264URL"];
+        if ([h264URL respondsToSelector:@"getDYYYSrcURLDownload"]) {
+            return [h264URL getDYYYSrcURLDownload];
+        }
+    }
+    if ([videoModel respondsToSelector:@"playURL"]) {
+        id playURL = [videoModel valueForKey:@"playURL"];
+        if ([playURL respondsToSelector:@"getDYYYSrcURLDownload"]) {
+            return [playURL getDYYYSrcURLDownload];
+        }
+    }
+    return nil;
+}
+
++ (void)mergeVideo:(NSURL *)videoURL withAudio:(NSURL *)audioURL output:(NSURL *)outputURL completion:(void (^)(BOOL))completion {
+    AVMutableComposition *composition = [AVMutableComposition composition];
+    AVURLAsset *videoAsset = [AVURLAsset URLAssetWithURL:videoURL options:nil];
+    AVAssetTrack *vTrack = [[videoAsset tracksWithMediaType:AVMediaTypeVideo] firstObject];
+    CMTime duration = videoAsset.duration;
+    if (vTrack) {
+        AVMutableCompositionTrack *track = [composition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID:kCMPersistentTrackID_Invalid];
+        [track insertTimeRange:CMTimeRangeMake(kCMTimeZero, duration) ofTrack:vTrack atTime:kCMTimeZero error:nil];
+    }
+
+    AVURLAsset *audioAsset = [AVURLAsset URLAssetWithURL:audioURL options:nil];
+    AVAssetTrack *aTrack = [[audioAsset tracksWithMediaType:AVMediaTypeAudio] firstObject];
+    if (aTrack) {
+        AVMutableCompositionTrack *track = [composition addMutableTrackWithMediaType:AVMediaTypeAudio preferredTrackID:kCMPersistentTrackID_Invalid];
+        [track insertTimeRange:CMTimeRangeMake(kCMTimeZero, duration) ofTrack:aTrack atTime:kCMTimeZero error:nil];
+    }
+
+    AVAssetExportSession *session = [[AVAssetExportSession alloc] initWithAsset:composition presetName:AVAssetExportPresetHighestQuality];
+    session.outputURL = outputURL;
+    session.outputFileType = AVFileTypeMPEG4;
+    session.shouldOptimizeForNetworkUse = YES;
+    [session exportAsynchronouslyWithCompletionHandler:^{
+        BOOL ok = session.status == AVAssetExportSessionStatusCompleted;
+        if (completion) completion(ok);
+    }];
+}
+
++ (void)downloadBestVideoForAweme:(id)awemeModel {
+    if (!awemeModel) return;
+    id videoModel = nil;
+    if ([awemeModel respondsToSelector:@"video"]) {
+        videoModel = [awemeModel valueForKey:@"video"];
+    }
+    NSURL *videoURL = [self bestVideoURLFromVideoModel:videoModel];
+    if (!videoURL) {
+        [self showToast:@"\xE6\x97\xA0\xE6\xB3\x95\xE8\x8E\xB7\xE5\x8F\x96\xE8\xA7\x86\xE9\xA2\x91\xE5\x9C\xB0\xE5\x9D\x80"];
+        return;
+    }
+
+    id musicModel = nil;
+    if ([awemeModel respondsToSelector:@"music"]) {
+        musicModel = [awemeModel valueForKey:@"music"];
+    }
+
+    [DYYYManager downloadMediaWithProgress:videoURL
+                                  mediaType:MediaTypeVideo
+                                   progress:nil
+                                 completion:^(BOOL success, NSURL *fileURL) {
+        if (!success || !fileURL) return;
+        AVURLAsset *asset = [AVURLAsset URLAssetWithURL:fileURL options:nil];
+        if ([[asset tracksWithMediaType:AVMediaTypeAudio] count] == 0 && musicModel) {
+            id playURLObj = [musicModel valueForKey:@"playURL"];
+            NSURL *audioRemote = nil;
+            if ([playURLObj respondsToSelector:@"getDYYYSrcURLDownload"]) {
+                audioRemote = [playURLObj getDYYYSrcURLDownload];
+            }
+            if (audioRemote) {
+                NSString *audioPath = [NSTemporaryDirectory() stringByAppendingPathComponent:[[NSUUID UUID].UUIDString stringByAppendingPathExtension:@"m4a"]];
+                NSData *audioData = [NSData dataWithContentsOfURL:audioRemote];
+                if (audioData && [audioData writeToFile:audioPath atomically:YES]) {
+                    NSString *mergePath = [NSTemporaryDirectory() stringByAppendingPathComponent:[[NSUUID UUID].UUIDString stringByAppendingPathExtension:@"mp4"]];
+                    NSURL *mergeURL = [NSURL fileURLWithPath:mergePath];
+                    [self mergeVideo:fileURL withAudio:[NSURL fileURLWithPath:audioPath] output:mergeURL completion:^(BOOL ok) {
+                        NSURL *saveURL = ok ? mergeURL : fileURL;
+                        [DYYYManager saveMedia:saveURL mediaType:MediaTypeVideo completion:^{
+                            [[NSFileManager defaultManager] removeItemAtURL:fileURL error:nil];
+                            [[NSFileManager defaultManager] removeItemAtPath:audioPath error:nil];
+                            if (ok) {
+                                [[NSFileManager defaultManager] removeItemAtURL:mergeURL error:nil];
+                            }
+                        }];
+                    }];
+                    return;
+                }
+            }
+        }
+        [DYYYManager saveMedia:fileURL mediaType:MediaTypeVideo completion:nil];
+    }];
+}
+
 @end
 
 #pragma mark - External C Functions (外部 C 函数)
@@ -868,126 +990,6 @@ void applyTopBarTransparency(UIView *topBar) {
     }
 }
 
-#pragma mark - Video Download Utilities
-
-+ (NSURL *)bestVideoURLFromVideoModel:(id)videoModel {
-    if (!videoModel) return nil;
-    NSArray *bitrateModels = nil;
-    if ([videoModel respondsToSelector:@"bitrateModels"]) {
-        bitrateModels = [videoModel valueForKey:@"bitrateModels"];
-    }
-
-    id bestModel = nil;
-    NSInteger highestBitrate = 0;
-    for (id model in bitrateModels) {
-        if ([model respondsToSelector:@"bitrate"]) {
-            NSInteger bitrate = [[model valueForKey:@"bitrate"] integerValue];
-            if (bitrate > highestBitrate) {
-                highestBitrate = bitrate;
-                bestModel = model;
-            }
-        }
-    }
-
-    id playAddrObj = bestModel ? [bestModel valueForKey:@"playAddr"] : nil;
-    if (playAddrObj && [playAddrObj respondsToSelector:@"getDYYYSrcURLDownload"]) {
-        return [playAddrObj getDYYYSrcURLDownload];
-    }
-
-    if ([videoModel respondsToSelector:@"h264URL"]) {
-        id h264URL = [videoModel valueForKey:@"h264URL"];
-        if ([h264URL respondsToSelector:@"getDYYYSrcURLDownload"]) {
-            return [h264URL getDYYYSrcURLDownload];
-        }
-    }
-    if ([videoModel respondsToSelector:@"playURL"]) {
-        id playURL = [videoModel valueForKey:@"playURL"];
-        if ([playURL respondsToSelector:@"getDYYYSrcURLDownload"]) {
-            return [playURL getDYYYSrcURLDownload];
-        }
-    }
-    return nil;
-}
-
-+ (void)mergeVideo:(NSURL *)videoURL withAudio:(NSURL *)audioURL output:(NSURL *)outputURL completion:(void (^)(BOOL))completion {
-    AVMutableComposition *composition = [AVMutableComposition composition];
-    AVURLAsset *videoAsset = [AVURLAsset URLAssetWithURL:videoURL options:nil];
-    AVAssetTrack *vTrack = [[videoAsset tracksWithMediaType:AVMediaTypeVideo] firstObject];
-    CMTime duration = videoAsset.duration;
-    if (vTrack) {
-        AVMutableCompositionTrack *track = [composition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID:kCMPersistentTrackID_Invalid];
-        [track insertTimeRange:CMTimeRangeMake(kCMTimeZero, duration) ofTrack:vTrack atTime:kCMTimeZero error:nil];
-    }
-
-    AVURLAsset *audioAsset = [AVURLAsset URLAssetWithURL:audioURL options:nil];
-    AVAssetTrack *aTrack = [[audioAsset tracksWithMediaType:AVMediaTypeAudio] firstObject];
-    if (aTrack) {
-        AVMutableCompositionTrack *track = [composition addMutableTrackWithMediaType:AVMediaTypeAudio preferredTrackID:kCMPersistentTrackID_Invalid];
-        [track insertTimeRange:CMTimeRangeMake(kCMTimeZero, duration) ofTrack:aTrack atTime:kCMTimeZero error:nil];
-    }
-
-    AVAssetExportSession *session = [[AVAssetExportSession alloc] initWithAsset:composition presetName:AVAssetExportPresetHighestQuality];
-    session.outputURL = outputURL;
-    session.outputFileType = AVFileTypeMPEG4;
-    session.shouldOptimizeForNetworkUse = YES;
-    [session exportAsynchronouslyWithCompletionHandler:^{
-        BOOL ok = session.status == AVAssetExportSessionStatusCompleted;
-        if (completion) completion(ok);
-    }];
-}
-
-+ (void)downloadBestVideoForAweme:(id)awemeModel {
-    if (!awemeModel) return;
-    id videoModel = nil;
-    if ([awemeModel respondsToSelector:@"video"]) {
-        videoModel = [awemeModel valueForKey:@"video"];
-    }
-    NSURL *videoURL = [self bestVideoURLFromVideoModel:videoModel];
-    if (!videoURL) {
-        [self showToast:@"无法获取视频地址"];
-        return;
-    }
-
-    id musicModel = nil;
-    if ([awemeModel respondsToSelector:@"music"]) {
-        musicModel = [awemeModel valueForKey:@"music"];
-    }
-
-    [DYYYManager downloadMediaWithProgress:videoURL
-                                  mediaType:MediaTypeVideo
-                                   progress:nil
-                                 completion:^(BOOL success, NSURL *fileURL) {
-        if (!success || !fileURL) return;
-        AVURLAsset *asset = [AVURLAsset URLAssetWithURL:fileURL options:nil];
-        if ([[asset tracksWithMediaType:AVMediaTypeAudio] count] == 0 && musicModel) {
-            id playURLObj = [musicModel valueForKey:@"playURL"];
-            NSURL *audioRemote = nil;
-            if ([playURLObj respondsToSelector:@"getDYYYSrcURLDownload"]) {
-                audioRemote = [playURLObj getDYYYSrcURLDownload];
-            }
-            if (audioRemote) {
-                NSString *audioPath = [NSTemporaryDirectory() stringByAppendingPathComponent:[[NSUUID UUID].UUIDString stringByAppendingPathExtension:@"m4a"]];
-                NSData *audioData = [NSData dataWithContentsOfURL:audioRemote];
-                if (audioData && [audioData writeToFile:audioPath atomically:YES]) {
-                    NSString *mergePath = [NSTemporaryDirectory() stringByAppendingPathComponent:[[NSUUID UUID].UUIDString stringByAppendingPathExtension:@"mp4"]];
-                    NSURL *mergeURL = [NSURL fileURLWithPath:mergePath];
-                    [self mergeVideo:fileURL withAudio:[NSURL fileURLWithPath:audioPath] output:mergeURL completion:^(BOOL ok) {
-                        NSURL *saveURL = ok ? mergeURL : fileURL;
-                        [DYYYManager saveMedia:saveURL mediaType:MediaTypeVideo completion:^{
-                            [[NSFileManager defaultManager] removeItemAtURL:fileURL error:nil];
-                            [[NSFileManager defaultManager] removeItemAtPath:audioPath error:nil];
-                            if (ok) {
-                                [[NSFileManager defaultManager] removeItemAtURL:mergeURL error:nil];
-                            }
-                        }];
-                    }];
-                    return;
-                }
-            }
-        }
-        [DYYYManager saveMedia:fileURL mediaType:MediaTypeVideo completion:nil];
-    }];
-}
 
 id DYYYJSONSafeObject(id obj) {
     if (!obj || obj == [NSNull null]) {
