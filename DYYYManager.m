@@ -1639,54 +1639,60 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
       }
 
       if (!moveError) {
-        if (mediaType == MediaTypeVideo && ![DYYYManager videoHasAudioTrack:destinationURL]) {
+        if (mediaType == MediaTypeVideo &&
+            ![DYYYManager videoHasAudioTrack:destinationURL]) {
           NSURL *aURL = self.audioURLMap[downloadIDForTask];
           if (aURL) {
-            [DYYYManager downloadTempFile:aURL completion:^(NSURL *audioPath) {
-              if (audioPath) {
-                [DYYYManager mergeVideo:destinationURL
-                               withAudio:audioPath
-                               completion:^(NSURL *mergedURL, BOOL successMerge) {
-                  NSURL *finalURL = successMerge ? mergedURL : destinationURL;
-                  [DYYYManager saveMedia:finalURL
-                               mediaType:mediaType
-                              completion:^{
-                                if (completionBlock)
-                                  completionBlock(YES, finalURL);
-                                [[NSFileManager defaultManager] removeItemAtURL:destinationURL error:nil];
-                                if (audioPath)
-                                  [[NSFileManager defaultManager] removeItemAtURL:audioPath error:nil];
-                              }];
-                }];
-              } else {
-                [DYYYManager saveMedia:destinationURL
-                             mediaType:mediaType
-                            completion:^{
-                              if (completionBlock)
-                                completionBlock(YES, destinationURL);
-                              [[NSFileManager defaultManager] removeItemAtURL:destinationURL error:nil];
-                            }];
-              }
-            }];
-            return;
+            [DYYYManager downloadTempFile:aURL
+                               completion:^(NSURL *audioPath) {
+                                 if (!audioPath) {
+                                   if (completionBlock)
+                                     completionBlock(NO, nil);
+                                   [DYYYUtils showToast:@"音频下载失败"];
+                                   [[NSFileManager defaultManager]
+                                       removeItemAtURL:destinationURL
+                                                  error:nil];
+                                   return;
+                                 }
+                                 [DYYYManager mergeVideo:destinationURL
+                                                withAudio:audioPath
+                                                completion:^(NSURL *mergedURL,
+                                                             BOOL successMerge) {
+                                                  if (successMerge && mergedURL) {
+                                                    [DYYYManager saveMedia:mergedURL
+                                                                 mediaType:mediaType
+                                                                completion:^{
+                                                                  if (completionBlock)
+                                                                    completionBlock(YES, mergedURL);
+                                                                  [[NSFileManager defaultManager] removeItemAtURL:destinationURL error:nil];
+                                                                  [[NSFileManager defaultManager] removeItemAtURL:audioPath error:nil];
+                                                                }];
+                                                  } else {
+                                                    if (completionBlock)
+                                                      completionBlock(NO, nil);
+                                                    [DYYYUtils showToast:@"视频合成失败"];
+                                                    [[NSFileManager defaultManager] removeItemAtURL:destinationURL error:nil];
+                                                    if (audioPath)
+                                                      [[NSFileManager defaultManager] removeItemAtURL:audioPath error:nil];
+                                                  }
+                                                }];
+                               }];
           } else {
-            [DYYYManager saveMedia:destinationURL
-                         mediaType:mediaType
-                        completion:^{
-                          if (completionBlock)
-                            completionBlock(YES, destinationURL);
-                          [[NSFileManager defaultManager] removeItemAtURL:destinationURL error:nil];
-                        }];
+            if (completionBlock)
+              completionBlock(NO, nil);
+            [DYYYUtils showToast:@"未找到音频链接"];
+            [[NSFileManager defaultManager] removeItemAtURL:destinationURL error:nil];
           }
-        } else {
-          [DYYYManager saveMedia:destinationURL
+          return;
+        }
+
+        [DYYYManager saveMedia:destinationURL
                        mediaType:mediaType
                       completion:^{
                         if (completionBlock)
                           completionBlock(YES, destinationURL);
                         [[NSFileManager defaultManager] removeItemAtURL:destinationURL error:nil];
                       }];
-        }
       } else {
         if (completionBlock) {
           completionBlock(NO, nil);
