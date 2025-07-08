@@ -2319,10 +2319,11 @@ static __weak YYAnimatedImageView *targetStickerView = nil;
 	}
 
 	NSURL *url = [NSURL URLWithString:urlString];
-	[DYYYManager downloadMedia:url
-			 mediaType:MediaTypeHeic
-			completion:^(BOOL success){
-			}];
+        [DYYYManager downloadMedia:url
+                         audioURL:nil
+                         mediaType:MediaTypeHeic
+                        completion:^(BOOL success){
+                        }];
 }
 
 %end
@@ -2349,10 +2350,11 @@ static AWEIMReusableCommonCell *currentCell;
 		  AWEIMGiphyMessage *giphyMessage = (AWEIMGiphyMessage *)context.message;
 		  if (giphyMessage.giphyURL && giphyMessage.giphyURL.originURLList.count > 0) {
 			  NSURL *url = [NSURL URLWithString:giphyMessage.giphyURL.originURLList.firstObject];
-			  [DYYYManager downloadMedia:url
-					   mediaType:MediaTypeHeic
-					  completion:^(BOOL success){
-					  }];
+                          [DYYYManager downloadMedia:url
+                                           audioURL:nil
+                                           mediaType:MediaTypeHeic
+                                          completion:^(BOOL success){
+                                          }];
 		  }
 	  }
 	};
@@ -4672,18 +4674,30 @@ static AWEIMReusableCommonCell *currentCell;
 
 						      if (urlList && urlList.count > 0) {
 							      NSURL *url = [NSURL URLWithString:urlList.firstObject];
-							      [DYYYManager downloadMedia:url
-									       mediaType:MediaTypeVideo
-									      completion:^(BOOL success){
-									      }];
+							      AWEMusicModel *musicModel = awemeModel.music;
+                                                              NSURL *audioURL = nil;
+                                                              if (musicModel && musicModel.playURL && musicModel.playURL.originURLList.count > 0) {
+                                                                      audioURL = [NSURL URLWithString:musicModel.playURL.originURLList.firstObject];
+                                                              }
+                                                              [DYYYManager downloadMedia:url
+                                                                               audioURL:audioURL
+                                                                               mediaType:MediaTypeVideo
+                                                                              completion:^(BOOL success){
+                                                                              }];
 						      } else {
 							      // 备用方法：直接使用h264URL
 							      if (videoModel.h264URL && videoModel.h264URL.originURLList.count > 0) {
 								      NSURL *url = [NSURL URLWithString:videoModel.h264URL.originURLList.firstObject];
-								      [DYYYManager downloadMedia:url
-										       mediaType:MediaTypeVideo
-										      completion:^(BOOL success){
-										      }];
+								      AWEMusicModel *musicModel = awemeModel.music;
+                                                                      NSURL *audioURL = nil;
+                                                                      if (musicModel && musicModel.playURL && musicModel.playURL.originURLList.count > 0) {
+                                                                              audioURL = [NSURL URLWithString:musicModel.playURL.originURLList.firstObject];
+                                                                      }
+                                                                      [DYYYManager downloadMedia:url
+                                                                                       audioURL:audioURL
+                                                                                       mediaType:MediaTypeVideo
+                                                                                      completion:^(BOOL success){
+                                                                                      }];
 							      }
 						      }
 					      }
