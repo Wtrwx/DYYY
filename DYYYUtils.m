@@ -773,7 +773,7 @@ static os_unfair_lock _staticColorCreationLock = OS_UNFAIR_LOCK_INIT;
     if (bitrateModels.count > 0) {
         id highestQualityModel = bitrateModels.firstObject;
         id playAddrObj = [highestQualityModel valueForKey:@"playAddr"];
-        if ([playAddrObj isKindOfClass:%c(AWEURLModel)]) {
+        if ([playAddrObj isKindOfClass:[AWEURLModel class]]) {
             AWEURLModel *playAddrModel = (AWEURLModel *)playAddrObj;
             if (playAddrModel.originURLList.count > 0) {
                 videoURL = [NSURL URLWithString:playAddrModel.originURLList.firstObject];
@@ -783,7 +783,7 @@ static os_unfair_lock _staticColorCreationLock = OS_UNFAIR_LOCK_INIT;
 
     if (!videoURL && [videoModel respondsToSelector:@"h264URL"]) {
         id h264URL = [videoModel valueForKey:@"h264URL"];
-        if ([h264URL isKindOfClass:%c(AWEURLModel)]) {
+        if ([h264URL isKindOfClass:[AWEURLModel class]]) {
             AWEURLModel *model = (AWEURLModel *)h264URL;
             if (model.originURLList.count > 0) {
                 videoURL = [NSURL URLWithString:model.originURLList.firstObject];
@@ -793,7 +793,7 @@ static os_unfair_lock _staticColorCreationLock = OS_UNFAIR_LOCK_INIT;
 
     if (!videoURL && [videoModel respondsToSelector:@"playURL"]) {
         id playURL = [videoModel valueForKey:@"playURL"];
-        if ([playURL isKindOfClass:%c(AWEURLModel)]) {
+        if ([playURL isKindOfClass:[AWEURLModel class]]) {
             AWEURLModel *model = (AWEURLModel *)playURL;
             if (model.originURLList.count > 0) {
                 videoURL = [NSURL URLWithString:model.originURLList.firstObject];
@@ -858,7 +858,7 @@ static os_unfair_lock _staticColorCreationLock = OS_UNFAIR_LOCK_INIT;
             NSURL *audioRemote = nil;
             if ([musicModel respondsToSelector:@"playURL"]) {
                 id playURLObj = [musicModel valueForKey:@"playURL"];
-                if ([playURLObj isKindOfClass:%c(AWEURLModel)]) {
+                if ([playURLObj isKindOfClass:[AWEURLModel class]]) {
                     AWEURLModel *model = (AWEURLModel *)playURLObj;
                     if (model.originURLList.count > 0) {
                         audioRemote = [NSURL URLWithString:model.originURLList.firstObject];
