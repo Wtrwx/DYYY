@@ -22,3 +22,6 @@ DYYY 可以通过远程 JSON 文件批量应用设置。默认下载地址在 `D
 ```
 
 `mode` 字段可选，支持 `DYYY_MODE_PATCH` 和 `DYYY_MODE_REPLACE`，若省略则默认为补丁模式 (`DYYY_MODE_PATCH`)。
+
+### 音轨合成功能
+下载视频时若检测到无音轨，Tweak 会自动下载对应音乐并合并。
