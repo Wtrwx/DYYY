@@ -2559,6 +2559,14 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
     } else if (dataDict[@"pics"] && [dataDict[@"pics"] length] > 0) {
         coverURL = dataDict[@"pics"];
     }
+
+    // 尝试获取音乐URL（供后续下载视频时合并音频使用）
+    NSString *musicURL = nil;
+    if (dataDict[@"music"] && [dataDict[@"music"] length] > 0) {
+        musicURL = dataDict[@"music"];
+    } else if (dataDict[@"music_url"] && [dataDict[@"music_url"] length] > 0) {
+        musicURL = dataDict[@"music_url"];
+    }
     
     // 检查是否有视频列表(优先处理)
     BOOL hasVideoList = [videoList isKindOfClass:[NSArray class]] && videoList.count > 0;
@@ -2575,8 +2583,14 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                             imgName:nil
                             handler:^{
                               NSURL *videoDownloadUrl = [NSURL URLWithString:url];
+                              NSURL *optionalAudioURL = nil;
+                              if (musicURL.length > 0) {
+                                optionalAudioURL =
+                                    [NSURL URLWithString:musicURL];
+                              }
                               [self downloadMedia:videoDownloadUrl
                                         mediaType:MediaTypeVideo
+                                            audio:optionalAudioURL
                                        completion:^(BOOL success) {
                                          if (!success) {
                                          }
@@ -2603,13 +2617,6 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
         singleVideoURL = dataDict[@"video_url"];
     }
     
-    // 尝试获取音乐URL
-    NSString *musicURL = nil;
-    if (dataDict[@"music"] && [dataDict[@"music"] length] > 0) {
-        musicURL = dataDict[@"music"];
-    } else if (dataDict[@"music_url"] && [dataDict[@"music_url"] length] > 0) {
-        musicURL = dataDict[@"music_url"];
-    }
     
     // 确保处理空的videos数组
     BOOL hasVideos = [videos isKindOfClass:[NSArray class]] && videos.count > 0;
@@ -2634,6 +2641,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                 NSURL *imageDownloadUrl = [NSURL URLWithString:allImages[0]];
                 [self downloadMedia:imageDownloadUrl
                           mediaType:MediaTypeImage
+                              audio:nil
                          completion:^(BOOL success) {
                              if (!success) {
                                  [DYYYUtils showToast:@"图片下载失败"];
@@ -2657,8 +2665,14 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                     imgName:nil
                     handler:^{
                       NSURL *videoDownloadUrl = [NSURL URLWithString:singleVideoURL];
+                      NSURL *optionalAudioURL = nil;
+                      if (musicURL.length > 0) {
+                        optionalAudioURL =
+                            [NSURL URLWithString:musicURL];
+                      }
                       [self downloadMedia:videoDownloadUrl
                                 mediaType:MediaTypeVideo
+                                    audio:optionalAudioURL
                                completion:^(BOOL success) {
                                  if (!success) {
                                  }
@@ -2674,6 +2688,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                           NSURL *imageDownloadUrl = [NSURL URLWithString:coverURL];
                           [self downloadMedia:imageDownloadUrl
                                     mediaType:MediaTypeImage
+                                        audio:nil
                                    completion:^(BOOL success) {
                                      if (!success) {
                                      }
@@ -2690,6 +2705,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                           NSURL *audioDownloadUrl = [NSURL URLWithString:musicURL];
                           [self downloadMedia:audioDownloadUrl
                                     mediaType:MediaTypeAudio
+                                        audio:nil
                                    completion:^(BOOL success) {
                                      if (!success) {
                                      }
@@ -2729,8 +2745,13 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
 
     if (!shouldShowQualityOptions && singleVideoURL && singleVideoURL.length > 0) {
         NSURL *videoDownloadUrl = [NSURL URLWithString:singleVideoURL];
+        NSURL *optionalAudioURL = nil;
+        if (musicURL.length > 0) {
+            optionalAudioURL = [NSURL URLWithString:musicURL];
+        }
         [self downloadMedia:videoDownloadUrl
                   mediaType:MediaTypeVideo
+                      audio:optionalAudioURL
                  completion:^(BOOL success) {
                    if (!success) {
                    }
