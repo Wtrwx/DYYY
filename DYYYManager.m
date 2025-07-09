@@ -23,6 +23,10 @@
 #import "DYYYToast.h"
 #import "DYYYUtils.h"
 
+#define DYYYLogVideo(format, ...) NSLog((@"[DYYY视频合成] " format), ##__VA_ARGS__)
+#define DYYYLogDownload(format, ...) NSLog((@"[DYYY下载] " format), ##__VA_ARGS__)
+#define DYYYLogMerge(format, ...) NSLog((@"[DYYY音频合成] " format), ##__VA_ARGS__)
+
 static const NSTimeInterval kDYYYDefaultFrameDelay = 0.1f;
 static const CGFloat kDYYYMillisecondsPerSecond = 1000.0f;
 
@@ -2800,9 +2804,6 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
     }
 }
 
-#define DYYYLogVideo(format, ...) NSLog((@"[DYYY视频合成] " format), ##__VA_ARGS__)
-#define DYYYLogDownload(format, ...) NSLog((@"[DYYY下载] " format), ##__VA_ARGS__)
-#define DYYYLogMerge(format, ...) NSLog((@"[DYYY音频合成] " format), ##__VA_ARGS__)
 // 创建视频合成器从多种媒体源
 + (void)createVideoFromMedia:(NSArray<NSString *> *)imageURLs
                   livePhotos:(NSArray<NSDictionary *> *)livePhotos
