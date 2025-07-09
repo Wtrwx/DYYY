@@ -1243,7 +1243,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
       return;
     }
 
-    NSString *audioPath = [NSTemporaryDirectory() stringByAppendingPathComponent:[NSString stringWithFormat:@"temp_%@", audioURL.lastPathComponent]];
+    NSString *audioPath = [DYYYUtils cachePathForFilename:[NSString stringWithFormat:@"temp_%@", audioURL.lastPathComponent]];
     NSURL *audioFile = [NSURL fileURLWithPath:audioPath];
     if (![audioData writeToURL:audioFile atomically:YES]) {
       dispatch_async(dispatch_get_main_queue(), ^{
@@ -1290,18 +1290,20 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                              atTime:kCMTimeZero
                               error:nil];
 
-    NSString *outputPath = [NSTemporaryDirectory() stringByAppendingPathComponent:[NSString stringWithFormat:@"merged_%@", videoURL.lastPathComponent]];
+    NSString *outputPath = [DYYYUtils cachePathForFilename:[NSString stringWithFormat:@"merged_%@", videoURL.lastPathComponent]];
     NSURL *outputURL = [NSURL fileURLWithPath:outputPath];
     if ([[NSFileManager defaultManager] fileExistsAtPath:outputPath]) {
       [[NSFileManager defaultManager] removeItemAtPath:outputPath error:nil];
     }
 
-    AVAssetExportSession *exportSession = [[AVAssetExportSession alloc] initWithAsset:composition presetName:AVAssetExportPresetHighestQuality];
+    AVAssetExportSession *exportSession = [[AVAssetExportSession alloc] initWithAsset:composition presetName:AVAssetExportPresetPassthrough];
     exportSession.outputURL = outputURL;
     exportSession.outputFileType = AVFileTypeMPEG4;
     [exportSession exportAsynchronouslyWithCompletionHandler:^{
       BOOL success = exportSession.status == AVAssetExportSessionStatusCompleted;
-      if (success) {
+      if (!success) {
+        NSLog(@"Merge export failed: %@", exportSession.error);
+      } else {
         [[NSFileManager defaultManager] removeItemAtURL:videoURL error:nil];
       }
       dispatch_async(dispatch_get_main_queue(), ^{
