@@ -1132,6 +1132,8 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                                                                 completion:^(BOOL mergeSuccess, NSURL *mergedURL) {
                                                                   if (mergeSuccess) {
                                                                     DYYYLogMerge(@"音频合并成功");
+                                                                    // 合并成功后清理原始视频文件
+                                                                    [[NSFileManager defaultManager] removeItemAtURL:fileURL error:nil];
                                                                     [self saveMedia:mergedURL
                                                                           mediaType:mediaType
                                                                          completion:^{
@@ -1140,7 +1142,8 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                                                                            }
                                                                          }];
                                                                   } else {
-                                                                    DYYYLogMerge(@"音频合并失败");
+                                                                    DYYYLogMerge(@"音频合并失败，保存原始视频");
+                                                                    // 合并失败时保留原始视频文件
                                                                     [self saveMedia:fileURL
                                                                           mediaType:mediaType
                                                                          completion:^{
@@ -1257,7 +1260,11 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
       return;
     }
 
-    NSString *audioPath = [DYYYUtils cachePathForFilename:[NSString stringWithFormat:@"temp_%@", audioURL.lastPathComponent]];
+    NSString *originalFileName = audioURL.lastPathComponent;
+    NSString *audioFileName;
+    audioFileName = [NSString stringWithFormat:@"temp_%@", originalFileName];
+    
+    NSString *audioPath = [DYYYUtils cachePathForFilename:audioFileName];
     NSURL *audioFile = [NSURL fileURLWithPath:audioPath];
     if (![audioData writeToURL:audioFile atomically:YES]) {
       DYYYLogMerge(@"写入音频文件失败");
@@ -1269,8 +1276,43 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
 
     DYYYLogMerge(@"开始合并音频与视频");
 
-    [self mergeVideo:videoURL withAudio:audioFile completion:^(BOOL success, NSURL *merged) {
-      [[NSFileManager defaultManager] removeItemAtURL:audioFile error:nil];
+    // 尝试多种音频格式保存
+    NSArray *audioExtensions = @[@"mp3"];
+    BOOL audioSaved = NO;
+    NSURL *finalAudioFile = nil;
+    
+    for (NSString *extension in audioExtensions) {
+      NSString *testAudioFileName = [NSString stringWithFormat:@"temp_%@.%@", originalFileName, extension];
+      NSString *testAudioPath = [DYYYUtils cachePathForFilename:testAudioFileName];
+      NSURL *testAudioFile = [NSURL fileURLWithPath:testAudioPath];
+      
+      if ([audioData writeToURL:testAudioFile atomically:YES]) {
+        // 测试是否能创建音频asset
+        AVURLAsset *testAsset = [AVURLAsset URLAssetWithURL:testAudioFile options:nil];
+        AVAssetTrack *testTrack = [[testAsset tracksWithMediaType:AVMediaTypeAudio] firstObject];
+        
+        if (testTrack) {
+          DYYYLogMerge(@"成功识别音频格式: %@", extension);
+          audioSaved = YES;
+          finalAudioFile = testAudioFile;
+          break;
+        } else {
+          // 清理测试文件
+          [[NSFileManager defaultManager] removeItemAtURL:testAudioFile error:nil];
+        }
+      }
+    }
+    
+    if (!audioSaved) {
+      DYYYLogMerge(@"无法以任何支持的格式保存音频文件");
+      dispatch_async(dispatch_get_main_queue(), ^{
+        if (completion) completion(NO, nil);
+      });
+      return;
+    }
+
+    [self mergeVideo:videoURL withAudio:finalAudioFile completion:^(BOOL success, NSURL *merged) {
+      [[NSFileManager defaultManager] removeItemAtURL:finalAudioFile error:nil];
       DYYYLogMerge(@"%@", success ? @"合并成功" : @"合并失败");
       dispatch_async(dispatch_get_main_queue(), ^{
         if (completion) completion(success, merged);
@@ -1285,11 +1327,32 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
          completion:(void (^)(BOOL success, NSURL *mergedURL))completion {
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
     DYYYLogMerge(@"开始合并视频 %@ 与音频 %@", videoURL.lastPathComponent, audioURL.lastPathComponent);
+    
     AVURLAsset *videoAsset = [AVURLAsset URLAssetWithURL:videoURL options:nil];
     AVURLAsset *audioAsset = [AVURLAsset URLAssetWithURL:audioURL options:nil];
+    
+    // 检查视频轨道
     AVAssetTrack *videoTrack = [[videoAsset tracksWithMediaType:AVMediaTypeVideo] firstObject];
+    if (!videoTrack) {
+      DYYYLogMerge(@"视频asset加载失败或无视频轨道");
+      dispatch_async(dispatch_get_main_queue(), ^{
+        if (completion) completion(NO, nil);
+      });
+      return;
+    }
+    
+    // 检查音频轨道
     AVAssetTrack *audioTrack = [[audioAsset tracksWithMediaType:AVMediaTypeAudio] firstObject];
-    if (!videoTrack || !audioTrack) {
+    if (!audioTrack) {
+      DYYYLogMerge(@"音频asset加载失败 tracks: %@", audioAsset.commonMetadata);
+      
+      // 尝试检测音频文件格式
+      NSData *audioData = [NSData dataWithContentsOfURL:audioURL];
+      if (audioData && audioData.length > 4) {
+        const unsigned char *bytes = [audioData bytes];
+        DYYYLogMerge(@"音频文件头信息: %02X %02X %02X %02X", bytes[0], bytes[1], bytes[2], bytes[3]);
+      }
+      
       dispatch_async(dispatch_get_main_queue(), ^{
         if (completion) completion(NO, nil);
       });
@@ -1324,7 +1387,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
         DYYYLogMerge(@"导出合并视频失败: %@", exportSession.error.localizedDescription);
       } else {
         DYYYLogMerge(@"导出合并视频成功: %@", outputURL.lastPathComponent);
-        [[NSFileManager defaultManager] removeItemAtURL:videoURL error:nil];
+        // 不在这里删除原始视频文件，等待合并完成后再一起清理
       }
       dispatch_async(dispatch_get_main_queue(), ^{
         if (completion) completion(success, success ? outputURL : nil);
