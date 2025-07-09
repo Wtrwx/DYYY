@@ -1260,10 +1260,11 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
       return;
     }
 
-    NSString *originalFileName = audioURL.lastPathComponent;
-    NSString *audioFileName;
-    audioFileName = [NSString stringWithFormat:@"temp_%@", originalFileName];
-    
+    // 使用原始文件名（去除扩展名）生成临时音频文件路径，避免重复的后缀
+    NSString *baseName = [[audioURL lastPathComponent] stringByDeletingPathExtension];
+    NSString *originalExt = audioURL.pathExtension.length ? audioURL.pathExtension : @"mp3";
+    NSString *audioFileName = [NSString stringWithFormat:@"temp_%@.%@", baseName, originalExt];
+
     NSString *audioPath = [DYYYUtils cachePathForFilename:audioFileName];
     NSURL *audioFile = [NSURL fileURLWithPath:audioPath];
     if (![audioData writeToURL:audioFile atomically:YES]) {
@@ -1276,13 +1277,13 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
 
     DYYYLogMerge(@"开始合并音频与视频");
 
-    // 尝试多种音频格式保存
-    NSArray *audioExtensions = @[@"mp3"];
+    // 尝试多种音频格式保存，优先使用原始扩展名
+    NSArray *audioExtensions = @[originalExt, @"m4a", @"aac", @"mp3"];
     BOOL audioSaved = NO;
     NSURL *finalAudioFile = nil;
     
     for (NSString *extension in audioExtensions) {
-      NSString *testAudioFileName = [NSString stringWithFormat:@"temp_%@.%@", originalFileName, extension];
+      NSString *testAudioFileName = [NSString stringWithFormat:@"temp_%@.%@", baseName, extension];
       NSString *testAudioPath = [DYYYUtils cachePathForFilename:testAudioFileName];
       NSURL *testAudioFile = [NSURL fileURLWithPath:testAudioPath];
       
@@ -1378,9 +1379,20 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
       [[NSFileManager defaultManager] removeItemAtPath:outputPath error:nil];
     }
 
-    AVAssetExportSession *exportSession = [[AVAssetExportSession alloc] initWithAsset:composition presetName:AVAssetExportPresetPassthrough];
+    // 使用高质量导出以便自动转码音频轨道（如从 MP3 转为 AAC），避免 "操作已停止" 错误
+    AVAssetExportSession *exportSession = [[AVAssetExportSession alloc] initWithAsset:composition
+                                                                          presetName:AVAssetExportPresetHighestQuality];
+    if (!exportSession) {
+      DYYYLogMerge(@"创建导出会话失败");
+      dispatch_async(dispatch_get_main_queue(), ^{
+        if (completion) completion(NO, nil);
+      });
+      return;
+    }
+
     exportSession.outputURL = outputURL;
     exportSession.outputFileType = AVFileTypeMPEG4;
+    exportSession.shouldOptimizeForNetworkUse = YES;
     [exportSession exportAsynchronouslyWithCompletionHandler:^{
       BOOL success = exportSession.status == AVAssetExportSessionStatusCompleted;
       if (!success) {
