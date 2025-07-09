@@ -1392,7 +1392,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
       return;
     }
 
-    self.currentMergeSession = exportSession; // 强持有会话，避免合并过程中被释放
+    [DYYYManager shared].currentMergeSession = exportSession; // 强持有会话，避免合并过程中被释放
 
     exportSession.outputURL = outputURL;
     exportSession.outputFileType = AVFileTypeMPEG4;
@@ -1405,7 +1405,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
         DYYYLogMerge(@"导出合并视频成功: %@", outputURL.lastPathComponent);
         // 不在这里删除原始视频文件，等待合并完成后再一起清理
       }
-      self.currentMergeSession = nil; // 合并完成，释放会话
+      [DYYYManager shared].currentMergeSession = nil; // 合并完成，释放会话
       dispatch_async(dispatch_get_main_queue(), ^{
         if (completion) completion(success, success ? outputURL : nil);
       });
