@@ -1271,7 +1271,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
 
     [self mergeVideo:videoURL withAudio:audioFile completion:^(BOOL success, NSURL *merged) {
       [[NSFileManager defaultManager] removeItemAtURL:audioFile error:nil];
-      DYYYLogMerge(success ? @"合并成功" : @"合并失败");
+      DYYYLogMerge(@"%@", success ? @"合并成功" : @"合并失败");
       dispatch_async(dispatch_get_main_queue(), ^{
         if (completion) completion(success, merged);
       });
