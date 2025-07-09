@@ -371,8 +371,7 @@ static void ReleaseWebPData(void *info, const void *data, size_t size) {
             [[webpURL.lastPathComponent stringByDeletingPathExtension]
                 stringByAppendingPathExtension:@"gif"];
         NSURL *gifURL = [NSURL
-            fileURLWithPath:[NSTemporaryDirectory()
-                                stringByAppendingPathComponent:gifFileName]];
+            fileURLWithPath:[DYYYUtils cachePathForFilename:gifFileName]];
 
         // 读取WebP文件数据
         NSData *webpData = [NSData dataWithContentsOfURL:webpURL];
@@ -739,8 +738,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
             [[heicURL.lastPathComponent stringByDeletingPathExtension]
                 stringByAppendingPathExtension:@"gif"];
         NSURL *gifURL = [NSURL
-            fileURLWithPath:[NSTemporaryDirectory()
-                                stringByAppendingPathComponent:gifFileName]];
+            fileURLWithPath:[DYYYUtils cachePathForFilename:gifFileName]];
 
         // 4. GIF属性
         NSDictionary *gifProperties = @{
@@ -856,7 +854,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                            completion:(void (^)(void))completion {
   // 创建临时目录
   NSString *livePhotoPath =
-      [NSTemporaryDirectory() stringByAppendingPathComponent:@"LivePhoto"];
+      [[DYYYUtils cacheDirectory] stringByAppendingPathComponent:@"LivePhoto"];
 
   NSFileManager *fileManager = [NSFileManager defaultManager];
   if (![fileManager fileExistsAtPath:livePhotoPath]) {
@@ -1331,7 +1329,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
     }
   }
 
-  NSString *livePhotoPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"LivePhotoBatch"];
+  NSString *livePhotoPath = [[DYYYUtils cacheDirectory] stringByAppendingPathComponent:@"LivePhotoBatch"];
   NSFileManager *fileManager = [NSFileManager defaultManager];
   if ([fileManager fileExistsAtPath:livePhotoPath]) {
     NSError *error = nil;
@@ -1341,7 +1339,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
     }
   }
   
-  NSString *generalLivePhotoPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"LivePhoto"];
+  NSString *generalLivePhotoPath = [[DYYYUtils cacheDirectory] stringByAppendingPathComponent:@"LivePhoto"];
   if ([fileManager fileExistsAtPath:generalLivePhotoPath]) {
     NSError *error = nil;
     [fileManager removeItemAtPath:generalLivePhotoPath error:&error];
@@ -1625,8 +1623,8 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
     }
   }
 
-  NSURL *tempDir = [NSURL fileURLWithPath:NSTemporaryDirectory()];
-  NSURL *destinationURL = [tempDir URLByAppendingPathComponent:fileName];
+  NSURL *destinationURL =
+      [NSURL fileURLWithPath:[DYYYUtils cachePathForFilename:fileName]];
 
   NSError *moveError;
   if ([[NSFileManager defaultManager] fileExistsAtPath:destinationURL.path]) {
@@ -2021,7 +2019,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
   return item;
 }
 - (NSString *)filePathFromTmp:(NSString *)filename {
-  NSString *tempPath = NSTemporaryDirectory();
+  NSString *tempPath = [DYYYUtils cacheDirectory];
   NSString *filePath = [tempPath stringByAppendingPathComponent:filename];
   return filePath;
 }
@@ -2097,7 +2095,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
         __block NSInteger phase = 0; // 0:下载图片阶段，1:下载视频阶段，2:合成阶段
         
         // 创建临时目录
-        NSString *livePhotoPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"LivePhotoBatch"];
+        NSString *livePhotoPath = [[DYYYUtils cacheDirectory] stringByAppendingPathComponent:@"LivePhotoBatch"];
         NSFileManager *fileManager = [NSFileManager defaultManager];
         [fileManager createDirectoryAtPath:livePhotoPath withIntermediateDirectories:YES attributes:nil error:nil];
 
@@ -2811,7 +2809,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
         };
         
         // 创建临时目录
-        NSString *mediaPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"VideoComposition"];
+        NSString *mediaPath = [[DYYYUtils cacheDirectory] stringByAppendingPathComponent:@"VideoComposition"];
         NSFileManager *fileManager = [NSFileManager defaultManager];
         if ([fileManager fileExistsAtPath:mediaPath]) {
             DYYYLogVideo(@"正在清理旧的临时目录: %@", mediaPath);
@@ -3151,7 +3149,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                    (long)(i+1), (long)imageFiles.count, image.size.width, image.size.height);
         
         // 创建临时视频文件路径
-        NSString *tempVideoPath = [NSTemporaryDirectory() stringByAppendingPathComponent:
+        NSString *tempVideoPath = [[DYYYUtils cacheDirectory] stringByAppendingPathComponent:
                                   [NSString stringWithFormat:@"temp_img_%@.mp4", [NSUUID UUID].UUIDString]];
         
         dispatch_group_enter(processingGroup);
@@ -3702,7 +3700,7 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width,
                     });
                     return;
                 }
-                NSString *tempPath = [NSTemporaryDirectory() stringByAppendingPathComponent:
+                NSString *tempPath = [[DYYYUtils cacheDirectory] stringByAppendingPathComponent:
                                       [NSString stringWithFormat:@"sticker_%ld.gif", (long)[[NSDate date] timeIntervalSince1970]]];
                 BOOL success = [self createGIFWithImages:images duration:duration path:tempPath progress:^(float progress) {}];
                 dispatch_async(dispatch_get_main_queue(), ^{
