@@ -62,7 +62,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)removeAllContentsAtPath:(NSString *)directoryPath;
 
 /**
- * 返回插件缓存目录路径，默认为 tmp/DYYY
+ * 返回插件缓存目录路径，默认为 Library/Caches/DYYY
  */
 + (NSString *)cacheDirectory;
 

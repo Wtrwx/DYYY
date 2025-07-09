@@ -307,11 +307,11 @@
 // MARK: - Cache Utilities
 
 + (NSString *)cacheDirectory {
-    NSString *tmpDir = NSTemporaryDirectory();
-    if (!tmpDir) {
-        tmpDir = @"/tmp";
+    NSString *cacheRoot = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES).firstObject;
+    if (!cacheRoot) {
+        cacheRoot = NSTemporaryDirectory();
     }
-    NSString *cacheDir = [tmpDir stringByAppendingPathComponent:@"DYYY"];
+    NSString *cacheDir = [cacheRoot stringByAppendingPathComponent:@"DYYY"];
 
     NSFileManager *fileManager = [NSFileManager defaultManager];
     BOOL isDir = NO;
