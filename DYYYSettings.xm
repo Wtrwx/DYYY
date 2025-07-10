@@ -43,14 +43,7 @@ void *kViewModelKey = &kViewModelKey;
 }
 %end
 
-%hook AWELeftSideBarWeatherLabel
-- (void)layoutSubviews {
-    %orig;
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYentrance"]) {
-        self.text = @"DYYY";
-    }
-}
-%end
+
 
 %hook AWELeftSideBarWeatherView
 - (void)didMoveToSuperview {
@@ -69,32 +62,35 @@ void *kViewModelKey = &kViewModelKey;
         return;
     }
 
-    if (![self tapGestureForDYYY]) {
-        UITapGestureRecognizer *gesture = [[UITapGestureRecognizer alloc] initWithTarget:[UIView class] action:@selector(openDYYYSettingsFromSender:)];
-        objc_setAssociatedObject(gesture, "targetView", self, OBJC_ASSOCIATION_ASSIGN);
-        objc_setAssociatedObject(self, @selector(tapGestureForDYYY), gesture, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-        self.userInteractionEnabled = YES;
-        [self addGestureRecognizer:gesture];
-    }
-
-    for (UIView *subview in self.subviews) {
-        subview.userInteractionEnabled = YES;
-        UITapGestureRecognizer *subTapGesture = [[UITapGestureRecognizer alloc] initWithTarget:[UIView class] action:@selector(openDYYYSettingsFromSender:)];
-        objc_setAssociatedObject(subTapGesture, "targetView", self, OBJC_ASSOCIATION_ASSIGN);
-        [subview addGestureRecognizer:subTapGesture];
-
-        [subview.subviews enumerateObjectsUsingBlock:^(UIView *childView, NSUInteger idx, BOOL *stop) {
-            if ([childView isKindOfClass:%c(AWELeftSideBarWeatherLabel)]) {
-                ((UILabel *)childView).text = @"DYYY";
-            } else {
-                [childView removeFromSuperview];
+    UILabel *label = [self dyyyReplacementLabel];
+    if (!label) {
+        CGRect targetFrame = self.bounds;
+        for (UIView *sub in [self.subviews copy]) {
+            if ([sub isKindOfClass:%c(AWELeftSideBarWeatherLabel)]) {
+                targetFrame = sub.frame;
             }
-        }];
+            [sub removeFromSuperview];
+        }
+
+        label = [[UILabel alloc] initWithFrame:targetFrame];
+        label.text = @"DYYY";
+        label.font = [UIFont systemFontOfSize:12.0];
+        label.textAlignment = NSTextAlignmentCenter;
+        label.userInteractionEnabled = YES;
+
+        UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:[UIView class] action:@selector(openDYYYSettingsFromSender:)];
+        objc_setAssociatedObject(tap, "targetView", self, OBJC_ASSOCIATION_ASSIGN);
+        [label addGestureRecognizer:tap];
+
+        [self addSubview:label];
+        objc_setAssociatedObject(self, @selector(dyyyReplacementLabel), label, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    } else {
+        label.frame = self.bounds;
     }
 }
 
 %new
-- (UITapGestureRecognizer *)tapGestureForDYYY {
+- (UILabel *)dyyyReplacementLabel {
     return objc_getAssociatedObject(self, _cmd);
 }
 %end
