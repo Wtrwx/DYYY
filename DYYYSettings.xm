@@ -23,6 +23,10 @@ static void showIconOptionsDialog(NSString *title, UIImage *previewImage, NSStri
 #import "DYYYBackupPickerDelegate.h"
 #import "DYYYImagePickerDelegate.h"
 
+@interface AWELeftSideBarWeatherView (DYYY)
+- (UILabel *)dyyyReplacementLabel;
+@end
+
 #ifdef __cplusplus
 extern "C" {
 #endif
