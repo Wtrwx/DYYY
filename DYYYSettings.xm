@@ -44,53 +44,43 @@ void *kViewModelKey = &kViewModelKey;
 %end
 
 %hook AWELeftSideBarWeatherLabel
-- (id)initWithFrame:(CGRect)frame {
-    id orig = %orig;
-    self.userInteractionEnabled = YES;
-    UITapGestureRecognizer *tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:[UIView class] action:@selector(openDYYYSettingsFromSender:)];
-    objc_setAssociatedObject(tapGesture, "targetView", self, OBJC_ASSOCIATION_ASSIGN);
-    [self addGestureRecognizer:tapGesture];
-    return orig;
-}
-
-- (void)drawTextInRect:(CGRect)rect {
-    CGContextRef context = UIGraphicsGetCurrentContext();
-    CGContextClearRect(context, rect);
-
-    NSDictionary *attributes = @{NSFontAttributeName : [UIFont systemFontOfSize:12.0], NSForegroundColorAttributeName : self.textColor};
-    [@"DYYY" drawInRect:rect withAttributes:attributes];
+- (void)didMoveToWindow {
+    %orig;
+    if (self.window && [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYentrance"]) {
+        self.text = @"DYYY";
+    }
 }
 %end
 
 %hook AWELeftSideBarWeatherView
-- (void)didMoveToSuperview {
+- (void)didMoveToWindow {
     %orig;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-      CGRect frame = self.frame;
-      frame.origin.y += 10;
-      self.frame = frame;
-    });
+    if (!self.window || ![[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYentrance"]) {
+        return;
+    }
+
+    if (![self tapGestureForDYYY]) {
+        UITapGestureRecognizer *gesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(openDYYYSettings)];
+        objc_setAssociatedObject(self, @selector(tapGestureForDYYY), gesture, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        self.userInteractionEnabled = YES;
+        [self addGestureRecognizer:gesture];
+    }
+
+    for (UIView *view in self.subviews) {
+        if ([view isKindOfClass:%c(AWELeftSideBarWeatherLabel)]) {
+            ((UILabel *)view).text = @"DYYY";
+        }
+    }
 }
 
-- (void)layoutSubviews {
-    %orig;
-    self.userInteractionEnabled = YES;
-    UITapGestureRecognizer *tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:[UIView class] action:@selector(openDYYYSettingsFromSender:)];
-    objc_setAssociatedObject(tapGesture, "targetView", self, OBJC_ASSOCIATION_ASSIGN);
-    [self addGestureRecognizer:tapGesture];
+%new
+- (UITapGestureRecognizer *)tapGestureForDYYY {
+    return objc_getAssociatedObject(self, _cmd);
+}
 
-    for (UIView *subview in self.subviews) {
-        subview.userInteractionEnabled = YES;
-        UITapGestureRecognizer *subTapGesture = [[UITapGestureRecognizer alloc] initWithTarget:[UIView class] action:@selector(openDYYYSettingsFromSender:)];
-        objc_setAssociatedObject(subTapGesture, "targetView", self, OBJC_ASSOCIATION_ASSIGN);
-        [subview addGestureRecognizer:subTapGesture];
-
-        [subview.subviews enumerateObjectsUsingBlock:^(UIView *childView, NSUInteger idx, BOOL *stop) {
-          if (![childView isKindOfClass:%c(AWELeftSideBarWeatherLabel)]) {
-              [childView removeFromSuperview];
-          }
-        }];
-    }
+%new
+- (void)openDYYYSettings {
+    [DYYYSettingsHelper openSettingsFromView:self];
 }
 %end
 
