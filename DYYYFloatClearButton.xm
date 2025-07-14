@@ -16,11 +16,8 @@ void showClearButton(void);
 void hideClearButton(void);
 
 static BOOL isInPlayInteractionVC = NO;
-static BOOL isCommentViewVisible = NO;
 static BOOL isPureViewVisible = NO;
-static BOOL isForceHidden = NO;
 static BOOL isAppActive = YES;
-static BOOL isInteractionViewVisible = NO;
 
 @interface HideUIButton : UIButton
 
