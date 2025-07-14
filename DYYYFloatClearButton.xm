@@ -4,12 +4,13 @@
  * Dev: @c00kiec00k 曲奇的坏品味🍻
  * iOS Version: 16.5
  */
-#import "DYYYFloatSpeedButton.h"
-#import "DYYYManager.h"
-#import "DYYYUtils.h"
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 #import <signal.h>
+
+#import "DYYYFloatSpeedButton.h"
+#import "DYYYManager.h"
+#import "DYYYUtils.h"
 
 void updateClearButtonVisibility(void);
 void showClearButton(void);
@@ -90,7 +91,9 @@ void updateClearButtonVisibility() {
     });
 }
 
-void showClearButton(void) { isForceHidden = NO; }
+void showClearButton(void) {
+    isForceHidden = NO;
+}
 
 void hideClearButton(void) {
     isForceHidden = YES;
@@ -116,7 +119,7 @@ static void forceResetAllUIElements(void) {
             if ([view isKindOfClass:StackViewClass]) {
                 view.alpha = DYGetGlobalAlpha();
             } else {
-                view.alpha = 1.0; // 恢复透明度
+                view.alpha = 1.0;  // 恢复透明度
             }
         }
     }
@@ -159,8 +162,8 @@ static void initTargetClassNames(void) {
         self.hiddenViewsList = [NSMutableArray array];
 
         // 设置默认状态为半透明
-        self.originalAlpha = 1.0; // 交互时为完全不透明
-        self.alpha = 0.5;         // 初始为半透明
+        self.originalAlpha = 1.0;  // 交互时为完全不透明
+        self.alpha = 0.5;          // 初始为半透明
         // 加载保存的锁定状态
         [self loadLockState];
         [self loadIcons];
@@ -198,14 +201,14 @@ static void initTargetClassNames(void) {
                                                        block:^(NSTimer *timer) {
                                                          [UIView animateWithDuration:0.3
                                                                           animations:^{
-                                                                            self.alpha = 0.5; // 变为半透明
+                                                                            self.alpha = 0.5;  // 变为半透明
                                                                           }];
                                                        }];
     // 交互时变为完全不透明
     if (self.alpha != self.originalAlpha) {
         [UIView animateWithDuration:0.2
                          animations:^{
-                           self.alpha = self.originalAlpha; // 变为完全不透明
+                           self.alpha = self.originalAlpha;  // 变为完全不透明
                          }];
     }
 }
@@ -260,7 +263,7 @@ static void initTargetClassNames(void) {
 
         // 设置动画持续时间为所有帧延迟时间的总和
         animatedImageView.animationDuration = totalDuration;
-        animatedImageView.animationRepeatCount = 0; // 无限循环
+        animatedImageView.animationRepeatCount = 0;  // 无限循环
         [self addSubview:animatedImageView];
 
         // 调整约束或布局（如果需要）
@@ -278,13 +281,13 @@ static void initTargetClassNames(void) {
     }
 }
 - (void)handleTouchDown {
-    [self resetFadeTimer]; // 这会使按钮变为完全不透明
+    [self resetFadeTimer];  // 这会使按钮变为完全不透明
 }
 - (void)handleTouchUpInside {
-    [self resetFadeTimer]; // 这会使按钮变为完全不透明
+    [self resetFadeTimer];  // 这会使按钮变为完全不透明
 }
 - (void)handleTouchUpOutside {
-    [self resetFadeTimer]; // 这会使按钮变为完全不透明
+    [self resetFadeTimer];  // 这会使按钮变为完全不透明
 }
 - (UIViewController *)findViewController:(UIView *)view {
     __weak UIResponder *responder = view;
@@ -367,7 +370,7 @@ static void initTargetClassNames(void) {
 }
 - (void)handleLongPress:(UILongPressGestureRecognizer *)gesture {
     if (gesture.state == UIGestureRecognizerStateBegan) {
-        [self resetFadeTimer]; // 这会使按钮变为完全不透明
+        [self resetFadeTimer];  // 这会使按钮变为完全不透明
         self.isLocked = !self.isLocked;
         // 保存锁定状态
         [self saveLockState];
@@ -457,8 +460,7 @@ static void initTargetClassNames(void) {
 }
 @end
 // Hook 部分
-%hook UIView
-- (id)initWithFrame:(CGRect)frame {
+%hook UIView - (id)initWithFrame : (CGRect)frame {
     UIView *view = %orig;
     if (hideButton && hideButton.isElementsHidden) {
         for (NSString *className in targetClassNames) {
@@ -515,9 +517,7 @@ static void initTargetClassNames(void) {
         }
     }
 }
-%end
-%hook AWEFeedTableViewCell
-- (void)prepareForReuse {
+%end %hook AWEFeedTableViewCell - (void)prepareForReuse {
     if (hideButton && hideButton.isElementsHidden) {
         [hideButton hideUIElements];
     }
@@ -529,9 +529,7 @@ static void initTargetClassNames(void) {
         [hideButton hideUIElements];
     }
 }
-%end
-%hook AWEFeedViewCell
-- (void)layoutSubviews {
+%end %hook AWEFeedViewCell - (void)layoutSubviews {
     if (hideButton && hideButton.isElementsHidden) {
         [hideButton hideUIElements];
     }
@@ -543,9 +541,7 @@ static void initTargetClassNames(void) {
     }
     %orig;
 }
-%end
-%hook UIViewController
-- (void)viewWillAppear:(BOOL)animated {
+%end %hook UIViewController - (void)viewWillAppear : (BOOL)animated {
     %orig;
     isAppInTransition = YES;
     if (hideButton && hideButton.isElementsHidden) {
@@ -563,7 +559,6 @@ static void initTargetClassNames(void) {
     });
 }
 %end
-
 %hook AWEElementStackView
 - (void)setAlpha:(CGFloat)alpha {
     %orig;
@@ -576,26 +571,9 @@ static void initTargetClassNames(void) {
     }
 }
 %end
-
-%hook AWECommentContainerViewController
-
-- (void)viewDidAppear:(BOOL)animated {
-    %orig;
-    isCommentViewVisible = YES;
-    updateClearButtonVisibility();
-}
-
-- (void)viewDidDisappear:(BOOL)animated {
-    %orig;
-    isCommentViewVisible = NO;
-    updateClearButtonVisibility();
-}
-
-%end
-
 %hook AFDPureModePageContainerViewController
 
-- (void)viewDidAppear:(BOOL)animated {
+    - (void)viewDidAppear:(BOOL)animated {
     %orig;
     isPureViewVisible = YES;
     updateClearButtonVisibility();
@@ -606,11 +584,9 @@ static void initTargetClassNames(void) {
     isPureViewVisible = NO;
     updateClearButtonVisibility();
 }
-
 %end
-
 %hook AWEPlayInteractionViewController
-- (void)loadView {
+    (void)loadView {
     %orig;
     if (hideButton) {
         hideButton.hidden = NO;
@@ -639,9 +615,8 @@ static void initTargetClassNames(void) {
     isInteractionViewVisible = NO;
 }
 %end
-
 %hook AWEFeedContainerViewController
-- (void)aweme:(id)arg1 currentIndexWillChange:(NSInteger)arg2 {
+    (void)aweme : (id)arg1 currentIndexWillChange : (NSInteger)arg2 {
     if (hideButton && hideButton.isElementsHidden) {
         [hideButton hideUIElements];
     }
@@ -660,9 +635,8 @@ static void initTargetClassNames(void) {
     }
 }
 %end
-
 %hook AppDelegate
-- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    (BOOL)application : (UIApplication *)application didFinishLaunchingWithOptions : (NSDictionary *)launchOptions {
     BOOL result = %orig;
     initTargetClassNames();
 
@@ -719,6 +693,6 @@ static void initTargetClassNames(void) {
 }
 %end
 
-%ctor {
+    % ctor {
     signal(SIGSEGV, SIG_IGN);
 }

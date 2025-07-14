@@ -407,7 +407,7 @@ void updateSpeedButtonVisibility() {
 }
 @end
 
-% hook AWEElementStackView
+%hook AWEElementStackView
 
     - (void)setAlpha : (CGFloat)alpha {
     % orig;
@@ -422,7 +422,7 @@ void updateSpeedButtonVisibility() {
     }
 }
 
-% end
+%end
 
     @interface AWEAwemePlayVideoViewController(SpeedControl)
 - (void)adjustPlaybackSpeed:(float)speed;
@@ -432,9 +432,9 @@ void updateSpeedButtonVisibility() {
 - (void)adjustPlaybackSpeed:(float)speed;
 @end
 
-% hook AWEAwemePlayVideoViewController
+%hook AWEAwemePlayVideoViewController
 
-    - (void)setIsAutoPlay : (BOOL)arg0 {
+    - (void)setIsAutoPlay:(BOOL)arg0 {
     % orig(arg0);
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYUserAgreementAccepted"]) {
@@ -470,15 +470,15 @@ void updateSpeedButtonVisibility() {
     });
 }
 
-% new - (void)adjustPlaybackSpeed : (float)speed {
+%new - (void)adjustPlaybackSpeed:(float)speed {
     [self setVideoControllerPlaybackRate:speed];
 }
 
-% end
+%end
 
-        % hook AWEDPlayerFeedPlayerViewController
+        %hook AWEDPlayerFeedPlayerViewController
 
-    - (void)setIsAutoPlay : (BOOL)arg0 {
+    - (void)setIsAutoPlay:(BOOL)arg0 {
     % orig(arg0);
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       if ([[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYUserAgreementAccepted"]) {
@@ -515,29 +515,13 @@ void updateSpeedButtonVisibility() {
     });
 }
 
-% new - (void)adjustPlaybackSpeed : (float)speed {
+%new - (void)adjustPlaybackSpeed:(float)speed {
     [self setVideoControllerPlaybackRate:speed];
 }
 
-% end
+%end
 
-        % hook AWECommentContainerViewController
-
-    - (void)viewDidAppear : (BOOL)animated {
-    % orig;
-    isCommentViewVisible = YES;
-    updateSpeedButtonVisibility();
-}
-
-- (void)viewDidDisappear:(BOOL)animated {
-    % orig;
-    isCommentViewVisible = NO;
-    updateSpeedButtonVisibility();
-}
-
-% end
-
-        % hook UIWindow
+        %hook UIWindow
 
     - (void)makeKeyAndVisible {
     % orig;
@@ -553,7 +537,7 @@ void updateSpeedButtonVisibility() {
         });
     }
 }
-% end
+%end
 
     % ctor {
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];

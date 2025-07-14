@@ -30,3 +30,4 @@ extern CGFloat speedButtonSize;
 extern FloatingSpeedButton *speedButton;
 extern void updateSpeedButtonVisibility(void);
 extern void updateSpeedButtonUI(void);
+extern void updateClearButtonVisibility(void);

@@ -4986,6 +4986,20 @@ static CGFloat customTabBarHeight() {
     }
 }
 
+- (void)viewDidAppear:(BOOL)animated {
+    %orig;
+    isCommentViewVisible = YES;
+    updateSpeedButtonVisibility();
+    updateClearButtonVisibility();
+}
+
+- (void)viewDidDisappear:(BOOL)animated {
+    %orig;
+    isCommentViewVisible = NO;
+    updateSpeedButtonVisibility();
+    updateClearButtonVisibility();
+}
+
 %end
 %hook UIView -
     (void)layoutSubviews {
