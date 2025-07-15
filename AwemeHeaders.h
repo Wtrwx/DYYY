@@ -1060,6 +1060,8 @@ static CGFloat gStartVal = 0.0;
 @end
 @interface PlatformCanvasView : UIView
 @end
+@interface UILynxView : UIView
+@end
 @interface IESLiveDanmakuVariousView : UIView
 @end
 @interface IESLiveLotteryAnimationViewNew : UIView

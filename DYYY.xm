@@ -4150,7 +4150,7 @@ static AWEIMReusableCommonCell *currentCell;
 
     NSString *label = self.accessibilityLabel;
     if (hideClear && [label isEqualToString:@"退出清屏"] && self.superview) {
-        self.superview.hidden = YES;
+        [self.superview removeFromSuperview];
         return;
     } else if (hideMirror && [label isEqualToString:@"投屏"] && self.superview) {
         self.superview.hidden = YES;
@@ -4259,11 +4259,11 @@ static AWEIMReusableCommonCell *currentCell;
 // 隐藏直播间文字贴纸
 %hook IESLiveStickerView
 - (void)layoutSubviews {
+    %orig;
     if (DYYYGetBool(@"DYYYHideStickerView")) {
-        self.hidden = YES;
+        [self removeFromSuperview];
         return;
     }
-    %orig;
 }
 %end
 
@@ -4306,6 +4306,24 @@ static AWEIMReusableCommonCell *currentCell;
         }
     }
     return;
+}
+%end
+
+// 隐藏加入连线
+%hook UILynxView
+- (void)layoutSubviews {
+    %orig;
+    if (DYYYGetBool(@"DYYYHideVoiceChat")) {
+        if([self.accessibilityLabel isEqualToString:@"加入连线"]) {
+            UIView *grandparentView = self.superview.superview;
+            if (grandparentView) {
+                grandparentView.hidden = YES;
+            }
+        }
+        if ([self.accessibilityLabel containsString:@"2号麦位"]) {
+            self.hidden = YES;
+        }
+    }
 }
 %end
 
