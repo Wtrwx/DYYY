@@ -14,6 +14,9 @@ static BOOL isFloatSpeedButtonEnabled = NO;
 static BOOL isForceHidden = NO;
 static BOOL isInteractionViewVisible = NO;
 
+// Forward declaration
+void updateSpeedButtonVisibility(void);
+
 NSArray *getSpeedOptions() {
     NSString *speedConfig = [[NSUserDefaults standardUserDefaults] stringForKey:@"DYYYSpeedSettings"] ?: @"1.0,1.25,1.5,2.0";
     return [speedConfig componentsSeparatedByString:@","];
@@ -97,7 +100,10 @@ NSArray *findViewControllersInHierarchy(UIViewController *rootViewController) {
     return viewControllers;
 }
 
-void showSpeedButton(void) { isForceHidden = NO; }
+void showSpeedButton(void) {
+    isForceHidden = NO;
+    updateSpeedButtonVisibility();
+}
 
 void hideSpeedButton(void) {
     isForceHidden = YES;
