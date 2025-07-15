@@ -389,6 +389,11 @@ static void initTargetClassNames(void) {
     // 新增隐藏 AWEPlayInteractionProgressContainerView 视图
     [self hideAWEPlayInteractionProgressContainerView];
     self.isElementsHidden = YES;
+    // Ensure the button itself remains visible
+    self.hidden = NO;
+    if (self.superview) {
+        [self.superview bringSubviewToFront:self];
+    }
 }
 
 - (void)hideAWEPlayInteractionProgressContainerView {
@@ -427,6 +432,8 @@ static void initTargetClassNames(void) {
             findViewsOfClassHelper(window, viewClass, views);
             for (UIView *view in views) {
                 if ([view isKindOfClass:[UIView class]]) {
+                    if (view == self)
+                        continue;
                     if ([view isKindOfClass:NSClassFromString(@"AWELeftSideBarEntranceView")]) {
                         UIViewController *controller = [self findViewController:view];
                         if (![controller isKindOfClass:NSClassFromString(@"AWEFeedContainerViewController")]) {
@@ -445,6 +452,10 @@ static void initTargetClassNames(void) {
     self.isElementsHidden = NO;
     [self.hiddenViewsList removeAllObjects];
     self.selected = NO;
+
+    if (self.superview) {
+        [self.superview bringSubviewToFront:self];
+    }
 
     // 恢复倍速按钮的显示
     BOOL hideSpeed = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideSpeed"];
