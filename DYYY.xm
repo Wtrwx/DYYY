@@ -5635,9 +5635,12 @@ static CGFloat currentScale = 1.0;
 
 static char kDyCachedLabelsKey;
 static char kDyOriginalFontKey;
-static char kDyLastAppliedScaleKey;
+static char kDyCachedCancelMuteViewKey;
+
 static char kDyLastAppliedShiftKey;
 static char kDyLastAppliedTabHeightKey; 
+static char kDyLastAppliedLabelScaleKey;
+static char kDyLastAppliedElementScaleKey;
 
 static NSArray<Class> *kTargetViewClasses = @[
     NSClassFromString(@"AWEElementStackView"),
@@ -5645,6 +5648,28 @@ static NSArray<Class> *kTargetViewClasses = @[
 
 - (void)viewDidLayoutSubviews {
     %orig;
+
+    const CGFloat scale1 = DYYYGetFloat(@"DYYYLabelsScale");
+	const CGFloat labelScale = (scale1 != 0.0) ? MAX(0.01, scale1) : 1.0;
+    const CGFloat scale2 = DYYYGetFloat(@"DYYYElementScale");
+    const CGFloat elementScale = (scale2 != 0.0) ? MAX(0.01, scale2) : 1.0;
+    BOOL shouldShiftUp = DYYYGetBool(@"DYYYEnableFullScreen");
+    const CGFloat targetHeight = tabHeight;
+
+    CGFloat lastAppliedLabelScale = [objc_getAssociatedObject(self, &kDyLastAppliedLabelScaleKey) floatValue] ?: 1.0;
+    CGFloat lastAppliedElementScale = [objc_getAssociatedObject(self, &kDyLastAppliedElementScaleKey) floatValue] ?: 1.0;
+    BOOL lastAppliedShift = [objc_getAssociatedObject(self, &kDyLastAppliedShiftKey) boolValue];
+    CGFloat lastAppliedTabHeight = [objc_getAssociatedObject(self, &kDyLastAppliedTabHeightKey) floatValue];
+
+    if (fabs(labelScale - lastAppliedLabelScale) < 0.01 &&
+        fabs(elementScale - lastAppliedElementScale) < 0.01 &&
+        fabs(targetHeight - lastAppliedTabHeight) < 0.1 &&
+        shouldShiftUp == lastAppliedShift) {
+        return;
+    }
+
+    const BOOL shouldScaleText = fabs(labelScale - 1.0) >= 0.01;
+    const BOOL shouldScaleElement = fabs(elementScale - 1.0) >= 0.01;
 
     NSMutableArray<UIView *> *targetViews = [NSMutableArray array];
     for (Class targetClass in kTargetViewClasses) {
@@ -5663,23 +5688,6 @@ static NSArray<Class> *kTargetViewClasses = @[
         }
     }
 
-    CGFloat vcScaleValue = DYYYGetFloat(@"DYYYLabelsScale");
-	CGFloat targetScale = (vcScaleValue != 0.0) ? MAX(0.01, vcScaleValue) : 1.0;
-    BOOL shouldShiftUp = DYYYGetBool(@"DYYYEnableFullScreen");
-    CGFloat targetHeight = tabHeight;
-
-    CGFloat lastAppliedScale = [objc_getAssociatedObject(self, &kDyLastAppliedScaleKey) floatValue] ?: 1.0;
-    CGFloat lastAppliedTabHeight = [objc_getAssociatedObject(self, &kDyLastAppliedTabHeightKey) floatValue];
-    BOOL lastAppliedShift = [objc_getAssociatedObject(self, &kDyLastAppliedShiftKey) boolValue];
-
-    if (fabs(targetScale - lastAppliedScale) < 0.01 &&
-        fabs(targetHeight - lastAppliedTabHeight) < 0.1 &&
-        shouldShiftUp == lastAppliedShift) {
-        return;
-    }
-
-    BOOL shouldScaleText = fabs(targetScale - 1.0) >= 0.01;
-
     for (UIView *targetView in targetViews) {
         NSArray<UILabel *> *labels = objc_getAssociatedObject(targetView, &kDyCachedLabelsKey);
         if (!labels) {
@@ -5694,25 +5702,39 @@ static NSArray<Class> *kTargetViewClasses = @[
                 objc_setAssociatedObject(label, &kDyOriginalFontKey, originalFont, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
             }
             
-            if (shouldScaleText) {
-                CGFloat newSize = originalFont.pointSize * targetScale;
-                label.font = [originalFont fontWithSize:newSize];
-            } else {
-                if (label.font != originalFont) {
-                    label.font = originalFont;
-                }
+            UIFont *targetFont = shouldScaleText ? [originalFont fontWithSize:originalFont.pointSize * labelScale] : originalFont;
+            if (label.font != targetFont) {
+                label.font = targetFont;
             }
         }
-
-        CGAffineTransform finalTransform = CGAffineTransformIdentity;
-        if (shouldShiftUp) {
-            finalTransform = CGAffineTransformTranslate(finalTransform, 0, -targetHeight);
+        for (UIView *targetView in targetViews) {
+            targetView.transform = shouldShiftUp ? CGAffineTransformMakeTranslation(0, -targetHeight) : CGAffineTransformIdentity;
         }
-
-        targetView.transform = finalTransform;
     }
 
-    objc_setAssociatedObject(self, &kDyLastAppliedScaleKey, @(targetScale), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    UIView *cancelMuteView = objc_getAssociatedObject(self.view, &kDyCachedCancelMuteViewKey);
+    if (!cancelMuteView) {
+        Class cancelMuteViewClass = NSClassFromString(@"AFDCancelMuteAwemeView");
+        if (cancelMuteViewClass) {
+            cancelMuteView = [DYYYUtils findSubviewOfClass:cancelMuteViewClass inView:self.view];
+            if (cancelMuteView) {
+                objc_setAssociatedObject(self.view, &kDyCachedCancelMuteViewKey, cancelMuteView, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            }
+        }
+    }
+
+    if (cancelMuteView) {
+        if (shouldScaleElement) {
+            const CGFloat tx = CGRectGetWidth(cancelMuteView.bounds) * (elementScale - 1.0) * 0.5;
+            CGAffineTransform scaleTransform = CGAffineTransformMakeScale(elementScale, elementScale);
+            cancelMuteView.transform = CGAffineTransformTranslate(scaleTransform, tx / elementScale, 0);
+        } else {
+            cancelMuteView.transform = CGAffineTransformIdentity;
+        }
+    }
+
+    objc_setAssociatedObject(self, &kDyLastAppliedLabelScaleKey, @(labelScale), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(self, &kDyLastAppliedElementScaleKey, @(elementScale), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     objc_setAssociatedObject(self, &kDyLastAppliedShiftKey, @(shouldShiftUp), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     objc_setAssociatedObject(self, &kDyLastAppliedTabHeightKey, @(targetHeight), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
