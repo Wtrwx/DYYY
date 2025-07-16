@@ -1378,7 +1378,7 @@ static CGFloat rightLabelRightMargin = -1;
         }
     }
     // 应用IP属地标签上移
-    NSString *ipScaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYNicknameScale"];
+    NSString *ipScaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYLabelsScale"];
     if (ipScaleValue.length > 0) {
         UIFont *originalFont = label.font;
         CGRect originalFrame = label.frame;
@@ -5578,7 +5578,7 @@ static CGFloat currentScale = 1.0;
         }
         // 左侧元素的处理逻辑
         else if ([self.accessibilityLabel isEqualToString:@"left"] || [DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEFeedAnchorContainerView") inView:self]) {
-            NSString *scaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYNicknameScale"];
+            NSString *scaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYLabelsScale"];
             if (scaleValue.length > 0) {
                 CGFloat scale = [scaleValue floatValue];
                 self.transform = CGAffineTransformIdentity;
@@ -5605,7 +5605,7 @@ static CGFloat currentScale = 1.0;
     if ([viewController isKindOfClass:%c(AWEPlayInteractionViewController)]) {
 
         if ([self.accessibilityLabel isEqualToString:@"left"] || [DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEFeedAnchorContainerView") inView:self]) {
-            NSString *scaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYNicknameScale"];
+            NSString *scaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYLabelsScale"];
             if (scaleValue.length > 0) {
                 CGFloat scale = [scaleValue floatValue];
                 self.transform = CGAffineTransformIdentity;
@@ -5632,12 +5632,17 @@ static CGFloat currentScale = 1.0;
 %end
 
 %hook AWELiveNewPreStreamViewController
+
+static char kDyCachedLabelsKey;
+static char kDyOriginalFontKey;
 static char kDyLastAppliedScaleKey;
 static char kDyLastAppliedShiftKey;
 static char kDyLastAppliedTabHeightKey; 
+
 static NSArray<Class> *kTargetViewClasses = @[
     NSClassFromString(@"AWEElementStackView"),
     NSClassFromString(@"IESLiveStackView")];
+
 - (void)viewDidLayoutSubviews {
     %orig;
 
@@ -5658,15 +5663,14 @@ static NSArray<Class> *kTargetViewClasses = @[
         }
     }
 
-    BOOL shouldShiftUp = DYYYGetBool(@"DYYYEnableFullScreen");
-    BOOL lastAppliedShift = [objc_getAssociatedObject(self, &kDyLastAppliedShiftKey) boolValue];
-
-    CGFloat vcScaleValue = DYYYGetFloat(@"DYYYNicknameScale");
+    CGFloat vcScaleValue = DYYYGetFloat(@"DYYYLabelsScale");
 	CGFloat targetScale = (vcScaleValue != 0.0) ? MAX(0.01, vcScaleValue) : 1.0;
-    CGFloat lastAppliedScale = [objc_getAssociatedObject(self, &kDyLastAppliedScaleKey) floatValue] ?: 1.0;
-
+    BOOL shouldShiftUp = DYYYGetBool(@"DYYYEnableFullScreen");
     CGFloat targetHeight = tabHeight;
+
+    CGFloat lastAppliedScale = [objc_getAssociatedObject(self, &kDyLastAppliedScaleKey) floatValue] ?: 1.0;
     CGFloat lastAppliedTabHeight = [objc_getAssociatedObject(self, &kDyLastAppliedTabHeightKey) floatValue];
+    BOOL lastAppliedShift = [objc_getAssociatedObject(self, &kDyLastAppliedShiftKey) boolValue];
 
     if (fabs(targetScale - lastAppliedScale) < 0.01 &&
         fabs(targetHeight - lastAppliedTabHeight) < 0.1 &&
@@ -5674,25 +5678,35 @@ static NSArray<Class> *kTargetViewClasses = @[
         return;
     }
 
-    const CGFloat scaleDelta = targetScale - 1.0;
-    const BOOL shouldScale = fabs(scaleDelta) >= 0.01;
+    BOOL shouldScaleText = fabs(targetScale - 1.0) >= 0.01;
 
     for (UIView *targetView in targetViews) {
-        CGAffineTransform finalTransform = CGAffineTransformIdentity;
-
-        if (shouldScale) {
-            CGFloat tx = CGRectGetWidth(targetView.bounds) * scaleDelta * 0.5;
-            CGFloat ty = 0;
-            for (UIView *subview in targetView.subviews) {
-                ty += -CGRectGetHeight(subview.bounds) * scaleDelta * 0.5;
-            }
-            CGAffineTransform scaleTransform = CGAffineTransformMakeScale(targetScale, targetScale);
-            finalTransform = CGAffineTransformTranslate(scaleTransform, tx / targetScale, ty / targetScale);
+        NSArray<UILabel *> *labels = objc_getAssociatedObject(targetView, &kDyCachedLabelsKey);
+        if (!labels) {
+            labels = [DYYYUtils findAllSubviewsOfClass:[UILabel class] inView:targetView];
+            objc_setAssociatedObject(targetView, &kDyCachedLabelsKey, labels, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         }
 
+        for (UILabel *label in labels) {
+            UIFont *originalFont = objc_getAssociatedObject(label, &kDyOriginalFontKey);
+            if (!originalFont) {
+                originalFont = label.font;
+                objc_setAssociatedObject(label, &kDyOriginalFontKey, originalFont, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            }
+            
+            if (shouldScaleText) {
+                CGFloat newSize = originalFont.pointSize * targetScale;
+                label.font = [originalFont fontWithSize:newSize];
+            } else {
+                if (label.font != originalFont) {
+                    label.font = originalFont;
+                }
+            }
+        }
+
+        CGAffineTransform finalTransform = CGAffineTransformIdentity;
         if (shouldShiftUp) {
-            const CGFloat divisor = CGAffineTransformIsIdentity(finalTransform) ? 1.0 : targetScale;
-            finalTransform = CGAffineTransformTranslate(finalTransform, 0, -targetHeight / divisor);
+            finalTransform = CGAffineTransformTranslate(finalTransform, 0, -targetHeight);
         }
 
         targetView.transform = finalTransform;
@@ -5702,6 +5716,7 @@ static NSArray<Class> *kTargetViewClasses = @[
     objc_setAssociatedObject(self, &kDyLastAppliedShiftKey, @(shouldShiftUp), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     objc_setAssociatedObject(self, &kDyLastAppliedTabHeightKey, @(targetHeight), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
+
 %end
 
 %hook AWEStoryContainerCollectionView
