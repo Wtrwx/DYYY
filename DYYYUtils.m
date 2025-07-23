@@ -12,12 +12,23 @@
 #pragma mark - Public UI Utilities (公共 UI/窗口/控制器 工具)
 
 + (UIWindow *)getActiveWindow {
-    if (@available(iOS 15.0, *)) {
+    if (@available(iOS 13.0, *)) {
+        UIWindowScene *activeScene = nil;
         for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
-            if ([scene isKindOfClass:[UIWindowScene class]] && scene.activationState == UISceneActivationStateForegroundActive) {
-                for (UIWindow *w in ((UIWindowScene *)scene).windows) {
-                    if (w.isKeyWindow)
-                        return w;
+            if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
+                activeScene = (UIWindowScene *)scene;
+                break;
+            }
+        }
+
+        if (activeScene) {
+            if (@available(iOS 15.0, *)) {
+                return activeScene.keyWindow;
+            } else {
+                for (UIWindow *window in [UIApplication sharedApplication].windows) {
+                    if (window.windowScene == activeScene && window.isKeyWindow) {
+                        return window;
+                    }
                 }
             }
         }
@@ -25,7 +36,7 @@
     } else {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        return [UIApplication sharedApplication].windows.firstObject;
+        return [UIApplication sharedApplication].keyWindow ?: [UIApplication sharedApplication].windows.firstObject;
 #pragma clang diagnostic pop
     }
 }
