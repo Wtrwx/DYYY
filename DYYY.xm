@@ -6229,7 +6229,6 @@ TagViewClass = NSClassFromString(@"AWELiveFeedLabelTagView");
 
     if ([viewController isKindOfClass:%c(AWELiveNewPreStreamViewController)]) {
         const BOOL shouldShiftUp = DYYYGetBool(@"DYYYEnableFullScreen");
-        const CGFloat targetHeight = tabHeight;
         const CGFloat labelScaleValue = DYYYGetFloat(@"DYYYNicknameScale");
         const CGFloat targetLabelScale = (labelScaleValue != 0.0) ? MAX(0.01, labelScaleValue) : 1.0;
         const CGFloat elementScaleValue = DYYYGetFloat(@"DYYYElementScale");
@@ -6238,8 +6237,13 @@ TagViewClass = NSClassFromString(@"AWELiveFeedLabelTagView");
         CGAffineTransform targetTransform = CGAffineTransformIdentity;
         CGFloat boundsWidth = self.bounds.size.width;
         CGFloat currentScale = 1.0;
-        CGFloat tx = 0;
-        CGFloat ty = 0;
+        CGFloat targetHeight, tx, ty = 0;
+        UIWindow *keyWindow = [UIApplication sharedApplication].keyWindow;
+        if (keyWindow && keyWindow.safeAreaInsets.bottom == 0) {
+            targetHeight = tabHeight - originalTabHeight;
+        } else {
+            targetHeight = tabHeight;
+        }
 
         if ([DYYYUtils containsSubviewOfClass:GuideViewClass inView:self]) {
             currentScale = targetLabelScale;
@@ -6356,19 +6360,6 @@ MuteViewClass = NSClassFromString(@"AFDCancelMuteAwemeView");
 TagViewClass = NSClassFromString(@"AWELiveFeedLabelTagView");
 }
 
-- (void)setAlpha:(CGFloat)alpha {
-    %orig;
-    if (speedButton && isFloatSpeedButtonEnabled) {
-        if (alpha == 0) {
-            dyyyCommentViewVisible = YES;
-        } else if (alpha == 1) {
-            dyyyCommentViewVisible = NO;
-        }
-        updateSpeedButtonVisibility();
-        updateClearButtonVisibility();
-    }
-}
-
 - (void)layoutSubviews {
     %orig;
 
@@ -6376,7 +6367,6 @@ TagViewClass = NSClassFromString(@"AWELiveFeedLabelTagView");
 
     if ([viewController isKindOfClass:%c(AWELiveNewPreStreamViewController)]) {
         const BOOL shouldShiftUp = DYYYGetBool(@"DYYYEnableFullScreen");
-        const CGFloat targetHeight = tabHeight;
         const CGFloat labelScaleValue = DYYYGetFloat(@"DYYYNicknameScale");
         const CGFloat targetLabelScale = (labelScaleValue != 0.0) ? MAX(0.01, labelScaleValue) : 1.0;
         const CGFloat elementScaleValue = DYYYGetFloat(@"DYYYElementScale");
@@ -6385,8 +6375,13 @@ TagViewClass = NSClassFromString(@"AWELiveFeedLabelTagView");
         CGAffineTransform targetTransform = CGAffineTransformIdentity;
         CGFloat boundsWidth = self.bounds.size.width;
         CGFloat currentScale = 1.0;
-        CGFloat tx = 0;
-        CGFloat ty = 0;
+        CGFloat targetHeight, tx, ty = 0;
+        UIWindow *keyWindow = [UIApplication sharedApplication].keyWindow;
+        if (keyWindow && keyWindow.safeAreaInsets.bottom == 0) {
+            targetHeight = tabHeight - originalTabHeight;
+        } else {
+            targetHeight = tabHeight;
+        }
 
         if ([DYYYUtils containsSubviewOfClass:GuideViewClass inView:self]) {
             currentScale = targetLabelScale;
