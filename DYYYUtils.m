@@ -93,14 +93,20 @@
     return nil;
 }
 
-+ (NSArray<__kindof UIView *> *)findAllSubviewsOfClass:(Class)targetClass inView:(UIView *)view {
-    if (!targetClass || !view) {
++ (NSArray<__kindof UIView *> *)findAllSubviewsOfClass:(Class)targetClass inContainer:(id)container {
+    if (!targetClass || !container) {
         return @[];
     }
 
-    NSMutableArray *resultViews = [NSMutableArray array];
+    UIView *startView = nil;
+    if ([container isKindOfClass:[UIView class]]) {
+        startView = (UIView *)container;
+    } else if ([container isKindOfClass:[UIViewController class]]) {
+        startView = ((UIViewController *)container).view;
+    }
 
-    [self _traverseViewHierarchy:view forClass:targetClass usingBlock:^BOOL(UIView *foundView) {
+    NSMutableArray *resultViews = [NSMutableArray array];
+    [self _traverseViewHierarchy:startView forClass:targetClass usingBlock:^BOOL(UIView *foundView) {
         [resultViews addObject:foundView];
         return NO;
     }];
@@ -108,18 +114,29 @@
     return [resultViews copy];
 }
 
-+ (__kindof UIView *)findSubviewOfClass:(Class)targetClass inView:(UIView *)view {
-    if (!targetClass || !view) {
++ (__kindof UIView *)findSubviewOfClass:(Class)targetClass inContainer:(id)container {
+    if (!targetClass || !container) {
         return nil;
     }
 
+    UIView *startView = nil;
+    if ([container isKindOfClass:[UIView class]]) {
+        startView = (UIView *)container;
+    } else if ([container isKindOfClass:[UIViewController class]]) {
+        startView = ((UIViewController *)container).view;
+    }
+
     __block UIView *resultView = nil;
-    [self _traverseViewHierarchy:view forClass:targetClass usingBlock:^BOOL(UIView *foundView) {
+    [self _traverseViewHierarchy:startView forClass:targetClass usingBlock:^BOOL(UIView *foundView) {
         resultView = foundView;
         return YES;
     }];
 
     return resultView;
+}
+
++ (BOOL)containsSubviewOfClass:(Class)targetClass inContainer:(id)container {
+    return [self findSubviewOfClass:targetClass inContainer:container] != nil;
 }
 
 + (__kindof UIView *)nearestCommonSuperviewOfViews:(NSArray<UIView *> *)views {
@@ -129,13 +146,10 @@
     UIView *commonSuperview = views.firstObject;
     for (UIView *view in views) {
         commonSuperview = [self _nearestCommonSuperviewOfView:commonSuperview andView:view];
+        if (!commonSuperview) break;
     }
     
     return commonSuperview;
-}
-
-+ (BOOL)containsSubviewOfClass:(Class)targetClass inView:(UIView *)view {
-    return [self findSubviewOfClass:targetClass inView:view] != nil;
 }
 
 + (void)applyBlurEffectToView:(UIView *)view transparency:(float)userTransparency blurViewTag:(NSInteger)tag {
@@ -851,44 +865,6 @@ NSString *cleanShareURL(NSString *url) {
 
 UIViewController *topView(void) {
     return [DYYYUtils topView];
-}
-
-BOOL isRightInteractionStack(UIView *stackView) {
-    if (!stackView)
-        return NO;
-    NSString *label = stackView.accessibilityLabel;
-    if (label) {
-        if ([label isEqualToString:@"right"])
-            return YES;
-        if ([label isEqualToString:@"left"])
-            return NO;
-    }
-    for (UIView *sub in stackView.subviews) {
-        if ([DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEPlayInteractionUserAvatarView") inView:sub])
-            return YES;
-        if ([DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEFeedAnchorContainerView") inView:sub])
-            return NO;
-    }
-    return NO;
-}
-
-BOOL isLeftInteractionStack(UIView *stackView) {
-    if (!stackView)
-        return NO;
-    NSString *label = stackView.accessibilityLabel;
-    if (label) {
-        if ([label isEqualToString:@"left"])
-            return YES;
-        if ([label isEqualToString:@"right"])
-            return NO;
-    }
-    for (UIView *sub in stackView.subviews) {
-        if ([DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEFeedAnchorContainerView") inView:sub])
-            return YES;
-        if ([DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEPlayInteractionUserAvatarView") inView:sub])
-            return NO;
-    }
-    return NO;
 }
 
 UIViewController *findViewControllerOfClass(UIViewController *vc, Class targetClass) {

@@ -265,7 +265,7 @@
 
     // 保险起见再fallback,遍历 subviews
     if (!gFeedCV) {
-        gFeedCV = [DYYYUtils findSubviewOfClass:[UICollectionView class] inView:self.view];
+        gFeedCV = [DYYYUtils findSubviewOfClass:[UICollectionView class] inContainer:self.view];
     }
 }
 %end
@@ -5484,7 +5484,7 @@ static CGFloat originalTabHeight = 0;
         return;
 
     Class containerViewClass = NSClassFromString(@"AWECommentInputViewSwiftImpl.CommentInputContainerView");
-    NSArray<UIView *> *containerViews = [DYYYUtils findAllSubviewsOfClass:containerViewClass inView:self.view];
+    NSArray<UIView *> *containerViews = [DYYYUtils findAllSubviewsOfClass:containerViewClass inContainer:self.view];
     for (UIView *containerView in containerViews) {
         for (UIView *subview in containerView.subviews) {
             if (subview.hidden == NO && subview.backgroundColor && CGColorGetAlpha(subview.backgroundColor.CGColor) == 1) {
@@ -5498,7 +5498,7 @@ static CGFloat originalTabHeight = 0;
     }
 
     Class middleContainerClass = NSClassFromString(@"AWECommentInputViewSwiftImpl.CommentInputViewMiddleContainer");
-    NSArray<UIView *> *middleContainers = [DYYYUtils findAllSubviewsOfClass:middleContainerClass inView:self.view];
+    NSArray<UIView *> *middleContainers = [DYYYUtils findAllSubviewsOfClass:middleContainerClass inContainer:self.view];
     for (UIView *middleContainer in middleContainers) {
         BOOL containsDanmu = NO;
         for (UIView *innerSubviewCheck in middleContainer.subviews) {
@@ -5667,7 +5667,7 @@ static CGFloat originalTabHeight = 0;
         Class stackClass = NSClassFromString(@"AWEElementStackView");
         for (UIView *sub in self.view.subviews) {
             if ([sub isKindOfClass:stackClass] && ([sub.accessibilityLabel isEqualToString:@"right"] || [DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEPlayInteractionUserAvatarView")
-                                                                                                                                   inView:self.view])) {
+                                                                                                                              inContainer:self.view])) {
                 hasRightStack = YES;
                 break;
             }
@@ -5760,7 +5760,7 @@ static CGFloat originalTabHeight = 0;
     Class stackClass = NSClassFromString(@"AWEElementStackView");
     for (UIView *sub in self.view.subviews) {
         if ([sub isKindOfClass:stackClass] && ([sub.accessibilityLabel isEqualToString:@"right"] || [DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEPlayInteractionUserAvatarView")
-                                                                                                                               inView:self.view])) {
+                                                                                                                          inContainer:self.view])) {
             hasRightStack = YES;
             break;
         }
@@ -6164,7 +6164,7 @@ static Class TagViewClass = nil;
 
         UIViewController *PreStreamVC = (UIViewController *)self;
         for (Class targetClass in kTargetViewClasses) {
-            NSArray *foundViews = [DYYYUtils findAllSubviewsOfClass:targetClass inView:PreStreamVC.view];
+            NSArray *foundViews = [DYYYUtils findAllSubviewsOfClass:targetClass inContainer:PreStreamVC.view];
             for (UIView *view in foundViews) {
                 [cachedTargetViews addObject:view];
             }
@@ -6246,13 +6246,13 @@ TagViewClass = NSClassFromString(@"AWELiveFeedLabelTagView");
             targetHeight = tabHeight;
         }
 
-        if ([DYYYUtils containsSubviewOfClass:GuideViewClass inView:self]) {
+        if ([DYYYUtils containsSubviewOfClass:GuideViewClass inContainer:self]) {
             currentScale = targetLabelScale;
             tx = 0; // 中对齐
-        } else if ([DYYYUtils containsSubviewOfClass:MuteViewClass inView:self]) {
+        } else if ([DYYYUtils containsSubviewOfClass:MuteViewClass inContainer:self]) {
             currentScale = targetElementScale;
             tx = (boundsWidth - boundsWidth * currentScale) / 2; // 右对齐
-        } else if ([DYYYUtils containsSubviewOfClass:TagViewClass inView:self]) {
+        } else if ([DYYYUtils containsSubviewOfClass:TagViewClass inContainer:self]) {
             currentScale = targetLabelScale;
             tx = (boundsWidth - boundsWidth * currentScale) / -2; // 左对齐
         }
@@ -6276,7 +6276,7 @@ TagViewClass = NSClassFromString(@"AWELiveFeedLabelTagView");
 
     if ([viewController isKindOfClass:%c(AWEPlayInteractionViewController)]) {
         // 右侧元素的处理逻辑
-        if ([self.accessibilityLabel isEqualToString:@"right"] || [DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEPlayInteractionUserAvatarView") inView:self]) {
+        if ([self.accessibilityLabel isEqualToString:@"right"] || [DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEPlayInteractionUserAvatarView") inContainer:self]) {
             NSString *scaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYElementScale"];
             self.transform = CGAffineTransformIdentity;
             if (scaleValue.length > 0) {
@@ -6297,7 +6297,7 @@ TagViewClass = NSClassFromString(@"AWELiveFeedLabelTagView");
             }
         }
         // 左侧元素的处理逻辑
-        else if ([self.accessibilityLabel isEqualToString:@"left"] || [DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEFeedAnchorContainerView") inView:self]) {
+        else if ([self.accessibilityLabel isEqualToString:@"left"] || [DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEFeedAnchorContainerView") inContainer:self]) {
             NSString *scaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYNicknameScale"];
             if (scaleValue.length > 0) {
                 CGFloat scale = [scaleValue floatValue];
@@ -6325,7 +6325,7 @@ TagViewClass = NSClassFromString(@"AWELiveFeedLabelTagView");
     UIViewController *viewController = [DYYYUtils firstAvailableViewControllerFromView:self];
     if ([viewController isKindOfClass:%c(AWEPlayInteractionViewController)]) {
 
-        if ([self.accessibilityLabel isEqualToString:@"left"] || [DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEFeedAnchorContainerView") inView:self]) {
+        if ([self.accessibilityLabel isEqualToString:@"left"] || [DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEFeedAnchorContainerView") inContainer:self]) {
             NSString *scaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYNicknameScale"];
             if (scaleValue.length > 0) {
                 CGFloat scale = [scaleValue floatValue];
@@ -6384,13 +6384,13 @@ TagViewClass = NSClassFromString(@"AWELiveFeedLabelTagView");
             targetHeight = tabHeight;
         }
 
-        if ([DYYYUtils containsSubviewOfClass:GuideViewClass inView:self]) {
+        if ([DYYYUtils containsSubviewOfClass:GuideViewClass inContainer:self]) {
             currentScale = targetLabelScale;
             tx = 0; // 中对齐
-        } else if ([DYYYUtils containsSubviewOfClass:MuteViewClass inView:self]) {
+        } else if ([DYYYUtils containsSubviewOfClass:MuteViewClass inContainer:self]) {
             currentScale = targetElementScale;
             tx = (boundsWidth - boundsWidth * currentScale) / 2; // 右对齐
-        } else if ([DYYYUtils containsSubviewOfClass:TagViewClass inView:self]) {
+        } else if ([DYYYUtils containsSubviewOfClass:TagViewClass inContainer:self]) {
             currentScale = targetLabelScale;
             tx = (boundsWidth - boundsWidth * currentScale) / -2; // 左对齐
         }
