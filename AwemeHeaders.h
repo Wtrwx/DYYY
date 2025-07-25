@@ -274,7 +274,6 @@ static CGFloat gStartVal = 0.0;
 - (void)showSharePanel;
 - (void)showDislikeOnVideo;
 - (void)onVideoPlayerViewDoubleClicked:(id)arg1;
-- (UIViewController *)firstAvailableUIViewController;
 - (void)speedButtonTapped:(id)sender;
 - (void)buttonTouchDown:(id)sender;
 - (void)buttonTouchUp:(id)sender;

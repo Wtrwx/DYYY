@@ -792,57 +792,6 @@
 }
 %end
 
-// 重写全局透明方法
-%hook AWEPlayInteractionViewController
-- (void)loadView {
-    %orig;
-    if (hideButton) {
-        hideButton.hidden = NO;
-        hideButton.alpha = 0.5;
-    }
-}
-
-- (void)viewWillAppear:(BOOL)animated {
-    %orig;
-    isInPlayInteractionVC = YES;
-    dyyyInteractionViewVisible = YES;
-    if (hideButton) {
-        hideButton.hidden = NO;
-        hideButton.alpha = 0.5;
-    }
-}
-
-- (void)viewDidAppear:(BOOL)animated {
-    %orig;
-    dyyyInteractionViewVisible = YES;
-}
-
-- (void)viewWillDisappear:(BOOL)animated {
-    %orig;
-    isInPlayInteractionVC = NO;
-    dyyyInteractionViewVisible = NO;
-}
-
-- (UIView *)view {
-    NSString *transparentValue = DYYYGetString(@"DYYYGlobalTransparency");
-    NSScanner *scanner = [NSScanner scannerWithString:transparentValue];
-    float alphaValue;
-    if (![scanner scanFloat:&alphaValue] || !scanner.isAtEnd || alphaValue < 0 || alphaValue > 1) {
-        return %orig;
-    }
-
-    UIView *originalView = %orig;
-    for (UIView *subview in originalView.subviews) {
-        if (subview.alpha > 0 && fabs(subview.alpha - alphaValue) > 0.01 && subview.tag != DYYY_IGNORE_GLOBAL_ALPHA_TAG) {
-            subview.alpha = alphaValue;
-        }
-    }
-
-    return originalView;
-}
-
-%end
-
 %hook AWEAwemeDetailNaviBarContainerView
 
 - (void)layoutSubviews {
@@ -3747,26 +3696,6 @@ static AWEIMReusableCommonCell *currentCell;
 }
 %end
 
-%hook AWEPlayInteractionViewController
-
-- (void)onVideoPlayerViewDoubleClicked:(id)arg1 {
-    BOOL isSwitchOn = DYYYGetBool(@"DYYYDisableDoubleTapLike");
-    if (!isSwitchOn) {
-        %orig;
-    }
-}
-%end
-
-%hook AFDPureModePageTapController
-
-- (void)onVideoPlayerViewDoubleClicked:(id)arg1 {
-    BOOL isSwitchOn = DYYYGetBool(@"DYYYDisableDoubleTapLike");
-    if (!isSwitchOn) {
-        %orig;
-    }
-}
-%end
-
 // 隐藏右上搜索，但可点击
 %hook AWEHPDiscoverFeedEntranceView
 
@@ -5659,7 +5588,52 @@ static CGFloat originalTabHeight = 0;
 
 %end
 
+%hook AFDPureModePageTapController
+
+- (void)onVideoPlayerViewDoubleClicked:(id)arg1 {
+    BOOL isSwitchOn = DYYYGetBool(@"DYYYDisableDoubleTapLike");
+    if (!isSwitchOn) {
+        %orig;
+    }
+}
+
+%end
+
 %hook AWEPlayInteractionViewController
+
+- (void)onVideoPlayerViewDoubleClicked:(id)arg1 {
+    BOOL isSwitchOn = DYYYGetBool(@"DYYYDisableDoubleTapLike");
+    if (!isSwitchOn) {
+        %orig;
+    }
+}
+
+- (void)loadView {
+    %orig;
+    if (hideButton) {
+        hideButton.hidden = NO;
+        hideButton.alpha = 0.5;
+    }
+}
+
+- (UIView *)view {
+    NSString *transparentValue = DYYYGetString(@"DYYYGlobalTransparency");
+    NSScanner *scanner = [NSScanner scannerWithString:transparentValue];
+    float alphaValue;
+    if (![scanner scanFloat:&alphaValue] || !scanner.isAtEnd || alphaValue < 0 || alphaValue > 1) {
+        return %orig;
+    }
+
+    UIView *originalView = %orig;
+    for (UIView *subview in originalView.subviews) {
+        if (subview.alpha > 0 && fabs(subview.alpha - alphaValue) > 0.01 && subview.tag != DYYY_IGNORE_GLOBAL_ALPHA_TAG) {
+            subview.alpha = alphaValue;
+        }
+    }
+
+    return originalView;
+}
+
 - (void)viewDidLayoutSubviews {
     %orig;
     if (isFloatSpeedButtonEnabled) {
@@ -5754,6 +5728,27 @@ static CGFloat originalTabHeight = 0;
     }
 }
 
+- (void)viewWillAppear:(BOOL)animated {
+    %orig;
+    isInPlayInteractionVC = YES;
+    dyyyInteractionViewVisible = YES;
+    if (hideButton) {
+        hideButton.hidden = NO;
+        hideButton.alpha = 0.5;
+    }
+}
+
+- (void)viewDidAppear:(BOOL)animated {
+    %orig;
+    dyyyInteractionViewVisible = YES;
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+    %orig;
+    isInPlayInteractionVC = NO;
+    dyyyInteractionViewVisible = NO;
+}
+
 - (void)viewDidDisappear:(BOOL)animated {
     %orig;
     BOOL hasRightStack = NO;
@@ -5771,18 +5766,6 @@ static CGFloat originalTabHeight = 0;
         updateSpeedButtonVisibility();
         updateClearButtonVisibility();
     }
-}
-
-%new
-- (UIViewController *)firstAvailableUIViewController {
-    UIResponder *responder = [self.view nextResponder];
-    while (responder != nil) {
-        if ([responder isKindOfClass:[UIViewController class]]) {
-            return (UIViewController *)responder;
-        }
-        responder = [responder nextResponder];
-    }
-    return nil;
 }
 
 %new
