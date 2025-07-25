@@ -6181,7 +6181,6 @@ TagViewClass = NSClassFromString(@"AWELiveFeedLabelTagView");
 }
 
 - (void)setAlpha:(CGFloat)alpha {
-    %orig;
     if (speedButton && isFloatSpeedButtonEnabled) {
         if (alpha == 0) {
             dyyyCommentViewVisible = YES;
@@ -6190,6 +6189,21 @@ TagViewClass = NSClassFromString(@"AWELiveFeedLabelTagView");
         }
         updateSpeedButtonVisibility();
         updateClearButtonVisibility();
+    }
+
+    CGFloat finalAlpha = alpha;
+    if (alpha > 0 && self.tag != DYYY_IGNORE_GLOBAL_ALPHA_TAG) {
+        NSString *transparentValue = DYYYGetString(@"DYYYGlobalTransparency");
+        NSScanner *scanner = [NSScanner scannerWithString:transparentValue];
+        float alphaValue;
+
+        if ([scanner scanFloat:&alphaValue] && scanner.isAtEnd && alphaValue >= 0 && alphaValue <= 1) {
+            finalAlpha = alphaValue;
+        }
+    }
+
+    if (fabs(self.alpha - finalAlpha) > 0.01) {
+        %orig(finalAlpha);
     }
 }
 
