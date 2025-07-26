@@ -5588,272 +5588,6 @@ static CGFloat originalTabHeight = 0;
 
 %end
 
-%hook AFDPureModePageTapController
-
-- (void)onVideoPlayerViewDoubleClicked:(id)arg1 {
-    BOOL isSwitchOn = DYYYGetBool(@"DYYYDisableDoubleTapLike");
-    if (!isSwitchOn) {
-        %orig;
-    }
-}
-
-%end
-
-%hook AWEPlayInteractionViewController
-
-- (void)onVideoPlayerViewDoubleClicked:(id)arg1 {
-    BOOL isSwitchOn = DYYYGetBool(@"DYYYDisableDoubleTapLike");
-    if (!isSwitchOn) {
-        %orig;
-    }
-}
-
-- (void)loadView {
-    %orig;
-    if (hideButton) {
-        hideButton.hidden = NO;
-        hideButton.alpha = 0.5;
-    }
-}
-
-- (void)viewDidLayoutSubviews {
-    %orig;
-
-    NSString *transparentValue = DYYYGetString(@"DYYYGlobalTransparency");
-    NSScanner *scanner = [NSScanner scannerWithString:transparentValue];
-    float alphaValue;
-    if (![scanner scanFloat:&alphaValue] || !scanner.isAtEnd || alphaValue < 0 || alphaValue > 1) {
-        return;
-    }
-
-    for (UIView *subview in self.view.subviews) {
-        if (subview.alpha > 0 && fabs(subview.alpha - alphaValue) > 0.01 && subview.tag != DYYY_IGNORE_GLOBAL_ALPHA_TAG) {
-            subview.alpha = alphaValue;
-        }
-    }
-
-    if (isFloatSpeedButtonEnabled) {
-        BOOL hasRightStack = NO;
-        Class stackClass = NSClassFromString(@"AWEElementStackView");
-        for (UIView *sub in self.view.subviews) {
-            if ([sub isKindOfClass:stackClass] && ([sub.accessibilityLabel isEqualToString:@"right"] || [DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEPlayInteractionUserAvatarView")
-                                                                                                                              inContainer:self.view])) {
-                hasRightStack = YES;
-                break;
-            }
-        }
-        if (hasRightStack) {
-            if (speedButton == nil) {
-                speedButtonSize = [[NSUserDefaults standardUserDefaults] floatForKey:@"DYYYSpeedButtonSize"] ?: 32.0;
-                CGRect screenBounds = [UIScreen mainScreen].bounds;
-                CGRect initialFrame = CGRectMake((screenBounds.size.width - speedButtonSize) / 2, (screenBounds.size.height - speedButtonSize) / 2, speedButtonSize, speedButtonSize);
-                speedButton = [[FloatingSpeedButton alloc] initWithFrame:initialFrame];
-                speedButton.interactionController = self;
-                showSpeedX = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYSpeedButtonShowX"];
-                updateSpeedButtonUI();
-            } else {
-                [speedButton resetButtonState];
-                if (speedButton.interactionController == nil || speedButton.interactionController != self) {
-                    speedButton.interactionController = self;
-                }
-                if (speedButton.frame.size.width != speedButtonSize) {
-                    CGPoint center = speedButton.center;
-                    CGRect newFrame = CGRectMake(0, 0, speedButtonSize, speedButtonSize);
-                    speedButton.frame = newFrame;
-                    speedButton.center = center;
-                    speedButton.layer.cornerRadius = speedButtonSize / 2;
-                }
-            }
-            dyyyInteractionViewVisible = YES;
-            UIWindow *keyWindow = [DYYYUtils getActiveWindow];
-            if (keyWindow && ![speedButton isDescendantOfView:keyWindow]) {
-                [keyWindow addSubview:speedButton];
-                [speedButton loadSavedPosition];
-                [speedButton resetFadeTimer];
-            }
-        }
-    }
-
-    UIWindow *keyWindow = [DYYYUtils getActiveWindow];
-    if (keyWindow && keyWindow.safeAreaInsets.bottom == 0) {
-        return;
-    }
-
-    if (!DYYYGetBool(@"DYYYEnableFullScreen")) {
-        return;
-    }
-
-    UIViewController *parentVC = self.parentViewController;
-    int maxIterations = 3;
-    int count = 0;
-
-    while (parentVC && count < maxIterations) {
-        if ([parentVC isKindOfClass:%c(AFDPlayRemoteFeedTableViewController)]) {
-            return;
-        }
-        parentVC = parentVC.parentViewController;
-        count++;
-    }
-
-    if (!self.view.superview) {
-        return;
-    }
-
-    CGRect frame = self.view.frame;
-    CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
-    CGFloat superviewHeight = self.view.superview.frame.size.height;
-
-    if (frame.size.width != screenWidth && frame.size.height < superviewHeight) {
-        return;
-    }
-
-    NSString *currentReferString = self.referString;
-
-    BOOL useFullHeight = [currentReferString isEqualToString:@"general_search"] || [currentReferString isEqualToString:@"chat"] || [currentReferString isEqualToString:@"search_result"] ||
-                         [currentReferString isEqualToString:@"close_friends_moment"] || [currentReferString isEqualToString:@"offline_mode"] || [currentReferString isEqualToString:@"challenge"] ||
-                         currentReferString == nil;
-
-    if (useFullHeight) {
-        frame.size.height = superviewHeight;
-    } else {
-        frame.size.height = superviewHeight - tabHeight;
-    }
-
-    if (fabs(frame.size.height - self.view.frame.size.height) > 0.5) {
-        self.view.frame = frame;
-    }
-}
-
-- (void)viewWillAppear:(BOOL)animated {
-    %orig;
-    isInPlayInteractionVC = YES;
-    dyyyInteractionViewVisible = YES;
-    if (hideButton) {
-        hideButton.hidden = NO;
-        hideButton.alpha = 0.5;
-    }
-}
-
-- (void)viewDidAppear:(BOOL)animated {
-    %orig;
-    dyyyInteractionViewVisible = YES;
-}
-
-- (void)viewWillDisappear:(BOOL)animated {
-    %orig;
-    isInPlayInteractionVC = NO;
-    dyyyInteractionViewVisible = NO;
-}
-
-- (void)viewDidDisappear:(BOOL)animated {
-    %orig;
-    BOOL hasRightStack = NO;
-    Class stackClass = NSClassFromString(@"AWEElementStackView");
-    for (UIView *sub in self.view.subviews) {
-        if ([sub isKindOfClass:stackClass] && ([sub.accessibilityLabel isEqualToString:@"right"] || [DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEPlayInteractionUserAvatarView")
-                                                                                                                          inContainer:self.view])) {
-            hasRightStack = YES;
-            break;
-        }
-    }
-    if (hasRightStack) {
-        dyyyInteractionViewVisible = NO;
-        dyyyCommentViewVisible = self.isCommentVCShowing;
-        updateSpeedButtonVisibility();
-        updateClearButtonVisibility();
-    }
-}
-
-%new
-- (void)speedButtonTapped:(UIButton *)sender {
-    [(FloatingSpeedButton *)sender resetFadeTimer];
-    NSArray *speeds = getSpeedOptions();
-    if (speeds.count == 0)
-        return;
-
-    NSInteger currentIndex = getCurrentSpeedIndex();
-    NSInteger newIndex = (currentIndex + 1) % speeds.count;
-
-    setCurrentSpeedIndex(newIndex);
-
-    float newSpeed = [speeds[newIndex] floatValue];
-
-    NSString *formattedSpeed;
-    if (fmodf(newSpeed, 1.0) == 0) {
-        formattedSpeed = [NSString stringWithFormat:@"%.0f", newSpeed];
-    } else if (fmodf(newSpeed * 10, 1.0) == 0) {
-        formattedSpeed = [NSString stringWithFormat:@"%.1f", newSpeed];
-    } else {
-        formattedSpeed = [NSString stringWithFormat:@"%.2f", newSpeed];
-    }
-
-    if (showSpeedX) {
-        formattedSpeed = [formattedSpeed stringByAppendingString:@"x"];
-    }
-
-    [sender setTitle:formattedSpeed forState:UIControlStateNormal];
-
-    [UIView animateWithDuration:0.1
-        delay:0
-        options:UIViewAnimationOptionCurveEaseOut
-        animations:^{
-          sender.transform = CGAffineTransformMakeScale(1.1, 1.1);
-        }
-        completion:^(BOOL finished) {
-          [UIView animateWithDuration:0.1
-                                delay:0
-                              options:UIViewAnimationOptionCurveEaseIn
-                           animations:^{
-                             sender.transform = CGAffineTransformIdentity;
-                           }
-                           completion:nil];
-        }];
-
-    BOOL speedApplied = NO;
-
-    UIViewController *rootVC = [UIApplication sharedApplication].keyWindow.rootViewController;
-    while (rootVC.presentedViewController) {
-        rootVC = rootVC.presentedViewController;
-    }
-
-    NSArray *viewControllers = findViewControllersInHierarchy(rootVC);
-
-    for (UIViewController *vc in viewControllers) {
-        if ([vc isKindOfClass:%c(AWEAwemePlayVideoViewController)]) {
-            [(AWEAwemePlayVideoViewController *)vc setVideoControllerPlaybackRate:newSpeed];
-            speedApplied = YES;
-        }
-        if ([vc isKindOfClass:%c(AWEDPlayerFeedPlayerViewController)]) {
-            [(AWEDPlayerFeedPlayerViewController *)vc setVideoControllerPlaybackRate:newSpeed];
-            speedApplied = YES;
-        }
-    }
-
-    if (!speedApplied) {
-        [DYYYUtils showToast:@"无法找到视频控制器"];
-    }
-}
-
-%new
-- (void)buttonTouchDown:(UIButton *)sender {
-    [UIView animateWithDuration:0.1
-                     animations:^{
-                       sender.alpha = 0.7;
-                       sender.transform = CGAffineTransformMakeScale(0.95, 0.95);
-                     }];
-}
-
-%new
-- (void)buttonTouchUp:(UIButton *)sender {
-    [UIView animateWithDuration:0.1
-                     animations:^{
-                       sender.alpha = 1.0;
-                       sender.transform = CGAffineTransformIdentity;
-                     }];
-}
-
-%end
-
 %hook AWEAwemePlayVideoViewController
 
 - (void)setIsAutoPlay:(BOOL)arg0 {
@@ -6125,48 +5859,307 @@ static CGFloat originalTabHeight = 0;
 }
 %end
 
-%hook AWELiveNewPreStreamViewController
+%hook AFDPureModePageTapController
 
-static NSArray<Class> *kTargetViewClasses = @[ NSClassFromString(@"AWEElementStackView"), NSClassFromString(@"IESLiveStackView") ];
-static char kCachedTargetViewsKey;
-static Class GuideViewClass = nil;
-static Class MuteViewClass = nil;
-static Class TagViewClass = nil;
+- (void)onVideoPlayerViewDoubleClicked:(id)arg1 {
+    BOOL isSwitchOn = DYYYGetBool(@"DYYYDisableDoubleTapLike");
+    if (!isSwitchOn) {
+        %orig;
+    }
+}
 
-- (void)viewDidLayoutSubviews {
-    %orig;
+%end
 
-    NSHashTable *cachedTargetViews = objc_getAssociatedObject(self, &kCachedTargetViewsKey);
-    if (!cachedTargetViews) {
-        cachedTargetViews = [NSHashTable weakObjectsHashTable];
-        objc_setAssociatedObject(self, &kCachedTargetViewsKey, cachedTargetViews, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+static NSArray<Class> *kStackViewClasses = @[ NSClassFromString(@"AWEElementStackView"), NSClassFromString(@"IESLiveStackView") ];
+static char kCachedStackViewsKey;
 
-        UIViewController *PreStreamVC = (UIViewController *)self;
-        for (Class targetClass in kTargetViewClasses) {
-            NSArray *foundViews = [DYYYUtils findAllSubviewsOfClass:targetClass inContainer:PreStreamVC.view];
+void applyGlobalTransparency(UIViewController *vc) {
+    NSString *transparentValue = DYYYGetString(@"DYYYGlobalTransparency");
+    NSScanner *scanner = [NSScanner scannerWithString:transparentValue];
+    float alphaValue;
+    if (![scanner scanFloat:&alphaValue] || !scanner.isAtEnd || alphaValue < 0 || alphaValue > 1) {
+        return;
+    }
+
+    NSHashTable *cachedStackViews = objc_getAssociatedObject(targetObject, &kCachedStackViewsKey);
+    if (!cachedStackViews) {
+        cachedStackViews = [NSHashTable weakObjectsHashTable];
+        objc_setAssociatedObject(targetObject, &kCachedStackViewsKey, cachedStackViews, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+
+        for (Class stackViewClass in kStackViewClasses) {
+            NSArray *foundViews = [DYYYUtils findAllSubviewsOfClass:stackViewClass inContainer:targetObject];
             for (UIView *view in foundViews) {
-                [cachedTargetViews addObject:view];
+                [cachedStackViews addObject:view];
             }
         }
     }
 
-    if (cachedTargetViews.count > 0) {
-        NSString *transparentValue = DYYYGetString(@"DYYYGlobalTransparency");
-        NSScanner *scanner = [NSScanner scannerWithString:transparentValue];
-        float alphaValue;
-        if (![scanner scanFloat:&alphaValue] || !scanner.isAtEnd || alphaValue < 0 || alphaValue > 1) {
-            return;
-        }
-
-        for (UIView *targetView in cachedTargetViews) {
-            if (targetView.alpha > 0 && fabs(targetView.alpha - alphaValue) > 0.01 && targetView.tag != DYYY_IGNORE_GLOBAL_ALPHA_TAG) {
-                targetView.alpha = alphaValue;
+    if (cachedStackViews.count > 0) {
+        for (UIView *stackViews in cachedStackViews) {
+            if (stackViews.alpha > 0 && fabs(stackViews.alpha - alphaValue) > 0.01 && stackViews.tag != DYYY_IGNORE_GLOBAL_ALPHA_TAG) {
+                stackViews.alpha = alphaValue;
             }
         }
     }
 }
 
+%hook AWEPlayInteractionViewController
+
+- (void)onVideoPlayerViewDoubleClicked:(id)arg1 {
+    BOOL isSwitchOn = DYYYGetBool(@"DYYYDisableDoubleTapLike");
+    if (!isSwitchOn) {
+        %orig;
+    }
+}
+
+- (void)loadView {
+    %orig;
+    if (hideButton) {
+        hideButton.hidden = NO;
+        hideButton.alpha = 0.5;
+    }
+}
+
+- (void)viewDidLayoutSubviews {
+    %orig;
+
+    applyGlobalTransparency(self);
+
+    if (isFloatSpeedButtonEnabled) {
+        BOOL hasRightStack = NO;
+        Class stackClass = NSClassFromString(@"AWEElementStackView");
+        for (UIView *sub in self.view.subviews) {
+            if ([sub isKindOfClass:stackClass] && ([sub.accessibilityLabel isEqualToString:@"right"] || [DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEPlayInteractionUserAvatarView")
+                                                                                                                              inContainer:self.view])) {
+                hasRightStack = YES;
+                break;
+            }
+        }
+        if (hasRightStack) {
+            if (speedButton == nil) {
+                speedButtonSize = [[NSUserDefaults standardUserDefaults] floatForKey:@"DYYYSpeedButtonSize"] ?: 32.0;
+                CGRect screenBounds = [UIScreen mainScreen].bounds;
+                CGRect initialFrame = CGRectMake((screenBounds.size.width - speedButtonSize) / 2, (screenBounds.size.height - speedButtonSize) / 2, speedButtonSize, speedButtonSize);
+                speedButton = [[FloatingSpeedButton alloc] initWithFrame:initialFrame];
+                speedButton.interactionController = self;
+                showSpeedX = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYSpeedButtonShowX"];
+                updateSpeedButtonUI();
+            } else {
+                [speedButton resetButtonState];
+                if (speedButton.interactionController == nil || speedButton.interactionController != self) {
+                    speedButton.interactionController = self;
+                }
+                if (speedButton.frame.size.width != speedButtonSize) {
+                    CGPoint center = speedButton.center;
+                    CGRect newFrame = CGRectMake(0, 0, speedButtonSize, speedButtonSize);
+                    speedButton.frame = newFrame;
+                    speedButton.center = center;
+                    speedButton.layer.cornerRadius = speedButtonSize / 2;
+                }
+            }
+            dyyyInteractionViewVisible = YES;
+            UIWindow *keyWindow = [DYYYUtils getActiveWindow];
+            if (keyWindow && ![speedButton isDescendantOfView:keyWindow]) {
+                [keyWindow addSubview:speedButton];
+                [speedButton loadSavedPosition];
+                [speedButton resetFadeTimer];
+            }
+        }
+    }
+
+    UIWindow *keyWindow = [DYYYUtils getActiveWindow];
+    if (keyWindow && keyWindow.safeAreaInsets.bottom == 0) {
+        return;
+    }
+
+    if (!DYYYGetBool(@"DYYYEnableFullScreen")) {
+        return;
+    }
+
+    UIViewController *parentVC = self.parentViewController;
+    int maxIterations = 3;
+    int count = 0;
+
+    while (parentVC && count < maxIterations) {
+        if ([parentVC isKindOfClass:%c(AFDPlayRemoteFeedTableViewController)]) {
+            return;
+        }
+        parentVC = parentVC.parentViewController;
+        count++;
+    }
+
+    if (!self.view.superview) {
+        return;
+    }
+
+    CGRect frame = self.view.frame;
+    CGFloat screenWidth = [UIScreen mainScreen].bounds.size.width;
+    CGFloat superviewHeight = self.view.superview.frame.size.height;
+
+    if (frame.size.width != screenWidth && frame.size.height < superviewHeight) {
+        return;
+    }
+
+    NSString *currentReferString = self.referString;
+
+    BOOL useFullHeight = [currentReferString isEqualToString:@"general_search"] || [currentReferString isEqualToString:@"chat"] || [currentReferString isEqualToString:@"search_result"] ||
+                         [currentReferString isEqualToString:@"close_friends_moment"] || [currentReferString isEqualToString:@"offline_mode"] || [currentReferString isEqualToString:@"challenge"] ||
+                         currentReferString == nil;
+
+    if (useFullHeight) {
+        frame.size.height = superviewHeight;
+    } else {
+        frame.size.height = superviewHeight - tabHeight;
+    }
+
+    if (fabs(frame.size.height - self.view.frame.size.height) > 0.5) {
+        self.view.frame = frame;
+    }
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    %orig;
+    isInPlayInteractionVC = YES;
+    dyyyInteractionViewVisible = YES;
+    if (hideButton) {
+        hideButton.hidden = NO;
+        hideButton.alpha = 0.5;
+    }
+}
+
+- (void)viewDidAppear:(BOOL)animated {
+    %orig;
+    dyyyInteractionViewVisible = YES;
+}
+
+- (void)viewWillDisappear:(BOOL)animated {
+    %orig;
+    isInPlayInteractionVC = NO;
+    dyyyInteractionViewVisible = NO;
+}
+
+- (void)viewDidDisappear:(BOOL)animated {
+    %orig;
+    BOOL hasRightStack = NO;
+    Class stackClass = NSClassFromString(@"AWEElementStackView");
+    for (UIView *sub in self.view.subviews) {
+        if ([sub isKindOfClass:stackClass] && ([sub.accessibilityLabel isEqualToString:@"right"] || [DYYYUtils containsSubviewOfClass:NSClassFromString(@"AWEPlayInteractionUserAvatarView")
+                                                                                                                          inContainer:self.view])) {
+            hasRightStack = YES;
+            break;
+        }
+    }
+    if (hasRightStack) {
+        dyyyInteractionViewVisible = NO;
+        dyyyCommentViewVisible = self.isCommentVCShowing;
+        updateSpeedButtonVisibility();
+        updateClearButtonVisibility();
+    }
+}
+
+%new
+- (void)speedButtonTapped:(UIButton *)sender {
+    [(FloatingSpeedButton *)sender resetFadeTimer];
+    NSArray *speeds = getSpeedOptions();
+    if (speeds.count == 0)
+        return;
+
+    NSInteger currentIndex = getCurrentSpeedIndex();
+    NSInteger newIndex = (currentIndex + 1) % speeds.count;
+
+    setCurrentSpeedIndex(newIndex);
+
+    float newSpeed = [speeds[newIndex] floatValue];
+
+    NSString *formattedSpeed;
+    if (fmodf(newSpeed, 1.0) == 0) {
+        formattedSpeed = [NSString stringWithFormat:@"%.0f", newSpeed];
+    } else if (fmodf(newSpeed * 10, 1.0) == 0) {
+        formattedSpeed = [NSString stringWithFormat:@"%.1f", newSpeed];
+    } else {
+        formattedSpeed = [NSString stringWithFormat:@"%.2f", newSpeed];
+    }
+
+    if (showSpeedX) {
+        formattedSpeed = [formattedSpeed stringByAppendingString:@"x"];
+    }
+
+    [sender setTitle:formattedSpeed forState:UIControlStateNormal];
+
+    [UIView animateWithDuration:0.1
+        delay:0
+        options:UIViewAnimationOptionCurveEaseOut
+        animations:^{
+          sender.transform = CGAffineTransformMakeScale(1.1, 1.1);
+        }
+        completion:^(BOOL finished) {
+          [UIView animateWithDuration:0.1
+                                delay:0
+                              options:UIViewAnimationOptionCurveEaseIn
+                           animations:^{
+                             sender.transform = CGAffineTransformIdentity;
+                           }
+                           completion:nil];
+        }];
+
+    BOOL speedApplied = NO;
+
+    UIViewController *rootVC = [UIApplication sharedApplication].keyWindow.rootViewController;
+    while (rootVC.presentedViewController) {
+        rootVC = rootVC.presentedViewController;
+    }
+
+    NSArray *viewControllers = findViewControllersInHierarchy(rootVC);
+
+    for (UIViewController *vc in viewControllers) {
+        if ([vc isKindOfClass:%c(AWEAwemePlayVideoViewController)]) {
+            [(AWEAwemePlayVideoViewController *)vc setVideoControllerPlaybackRate:newSpeed];
+            speedApplied = YES;
+        }
+        if ([vc isKindOfClass:%c(AWEDPlayerFeedPlayerViewController)]) {
+            [(AWEDPlayerFeedPlayerViewController *)vc setVideoControllerPlaybackRate:newSpeed];
+            speedApplied = YES;
+        }
+    }
+
+    if (!speedApplied) {
+        [DYYYUtils showToast:@"无法找到视频控制器"];
+    }
+}
+
+%new
+- (void)buttonTouchDown:(UIButton *)sender {
+    [UIView animateWithDuration:0.1
+                     animations:^{
+                       sender.alpha = 0.7;
+                       sender.transform = CGAffineTransformMakeScale(0.95, 0.95);
+                     }];
+}
+
+%new
+- (void)buttonTouchUp:(UIButton *)sender {
+    [UIView animateWithDuration:0.1
+                     animations:^{
+                       sender.alpha = 1.0;
+                       sender.transform = CGAffineTransformIdentity;
+                     }];
+}
+
 %end
+
+%hook AWELiveNewPreStreamViewController
+
+- (void)viewDidLayoutSubviews {
+    %orig;
+
+    applyGlobalTransparency(self);
+}
+
+%end
+
+static Class GuideViewClass = nil;
+static Class MuteViewClass = nil;
+static Class TagViewClass = nil;
 
 %hook AWEElementStackView
 
