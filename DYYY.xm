@@ -5616,26 +5616,22 @@ static CGFloat originalTabHeight = 0;
     }
 }
 
-- (UIView *)view {
+- (void)viewDidLayoutSubviews {
+    %orig;
+
     NSString *transparentValue = DYYYGetString(@"DYYYGlobalTransparency");
     NSScanner *scanner = [NSScanner scannerWithString:transparentValue];
     float alphaValue;
     if (![scanner scanFloat:&alphaValue] || !scanner.isAtEnd || alphaValue < 0 || alphaValue > 1) {
-        return %orig;
+        return;
     }
 
-    UIView *originalView = %orig;
-    for (UIView *subview in originalView.subviews) {
+    for (UIView *subview in self.view.subviews) {
         if (subview.alpha > 0 && fabs(subview.alpha - alphaValue) > 0.01 && subview.tag != DYYY_IGNORE_GLOBAL_ALPHA_TAG) {
             subview.alpha = alphaValue;
         }
     }
 
-    return originalView;
-}
-
-- (void)viewDidLayoutSubviews {
-    %orig;
     if (isFloatSpeedButtonEnabled) {
         BOOL hasRightStack = NO;
         Class stackClass = NSClassFromString(@"AWEElementStackView");
