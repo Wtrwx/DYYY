@@ -792,41 +792,6 @@
 }
 %end
 
-%hook AWEAwemeDetailNaviBarContainerView
-
-- (void)layoutSubviews {
-    %orig;
-
-    NSString *transparentValue = DYYYGetString(@"DYYYGlobalTransparency");
-    NSScanner *scanner = [NSScanner scannerWithString:transparentValue];
-    float alphaValue;
-    if (![scanner scanFloat:&alphaValue] || !scanner.isAtEnd || alphaValue < 0 || alphaValue > 1) {
-        return;
-    }
-
-    if ([NSStringFromClass([self.superview class]) isEqualToString:NSStringFromClass([self class])])
-        return;
-
-    static char kDYYNaviAlphaCacheKey;
-    NSArray *alphaViews = objc_getAssociatedObject(self, &kDYYNaviAlphaCacheKey);
-    if (!alphaViews) {
-        NSMutableArray *tmp = [NSMutableArray array];
-        for (UIView *subview in self.subviews) {
-            if (subview.tag != DYYY_IGNORE_GLOBAL_ALPHA_TAG && subview.superview == self && subview.alpha > 0) {
-                [tmp addObject:subview];
-            }
-        }
-        alphaViews = [tmp copy];
-        objc_setAssociatedObject(self, &kDYYNaviAlphaCacheKey, alphaViews, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-    }
-
-    for (UIView *v in alphaViews) {
-        v.alpha = alphaValue;
-    }
-}
-
-%end
-
 %hook AWEFeedVideoButton
 - (id)touchUpInsideBlock {
     id r = %orig;
@@ -5873,7 +5838,11 @@ static CGFloat originalTabHeight = 0;
 static NSArray<Class> *kStackViewClasses = @[ NSClassFromString(@"AWEElementStackView"), NSClassFromString(@"IESLiveStackView") ];
 static char kCachedStackViewsKey;
 
-void applyGlobalTransparency(UIViewController *vc) {
+void applyGlobalTransparency(id targetObject) {
+    if (!targetObject) {
+        return;
+    }
+
     NSString *transparentValue = DYYYGetString(@"DYYYGlobalTransparency");
     NSScanner *scanner = [NSScanner scannerWithString:transparentValue];
     float alphaValue;
@@ -6150,6 +6119,16 @@ void applyGlobalTransparency(UIViewController *vc) {
 %hook AWELiveNewPreStreamViewController
 
 - (void)viewDidLayoutSubviews {
+    %orig;
+
+    applyGlobalTransparency(self);
+}
+
+%end
+
+%hook AWEAwemeDetailNaviBarContainerView
+
+- (void)layoutSubviews {
     %orig;
 
     applyGlobalTransparency(self);
