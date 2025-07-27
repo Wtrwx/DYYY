@@ -292,6 +292,11 @@ extern "C"
               @"cellType" : @20,
               @"imageName" : @"ic_location_outlined_20"
           },
+          @{@"identifier" : @"DYYYLabelStyle",
+            @"title" : @"文案标签样式",
+            @"detail" : @"",
+            @"cellType" : @26,
+            @"imageName" : @"ic_tag_outlined_20"},
           @{@"identifier" : @"DYYYLabelColor",
             @"title" : @"属地标签颜色",
             @"detail" : @"十六进制",
@@ -363,6 +368,23 @@ extern "C"
               };
           }
 
+          else if ([item.identifier isEqualToString:@"DYYYLabelStyle"]) {
+              NSString *savedStyle = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYLabelStyle"];
+              item.detail = savedStyle ?: @"默认";
+              item.cellTappedBlock = ^{
+                NSArray *styleOptions = @[ @"文案标签显示", @"文案标签隐藏", @"文案标签禁止跳转搜索" ];
+
+                [DYYYOptionsSelectionView showWithPreferenceKey:@"DYYYLabelStyle"
+                                                   optionsArray:styleOptions
+                                                     headerText:@"选择文案标签样式"
+                                                 onPresentingVC:topView()
+                                               selectionChanged:^(NSString *selectedValue) {
+                                                 item.detail = selectedValue;
+                                                 [item refreshCell];
+                                               }];
+              };
+          }
+
           [videoItems addObject:item];
       }
       // 【杂项设置】分类
@@ -426,6 +448,14 @@ extern "C"
             @"detail" : @"",
             @"cellType" : @6,
             @"imageName" : @"ic_video_outlined_20"},
+          @{
+              @"identifier" : @"DYYYSkipAllLive",
+              @"title" : @"全部过滤直播",
+              @"subTitle" : @"开启后屏蔽直播页面之外的所有直播",
+              @"detail" : @"",
+              @"cellType" : @37,
+              @"imageName" : @"ic_video_outlined_20"
+          },
           @{@"identifier" : @"DYYYSkipHotSpot",
             @"title" : @"推荐过滤热点",
             @"detail" : @"",
@@ -746,6 +776,11 @@ extern "C"
             @"detail" : @"不填默认",
             @"cellType" : @26,
             @"imageName" : @"ic_user_outlined_20"},
+          @{@"identifier" : @"DYYYCommentContent",
+            @"title" : @"设置评论填充",
+            @"detail" : @"善语结善缘，恶言伤人心",
+            @"cellType" : @26,
+            @"imageName" : @"ic_comment_outlined_20"},
       ];
 
       for (NSDictionary *dict in titleSettings) {
@@ -967,12 +1002,14 @@ extern "C"
       // 【侧边栏】分类
       NSMutableArray<AWESettingItemModel *> *sidebarItems = [NSMutableArray array];
       NSArray *sidebarSettings = @[
-          @{@"identifier" : @"DYYYHideSidebarElements",
-            @"title" : @"隐藏侧栏元素",
-            @"subTitle" : @"隐藏侧边栏的常用小程序和常访问的人",
-            @"detail" : @"",
-            @"cellType" : @37,
-            @"imageName" : @"ic_eyeslash_outlined_16"},
+          @{
+              @"identifier" : @"DYYYHideSidebarElements",
+              @"title" : @"隐藏侧栏元素",
+              @"subTitle" : @"隐藏侧边栏的常用小程序和常访问的人",
+              @"detail" : @"",
+              @"cellType" : @37,
+              @"imageName" : @"ic_eyeslash_outlined_16"
+          },
           @{@"identifier" : @"DYYYHideSidebarDot",
             @"title" : @"隐藏侧栏红点",
             @"detail" : @"",
@@ -1307,11 +1344,14 @@ extern "C"
               @"cellType" : @37,
               @"imageName" : @"ic_eyeslash_outlined_16"
           },
-          @{@"identifier" : @"DYYYHidePauseVideoRelatedWord",
-            @"title" : @"隐藏暂停相关",
-            @"detail" : @"",
-            @"cellType" : @6,
-            @"imageName" : @"ic_eyeslash_outlined_16"},
+          @{
+              @"identifier" : @"DYYYHidePauseVideoRelatedWord",
+              @"title" : @"隐藏暂停相关",
+              @"subTitle" : @"隐藏暂停视频后出现的相关词条",
+              @"detail" : @"",
+              @"cellType" : @37,
+              @"imageName" : @"ic_eyeslash_outlined_16"
+          },
           @{
               @"identifier" : @"DYYYHideKeyboardAI",
               @"title" : @"隐藏键盘 AI",
@@ -2590,7 +2630,7 @@ extern "C"
               @"subTitle" : @"打开评论区时保持弹幕可见",
               @"detail" : @"",
               @"cellType" : @37,
-              @"imageName" : @"ic_comment_outlined_20"
+              @"imageName" : @"ic_dansquare_outlined_20"
           },
           @{
               @"identifier" : @"DYYYEnableDoubleTapMenu",
