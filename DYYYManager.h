@@ -112,7 +112,7 @@
  * @param shareLink 视频分享链接
  * @param apiKey API密钥
  */
-+ (void)parseAndDownloadVideoWithShareLink:(NSString *)shareLink apiKey:(NSString *)apiKey;
++ (void)parseAndDownloadVideoWithShareLink:(NSString *)shareLink;
 
 /**
  * 批量下载视频和图片资源
