@@ -4538,10 +4538,11 @@ static AWEIMReusableCommonCell *currentCell;
                                                                                                             }
 
                                                                                                             // 使用封装的方法进行解析下载
-                                                                                                            [DYYYManager parseAndDownloadVideoWithShareLink:shareLink;
-                                                                                                          }];
+                                                                                                            [DYYYManager parseAndDownloadVideoWithShareLink:shareLink];
+}];
                 [actions addObject:apiDownloadAction];
             }
+
 
         // 添加制作视频功能
         if (DYYYGetBool(@"DYYYDoubleCreateVideo") || ![[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYDoubleCreateVideo"]) {
