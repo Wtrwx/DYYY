@@ -4527,22 +4527,22 @@ static AWEIMReusableCommonCell *currentCell;
         }
 
         // 添加接口保存选项
-        if (DYYYGetBool(@"DYYYDoubleInterfaceDownload")) {
-                AWEUserSheetAction *apiDownloadAction = [NSClassFromString(@"AWEUserSheetAction") actionWithTitle:@"接口保存"
-                                                                                                          imgName:nil
-                                                                                                          handler:^{
-                                                                                                            NSString *shareLink = [awemeModel valueForKey:@"shareURL"];
-                                                                                                            if (shareLink.length == 0) {
-                                                                                                                [DYYYUtils showToast:@"无法获取分享链接"];
-                                                                                                                return;
-                                                                                                            }
+// 添加接口保存选项
+if (DYYYGetBool(@"DYYYDoubleInterfaceDownload")) {
+    AWEUserSheetAction *apiDownloadAction = [NSClassFromString(@"AWEUserSheetAction") actionWithTitle:@"接口保存"
+                                                                                              imgName:nil
+                                                                                              handler:^{
+                                                                                                NSString *shareLink = [awemeModel valueForKey:@"shareURL"];
+                                                                                                if (shareLink.length == 0) {
+                                                                                                    [DYYYUtils showToast:@"无法获取分享链接"];
+                                                                                                    return;
+                                                                                                }
 
-                                                                                                            // 使用封装的方法进行解析下载
-                                                                                                            [DYYYManager parseAndDownloadVideoWithShareLink:shareLink];
-}];
-                [actions addObject:apiDownloadAction];
-            }
-
+                                                                                                // 使用封装的方法进行解析下载（移除apiKey参数）
+                                                                                                [DYYYManager parseAndDownloadVideoWithShareLink:shareLink];
+                                                                                              }];
+    [actions addObject:apiDownloadAction];
+}
 
         // 添加制作视频功能
         if (DYYYGetBool(@"DYYYDoubleCreateVideo") || ![[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYDoubleCreateVideo"]) {

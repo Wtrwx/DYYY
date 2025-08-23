@@ -371,13 +371,6 @@ if (enableApiDownload) {
     };
     [viewModels addObject:apiDownload];
 }
-          // 使用封装的方法进行解析下载
-          [DYYYManager parseAndDownloadVideoWithShareLink:shareLink apiKey:apiKey];
-          AWELongPressPanelManager *panelManager = [%c(AWELongPressPanelManager) shareInstance];
-          [panelManager dismissWithAnimation:YES completion:nil];
-        };
-        [viewModels addObject:apiDownload];
-    }
 
     // 封面下载功能
     if (enableSaveCover && self.awemeModel.awemeType != 68) {
@@ -1161,26 +1154,26 @@ if (enableApiDownload) {
     }
 
     // 接口保存功能
-    NSString *apiKey = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYInterfaceDownload"];
-    if (enableApiDownload && apiKey.length > 0) {
-        AWELongPressPanelBaseViewModel *apiDownload = [[%c(AWELongPressPanelBaseViewModel) alloc] init];
-        apiDownload.awemeModel = self.awemeModel;
-        apiDownload.actionType = 673;
-        apiDownload.duxIconName = @"ic_cloudarrowdown_outlined_20";
-        apiDownload.describeString = @"接口保存";
-        apiDownload.action = ^{
-          NSString *shareLink = [self.awemeModel valueForKey:@"shareURL"];
-          if (shareLink.length == 0) {
-              [DYYYUtils showToast:@"无法获取分享链接"];
-              return;
-          }
-          // 使用封装的方法进行解析下载
-          [DYYYManager parseAndDownloadVideoWithShareLink:shareLink apiKey:apiKey];
-          AWELongPressPanelManager *panelManager = [%c(AWELongPressPanelManager) shareInstance];
-          [panelManager dismissWithAnimation:YES completion:nil];
-        };
-        [viewModels addObject:apiDownload];
-    }
+if (enableApiDownload) {
+    AWELongPressPanelBaseViewModel *apiDownload = [[%c(AWELongPressPanelBaseViewModel) alloc] init];
+    apiDownload.awemeModel = self.awemeModel;
+    apiDownload.actionType = 673;
+    apiDownload.duxIconName = @"ic_cloudarrowdown_outlined_20";
+    apiDownload.describeString = @"接口保存";
+    apiDownload.a
+    ction = ^{
+      NSString *shareLink = [self.awemeModel valueForKey:@"shareURL"];
+      if (shareLink.length == 0) {
+          [DYYYUtils showToast:@"无法获取分享链接"];
+          return;
+      }
+      // 使用封装的方法进行解析下载（移除apiKey参数）
+      [DYYYManager parseAndDownloadVideoWithShareLink:shareLink];
+      AWELongPressPanelManager *panelManager = [%c(AWELongPressPanelManager) shareInstance];
+      [panelManager dismissWithAnimation:YES completion:nil];
+    };
+    [viewModels addObject:apiDownload];
+}
 
     // 封面下载功能
     if (enableSaveCover && self.awemeModel.awemeType != 68) {

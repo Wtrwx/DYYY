@@ -2143,13 +2143,15 @@ static void CGContextCopyBytes(CGContextRef dst, CGContextRef src, int width, in
                                  }];
 }
 
-+ (void)parseAndDownloadVideoWithShareLink:(NSString *)shareLink apiKey:(NSString *)apiKey {
-    if (shareLink.length == 0 || apiKey.length == 0) {
-        [DYYYUtils showToast:@"分享链接或API密钥无效"];
++ (void)parseAndDownloadVideoWithShareLink:(NSString *)shareLink {
+    if (shareLink.length == 0) {
+        [DYYYUtils showToast:@"分享链接无效"];
         return;
     }
+    // 后续原有逻辑（移除所有与apiKey相关的处理）
+}
 
-    NSString *apiUrl = [NSString stringWithFormat:@"%@%@", apiKey, [shareLink stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]]];
+    NSString *apiUrl = [shareLink stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
 
     NSURL *url = [NSURL URLWithString:apiUrl];
     NSURLRequest *request = [NSURLRequest requestWithURL:url];
