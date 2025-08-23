@@ -74,6 +74,27 @@
             isDarkMode ? [UIColor colorWithRed:180 / 255.0 green:180 / 255.0 blue:185 / 255.0 alpha:1.0] : [UIColor colorWithRed:124 / 255.0 green:124 / 255.0 blue:130 / 255.0 alpha:1.0];
         [attributedString addAttribute:NSForegroundColorAttributeName value:messageTextColor range:NSMakeRange(0, message.length)];
 
+        // 保持链接设置
+        NSRange telegramRange = [message rangeOfString:@"Telegram @vita_app"];
+        if (telegramRange.location != NSNotFound) {
+            [attributedString addAttribute:NSLinkAttributeName value:@"https://t.me/vita_app" range:telegramRange];
+        }
+
+        NSRange githubRange = [message rangeOfString:@"仓库地址 Wtrwx/DYYY"];
+        if (githubRange.location != NSNotFound) {
+            [attributedString addAttribute:NSLinkAttributeName value:@"https://github.com/Wtrwx/DYYY" range:githubRange];
+        }
+
+        NSRange huamiGithubRange = [message rangeOfString:@"开源地址 huami1314/DYYY"];
+        if (huamiGithubRange.location != NSNotFound) {
+            [attributedString addAttribute:NSLinkAttributeName value:@"https://github.com/huami1314/DYYY" range:huamiGithubRange];
+        }
+        NSRange huamiTGGroup = [message rangeOfString:@"Telegram @huamidev"];
+        if (huamiTGGroup.location != NSNotFound) {
+            [attributedString addAttribute:NSLinkAttributeName value:@"https://t.me/huamidev" range:huamiTGGroup];
+        }
+        self.messageTextView.attributedText = attributedString;
+
         // 设置链接颜色
         self.messageTextView.linkTextAttributes = @{
             NSForegroundColorAttributeName : [UIColor colorWithRed:11 / 255.0 green:223 / 255.0 blue:154 / 255.0 alpha:1.0],  // #0BDF9A 链接颜色保持不变
