@@ -1,4 +1,4 @@
-name: build deb
+name: build deb (SDK 16.5 rootless)
 
 on: 
   push:
@@ -22,7 +22,7 @@ jobs:
         uses: actions/cache@v4.2.1
         with:
           path: ${{ github.workspace }}/theos
-          key: ${{ runner.os }}-${{ env.upstream_heads }}
+          key: ${{ runner.os }}-${{ env.upstream_heads }}-sdk16.5
 
       - name: Prepare Theos
         uses: huami1314/theos-action@main
@@ -31,15 +31,13 @@ jobs:
         run: |
           echo "$(brew --prefix)/opt/make/libexec/gnubin" >> $GITHUB_PATH
 
-      - name: Build package
+      - name: Build package (SDK 16.5 rootless)
         run: |
           rm -f packages/*
-          make package FINALPACKAGE=1 -j$(sysctl -n hw.ncpu)
-          make package THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1 -j$(sysctl -n hw.ncpu)
-          make package THEOS_PACKAGE_SCHEME=roothide FINALPACKAGE=1 -j$(sysctl -n hw.ncpu)
+          make package THEOS_PACKAGE_SCHEME=rootless TARGET=iphone:clang:16.5:11.0 FINALPACKAGE=1 -j$(sysctl -n hw.ncpu)
 
-      - name: Upload specific Deb packages
+      - name: Upload SDK 16.5 rootless Deb package
         uses: actions/upload-artifact@v4.6.0
         with:
-          name: DYYY
+          name: DYYY-SDK16.5-rootless
           path: ${{ github.workspace }}/packages/*.deb
