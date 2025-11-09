@@ -7070,6 +7070,178 @@ static void findTargetViewInView(UIView *view) {
     }
 }
 
+
+// ===== 老王添加：相关搜索背景透明功能 =====
+// Hook AWEFeedRelatedSearchTipView - 底部相关搜索提示视图
+%hook AWEFeedRelatedSearchTipView
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = %orig;
+    if (self) {
+        // 设置背景透明
+        self.backgroundColor = [UIColor clearColor];
+
+        // 遍历所有子视图，设置背景透明
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            for (UIView *subview in self.subviews) {
+                if ([subview isKindOfClass:[UIView class]]) {
+                    subview.backgroundColor = [UIColor clearColor];
+                }
+            }
+        });
+    }
+    return self;
+}
+
+- (void)layoutSubviews {
+    %orig;
+
+    // 确保布局后背景仍然透明
+    self.backgroundColor = [UIColor clearColor];
+    for (UIView *subview in self.subviews) {
+        if ([subview isKindOfClass:[UIView class]]) {
+            subview.backgroundColor = [UIColor clearColor];
+        }
+    }
+}
+
+- (void)setBackgroundColor:(UIColor *)backgroundColor {
+    // 强制设置为透明，忽略其他颜色
+    %orig([UIColor clearColor]);
+}
+
+%end
+
+// Hook AWEFeedPauseVideoRelatedWordView - 暂停时的相关词视图
+%hook AWEFeedPauseVideoRelatedWordView
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = %orig;
+    if (self) {
+        self.backgroundColor = [UIColor clearColor];
+
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            for (UIView *subview in self.subviews) {
+                if ([subview isKindOfClass:[UIView class]]) {
+                    subview.backgroundColor = [UIColor clearColor];
+                }
+            }
+        });
+    }
+    return self;
+}
+
+- (void)layoutSubviews {
+    %orig;
+
+    self.backgroundColor = [UIColor clearColor];
+    for (UIView *subview in self.subviews) {
+        if ([subview isKindOfClass:[UIView class]]) {
+            subview.backgroundColor = [UIColor clearColor];
+        }
+    }
+}
+
+- (void)setBackgroundColor:(UIColor *)backgroundColor {
+    %orig([UIColor clearColor]);
+}
+
+%end
+
+// Hook AWEPlayInteractionRelatedVideoView - 播放交互相关视图
+%hook AWEPlayInteractionRelatedVideoView
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = %orig;
+    if (self) {
+        self.backgroundColor = [UIColor clearColor];
+
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            for (UIView *subview in self.subviews) {
+                if ([subview isKindOfClass:[UIView class]]) {
+                    subview.backgroundColor = [UIColor clearColor];
+                }
+            }
+        });
+    }
+    return self;
+}
+
+- (void)layoutSubviews {
+    %orig;
+
+    self.backgroundColor = [UIColor clearColor];
+    for (UIView *subview in self.subviews) {
+        if ([subview isKindOfClass:[UIView class]]) {
+            subview.backgroundColor = [UIColor clearColor];
+        }
+    }
+}
+
+- (void)setBackgroundColor:(UIColor *)backgroundColor {
+    %orig([UIColor clearColor]);
+}
+
+%end
+
+// ===== 老王添加结束 =====
+
+
+// ===== 老王添加：底栏相关搜索透明度控制 =====
+// Hook UIView，检测frame=(0,0; 390,40)的视图
+%hook UIView
+
+- (void)setFrame:(CGRect)frame {
+    %orig;
+
+    // 检查是否是底栏相关搜索视图 (frame约等于(0,0; 390,40))
+    if (fabs(frame.origin.x - 0) < 1 &&
+        fabs(frame.origin.y - 0) < 1 &&
+        fabs(frame.size.width - 390) < 10 &&
+        fabs(frame.size.height - 40) < 5) {
+
+        // 检查开关状态
+        BOOL isTransparent = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYRelatedSearchTransparent"];
+
+        if (isTransparent) {
+            // 开关打开：设置透明
+            self.backgroundColor = [UIColor clearColor];
+
+            // 设置所有子视图透明
+            for (UIView *subview in self.subviews) {
+                subview.backgroundColor = [UIColor clearColor];
+            }
+        } else {
+            // 开关关闭：恢复默认（不做处理，让系统自己设置）
+        }
+    }
+}
+
+- (void)setBackgroundColor:(UIColor *)backgroundColor {
+    // 检查frame
+    CGRect frame = self.frame;
+    if (fabs(frame.origin.x - 0) < 1 &&
+        fabs(frame.origin.y - 0) < 1 &&
+        fabs(frame.size.width - 390) < 10 &&
+        fabs(frame.size.height - 40) < 5) {
+
+        // 检查开关状态
+        BOOL isTransparent = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYRelatedSearchTransparent"];
+
+        if (isTransparent) {
+            // 强制设置为透明
+            %orig([UIColor clearColor]);
+            return;
+        }
+    }
+
+    %orig;
+}
+
+%end
+
+// ===== 老王添加结束 =====
+
 %ctor {
     %init(DYYYSettingsGesture);
     if (DYYYGetBool(@"DYYYUserAgreementAccepted")) {

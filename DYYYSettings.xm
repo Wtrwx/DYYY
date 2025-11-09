@@ -727,6 +727,11 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
             @"detail" : @"0-1小数",
             @"cellType" : @26,
             @"imageName" : @"ic_eye_outlined_20"},
+          @{@"identifier" : @"DYYYRelatedSearchTransparent",
+            @"title" : @"底栏相关搜索",
+            @"detail" : @"",
+            @"cellType" : @6,
+            @"imageName" : @"ic_search_outlined_20"},
       ];
 
       for (NSDictionary *dict in transparencySettings) {
