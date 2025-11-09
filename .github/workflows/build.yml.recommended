@@ -1,0 +1,192 @@
+# 推荐的优化版工作流配置
+# 此文件展示了应用所有建议改进后的配置
+# 实施前请先备份现有的 build.yml
+
+name: Build DYYY
+
+on: 
+  # 优化: 添加分支过滤，减少不必要的构建
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - 'release/**'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  # 优化: 添加手动触发支持
+  workflow_dispatch:
+    inputs:
+      sdk_version:
+        description: 'iOS SDK Version'
+        required: false
+        default: '16.5'
+      scheme:
+        description: 'Package Scheme'
+        required: false
+        default: 'rootless'
+        type: choice
+        options:
+          - rootless
+          - roothide
+
+jobs:
+  build:
+    # 优化: 固定 macOS 版本，避免环境变化
+    runs-on: macos-13
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.2.2
+        with:
+          submodules: true
+
+      - name: Check cache key
+        id: cache-key
+        run: |
+          echo "Checking upstream repositories..."
+          ROOTHIDE_HEAD=$(git ls-remote https://github.com/roothide/theos | head -n 1 | cut -f 1)
+          SDK_HEAD=$(git ls-remote https://github.com/theos/sdks | head -n 1 | cut -f 1)
+          echo "upstream_heads=${ROOTHIDE_HEAD}-${SDK_HEAD}" >> $GITHUB_ENV
+        # 优化: 添加超时保护
+        timeout-minutes: 2
+
+      - name: Cache Theos
+        id: cache
+        uses: actions/cache@v4.2.1
+        with:
+          path: ${{ github.workspace }}/theos
+          key: ${{ runner.os }}-theos-${{ env.upstream_heads }}-sdk16.5
+
+      - name: Install Theos
+        uses: huami1314/theos-action@main
+        # TODO: 如果 huami1314/theos-action 有版本标签，改为：
+        # uses: huami1314/theos-action@v1.0.0
+
+      - name: Setup GNU Make
+        run: |
+          echo "Setting up GNU Make..."
+          echo "$(brew --prefix)/opt/make/libexec/gnubin" >> $GITHUB_PATH
+
+      # 优化: 添加依赖验证
+      - name: Verify dependencies
+        run: |
+          echo "Verifying libwebp.a..."
+          if [ -f libs/libwebp.a ]; then
+            lipo -info libs/libwebp.a
+            echo "libwebp.a size: $(ls -lh libs/libwebp.a | awk '{print $5}')"
+          else
+            echo "Warning: libwebp.a not found"
+          fi
+
+      - name: Build package (SDK 16.5 rootless)
+        run: |
+          echo "Cleaning old packages..."
+          rm -f packages/*
+          
+          echo "Building package..."
+          make package \
+            THEOS_PACKAGE_SCHEME=rootless \
+            TARGET=iphone:clang:16.5:11.0 \
+            FINALPACKAGE=1 \
+            -j$(sysctl -n hw.ncpu)
+        # 优化: 添加构建超时
+        timeout-minutes: 10
+
+      # 优化: 添加构建验证
+      - name: Verify build output
+        run: |
+          echo "Verifying build output..."
+          if [ ! -f packages/*.deb ]; then
+            echo "❌ Error: No .deb package generated!"
+            exit 1
+          fi
+          
+          echo "✅ Build successful!"
+          echo ""
+          echo "Package details:"
+          ls -lh packages/*.deb
+          
+          # 显示包信息
+          for deb in packages/*.deb; do
+            echo ""
+            echo "Package: $(basename "$deb")"
+            echo "Size: $(ls -lh "$deb" | awk '{print $5}')"
+          done
+
+      # 优化: 提取包信息供后续步骤使用
+      - name: Extract package info
+        id: package
+        run: |
+          DEB_FILE=$(ls packages/*.deb | head -1)
+          DEB_NAME=$(basename "$DEB_FILE")
+          DEB_SIZE=$(ls -lh "$DEB_FILE" | awk '{print $5}')
+          
+          echo "filename=$DEB_NAME" >> $GITHUB_OUTPUT
+          echo "filesize=$DEB_SIZE" >> $GITHUB_OUTPUT
+          echo "filepath=$DEB_FILE" >> $GITHUB_OUTPUT
+
+      # 优化: 改进产物命名，包含构建编号
+      - name: Upload SDK 16.5 rootless Deb package
+        uses: actions/upload-artifact@v4.6.0
+        if: success()
+        with:
+          name: DYYY-SDK16.5-rootless-build${{ github.run_number }}
+          path: ${{ github.workspace }}/packages/*.deb
+          # 优化: 设置保留期限
+          retention-days: 30
+          
+      # 优化: 添加构建摘要
+      - name: Generate build summary
+        if: always()
+        run: |
+          echo "### 🏗️ Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f packages/*.deb ]; then
+            echo "✅ **Build Status**: Success" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Build Details:**" >> $GITHUB_STEP_SUMMARY
+            echo "- SDK Version: 16.5" >> $GITHUB_STEP_SUMMARY
+            echo "- Package Scheme: rootless" >> $GITHUB_STEP_SUMMARY
+            echo "- Package Name: ${{ steps.package.outputs.filename }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Package Size: ${{ steps.package.outputs.filesize }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Build Number: ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Commit SHA: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Architectures:**" >> $GITHUB_STEP_SUMMARY
+            echo "- arm64" >> $GITHUB_STEP_SUMMARY
+            echo "- arm64e" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Build Status**: Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "No .deb package was generated. Check the build logs for errors." >> $GITHUB_STEP_SUMMARY
+          fi
+
+# 改进说明：
+# 1. ✅ 固定 macOS 版本为 macos-13，避免环境变化
+# 2. ✅ 添加分支和路径过滤，减少不必要的构建
+# 3. ✅ 添加 workflow_dispatch 支持手动触发
+# 4. ✅ 添加构建验证步骤，确保 .deb 生成成功
+# 5. ✅ 改进产物命名，包含构建编号
+# 6. ✅ 设置产物保留期为 30 天
+# 7. ✅ 添加构建摘要，在 GitHub Actions 界面显示详细信息
+# 8. ✅ 添加超时保护，避免构建挂起
+# 9. ✅ 添加依赖验证步骤
+# 10. ✅ 改进日志输出，更易读
+
+# 注意事项：
+# - TODO: 如果 huami1314/theos-action 有版本标签，请替换 @main
+# - 根据实际主分支名称调整 branches 配置（main 或 master）
+# - 可以根据需要调整 retention-days
