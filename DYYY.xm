@@ -2806,7 +2806,7 @@ static NSArray *DYYYIMMenuItemsByAddingDownloadAction(NSArray *menuItems, id cel
 %end
 
 
-// 去除"我的"加入挑战横幅2
+// 去除"我的"挑战横幅补充
 %hook AWEUserProfileUGCContributionGuideEmptyCollectionViewCell
 - (BOOL)isDouGuideTipViewShow {
     BOOL r = %orig;
