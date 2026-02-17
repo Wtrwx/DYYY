@@ -2805,6 +2805,18 @@ static NSArray *DYYYIMMenuItemsByAddingDownloadAction(NSArray *menuItems, id cel
 }
 %end
 
+
+// 去除"我的"加入挑战横幅2
+%hook AWEUserProfileUGCContributionGuideEmptyCollectionViewCell
+- (BOOL)isDouGuideTipViewShow {
+    BOOL r = %orig;
+    if (DYYYGetBool(@"DYYYHideChallengeStickers")) {
+        return YES;
+    }
+    return r;
+}
+%end
+
 // 隐藏消息页顶栏头像气泡
 %hook AFDSkylightCellBubble
 - (void)layoutSubviews {
