@@ -442,16 +442,55 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
     NSString *originalText = label.text ?: @"";
     NSString *cityCode = model.cityCode;
 
-    if (cityCode.length == 0) {
+    // 获取 region 国家代码
+    NSString *regionCode = nil;
+    if ([model respondsToSelector:@selector(region)]) {
+        regionCode = [model performSelector:@selector(region)];
+    }
+
+    if (cityCode && ([cityCode isEqualToString:@"0"] || [cityCode integerValue] == 0)) {
+        cityCode = nil;
+    }
+
+    if (cityCode.length == 0 && regionCode.length == 0) {
         return;
     }
 
-    objc_setAssociatedObject(label, kCurrentIPRequestCityCodeKey, cityCode, OBJC_ASSOCIATION_COPY_NONATOMIC);
+    NSString *requestKey = cityCode.length > 0 ? cityCode : regionCode;
+    objc_setAssociatedObject(label, kCurrentIPRequestCityCodeKey, requestKey, OBJC_ASSOCIATION_COPY_NONATOMIC);
 
-    NSString *cityName = [CityManager.sharedInstance getCityNameWithCode:cityCode];
-    NSString *provinceName = [CityManager.sharedInstance getProvinceNameWithCode:cityCode];
+    // 优先级 1：根据 cityCode 查本地城市映射表
+    if (cityCode.length > 0) {
+        NSString *cityName = [CityManager.sharedInstance getCityNameWithCode:cityCode];
+        NSString *provinceName = [CityManager.sharedInstance getProvinceNameWithCode:cityCode];
 
-    if (!cityName || cityName.length == 0) {
+        if (cityName.length > 0) {
+            // 本地映射命中，直接显示
+            if (![originalText containsString:cityName]) {
+                BOOL isDirectCity = [provinceName isEqualToString:cityName] || ([cityCode hasPrefix:@"11"] || [cityCode hasPrefix:@"12"] || [cityCode hasPrefix:@"31"] || [cityCode hasPrefix:@"50"]);
+                if (!model.ipAttribution) {
+                    if (isDirectCity) {
+                        label.text = [NSString stringWithFormat:@"%@  IP属地：%@", originalText, cityName];
+                    } else {
+                        label.text = [NSString stringWithFormat:@"%@  IP属地：%@ %@", originalText, provinceName, cityName];
+                    }
+                } else {
+                    BOOL containsProvince = provinceName.length > 0 && [originalText containsString:provinceName];
+                    BOOL containsCity = [originalText containsString:cityName];
+                    if (containsProvince && !isDirectCity && !containsCity) {
+                        label.text = [NSString stringWithFormat:@"%@ %@", originalText, cityName];
+                    } else if (isDirectCity && !containsCity) {
+                        label.text = [NSString stringWithFormat:@"%@  IP属地：%@", originalText, cityName];
+                    }
+                }
+                [DYYYUtils applyColorSettingsToLabel:label colorHexString:colorHexString];
+            }
+            return;
+        }
+    }
+
+    // 优先级 2：通过 GeoNames API 查询（需要有 cityCode）
+    if (cityCode.length > 0) {
         NSString *cacheKey = cityCode;
         static NSCache *geoNamesCache = nil;
         static dispatch_once_t onceToken;
@@ -461,7 +500,7 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
           geoNamesCache.countLimit = 1000;
         });
 
-        // 1 & 2. 查内存和磁盘缓存
+        // 查内存和磁盘缓存
         NSDictionary *cachedData = [geoNamesCache objectForKey:cacheKey];
         if (!cachedData) {
             NSString *cachesDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) firstObject];
@@ -479,7 +518,6 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
             }
         }
 
-        // 3. 处理缓存数据或发起网络请求
         if (cachedData) {
             NSString *countryName = cachedData[@"countryName"];
             NSString *adminName1 = cachedData[@"adminName1"];
@@ -498,22 +536,32 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
                 displayLocation = localName;
             }
 
+            // API 缓存结果仍为"未知"时，用 region 兜底
             if (displayLocation.length == 0 || [displayLocation isEqualToString:@"未知"]) {
-                NSString *fallbackLocation = [DYYYUtils fallbackLocationFromIPAttribution:model];
-                if (fallbackLocation.length > 0) {
-                    displayLocation = fallbackLocation;
+                if (regionCode.length > 0) {
+                    NSString *regionName = [CityManager.sharedInstance getCountryNameWithCode:regionCode];
+                    if (regionName.length > 0) {
+                        displayLocation = regionName;
+                    }
+                }
+                if (displayLocation.length == 0 || [displayLocation isEqualToString:@"未知"]) {
+                    NSString *fallbackLocation = [DYYYUtils fallbackLocationFromIPAttribution:model];
+                    if (fallbackLocation.length > 0) {
+                        displayLocation = fallbackLocation;
+                    }
                 }
             }
 
             dispatch_async(dispatch_get_main_queue(), ^{
               NSString *currentRequestCode = objc_getAssociatedObject(label, kCurrentIPRequestCityCodeKey);
-              if (![currentRequestCode isEqualToString:cityCode]) {
+              if (![currentRequestCode isEqualToString:requestKey]) {
                   return;
               }
 
               DYYYApplyDisplayLocationToLabel(label, displayLocation, colorHexString);
             });
         } else {
+            __block NSString *capturedRegionCode = [regionCode copy];
             [CityManager fetchLocationWithGeonameId:cityCode
                                   completionHandler:^(NSDictionary *locationInfo, NSError *error) {
                                     __block NSString *displayLocation = @"未知";
@@ -523,6 +571,15 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
                                             displayLocation = [DYYYUtils displayLocationForGeoNamesError:error model:model];
                                         } else {
                                             NSLog(@"[DYYY] GeoNames fetch failed: %@", error.localizedDescription);
+                                        }
+                                        // 优先级 3：API 失败时用 region 兜底
+                                        if ([displayLocation isEqualToString:@"未知"] && capturedRegionCode.length > 0) {
+                                            NSString *regionName = [CityManager.sharedInstance getCountryNameWithCode:capturedRegionCode];
+                                            if (regionName.length > 0) {
+                                                displayLocation = regionName;
+                                            }
+                                        }
+                                        if ([displayLocation isEqualToString:@"未知"]) {
                                             NSString *fallbackLocation = [DYYYUtils fallbackLocationFromIPAttribution:model];
                                             if (fallbackLocation.length > 0) {
                                                 displayLocation = fallbackLocation;
@@ -548,10 +605,19 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
                                             shouldCacheLocation = YES;
                                         }
 
+                                        // API 返回空数据时用 region 兜底
                                         if (displayLocation.length == 0 || [displayLocation isEqualToString:@"未知"]) {
-                                            NSString *fallbackLocation = [DYYYUtils fallbackLocationFromIPAttribution:model];
-                                            if (fallbackLocation.length > 0) {
-                                                displayLocation = fallbackLocation;
+                                            if (capturedRegionCode.length > 0) {
+                                                NSString *regionName = [CityManager.sharedInstance getCountryNameWithCode:capturedRegionCode];
+                                                if (regionName.length > 0) {
+                                                    displayLocation = regionName;
+                                                }
+                                            }
+                                            if (displayLocation.length == 0 || [displayLocation isEqualToString:@"未知"]) {
+                                                NSString *fallbackLocation = [DYYYUtils fallbackLocationFromIPAttribution:model];
+                                                if (fallbackLocation.length > 0) {
+                                                    displayLocation = fallbackLocation;
+                                                }
                                             }
                                             shouldCacheLocation = NO;
                                         }
@@ -567,7 +633,7 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
 
                                     dispatch_async(dispatch_get_main_queue(), ^{
                                       NSString *currentRequestCode = objc_getAssociatedObject(label, kCurrentIPRequestCityCodeKey);
-                                      if (![currentRequestCode isEqualToString:cityCode]) {
+                                      if (![currentRequestCode isEqualToString:requestKey]) {
                                           return;
                                       }
 
@@ -575,26 +641,15 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
                                     });
                                   }];
         }
+        return;
     }
 
-    else if (![originalText containsString:cityName]) {
-        BOOL isDirectCity = [provinceName isEqualToString:cityName] || ([cityCode hasPrefix:@"11"] || [cityCode hasPrefix:@"12"] || [cityCode hasPrefix:@"31"] || [cityCode hasPrefix:@"50"]);
-        if (!model.ipAttribution) {
-            if (isDirectCity) {
-                label.text = [NSString stringWithFormat:@"%@  IP属地：%@", originalText, cityName];
-            } else {
-                label.text = [NSString stringWithFormat:@"%@  IP属地：%@ %@", originalText, provinceName, cityName];
-            }
-        } else {
-            BOOL containsProvince = [originalText containsString:provinceName];
-            BOOL containsCity = [originalText containsString:cityName];
-            if (containsProvince && !isDirectCity && !containsCity) {
-                label.text = [NSString stringWithFormat:@"%@ %@", originalText, cityName];
-            } else if (isDirectCity && !containsCity) {
-                label.text = [NSString stringWithFormat:@"%@  IP属地：%@", originalText, cityName];
-            }
+    // 优先级 3：没有 cityCode，仅有 regionCode 时直接用 region 兜底
+    if (regionCode.length > 0) {
+        NSString *regionName = [CityManager.sharedInstance getCountryNameWithCode:regionCode];
+        if (regionName.length > 0) {
+            DYYYApplyDisplayLocationToLabel(label, regionName, colorHexString);
         }
-        [DYYYUtils applyColorSettingsToLabel:label colorHexString:colorHexString];
     }
 }
 

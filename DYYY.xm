@@ -1616,6 +1616,7 @@ static BOOL DYYYShouldHandleSpeedFeatures(void) {
 
     NSString *cacheKey = cityCode.length > 0 ? cityCode : regionCode;
 
+    // 优先级 0：查缓存
     NSString *cachedLocation = [locationCache objectForKey:cacheKey];
     if (cachedLocation) {
         updateLabelWithLocation(label, cachedLocation);
@@ -1634,67 +1635,90 @@ static BOOL DYYYShouldHandleSpeedFeatures(void) {
         return label;
     }
 
+    // 优先级 1：根据 cityCode 查本地城市映射表
     NSString *displayLocation = nil;
-
     if (cityCode.length > 0) {
         displayLocation = [CityManager.sharedInstance getCityNameWithCode:cityCode];
-
-        if (!displayLocation && regionCode.length > 0) {
-            displayLocation = [CityManager.sharedInstance getCountryNameWithCode:regionCode];
-        }
-
-        if (!displayLocation) {
-            @synchronized(inFlight) {
-                if ([inFlight containsObject:cityCode]) {
-                    return label;
-                }
-                [inFlight addObject:cityCode];
-            }
-
-            [CityManager fetchLocationWithGeonameId:cityCode completionHandler:^(NSDictionary *locationInfo, NSError *error) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    @synchronized(inFlight) {
-                        [inFlight removeObject:cityCode];
-                    }
-
-                    NSString *apiLocation = nil;
-
-                    if (!error && locationInfo) {
-                        NSString *cityName = locationInfo[@"adminName1"];
-                        NSString *countryName = locationInfo[@"countryName"];
-
-                        if (cityName && countryName) {
-                            if ([cityName isEqualToString:countryName]) {
-                                apiLocation = countryName;
-                            } else {
-                                apiLocation = [NSString stringWithFormat:@"%@ %@", countryName, cityName];
-                            }
-                        } else if (countryName) {
-                            apiLocation = countryName;
-                        } else if (cityName) {
-                            apiLocation = cityName;
-                        }
-                    }
-
-                    if (apiLocation) {
-                        [locationCache setObject:apiLocation forKey:cacheKey];
-                        updateLabelWithLocation(label, apiLocation);
-                    }
-                });
-            }];
-
-            return label;
-        }
     }
 
-    if (!displayLocation && !cityCode && regionCode.length > 0) {
+    // 本地映射命中，直接返回
+    if (displayLocation) {
+        [locationCache setObject:displayLocation forKey:cacheKey];
+        updateLabelWithLocation(label, displayLocation);
+
+        NSString *ipScaleValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYNicknameScale"];
+        if (ipScaleValue.length > 0) {
+            UIFont *originalFont = label.font;
+            CGFloat offset = DYYYGetFloat(@"DYYYIPLabelVerticalOffset");
+            if (offset > 0) {
+                label.transform = CGAffineTransformMakeTranslation(0, -offset);
+            } else {
+                label.transform = CGAffineTransformMakeTranslation(0, -3);
+            }
+            label.font = originalFont;
+        }
+        return label;
+    }
+
+    // 优先级 2：通过 GeoNames API 查询（需要有 cityCode）
+    if (cityCode.length > 0) {
+        @synchronized(inFlight) {
+            if ([inFlight containsObject:cityCode]) {
+                return label;
+            }
+            [inFlight addObject:cityCode];
+        }
+
+        __block NSString *capturedRegionCode = [regionCode copy];
+        [CityManager fetchLocationWithGeonameId:cityCode completionHandler:^(NSDictionary *locationInfo, NSError *error) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                @synchronized(inFlight) {
+                    [inFlight removeObject:cityCode];
+                }
+
+                NSString *apiLocation = nil;
+
+                if (!error && locationInfo) {
+                    NSString *cityName = locationInfo[@"adminName1"];
+                    NSString *countryName = locationInfo[@"countryName"];
+
+                    if (cityName && countryName) {
+                        if ([cityName isEqualToString:countryName]) {
+                            apiLocation = countryName;
+                        } else {
+                            apiLocation = [NSString stringWithFormat:@"%@ %@", countryName, cityName];
+                        }
+                    } else if (countryName) {
+                        apiLocation = countryName;
+                    } else if (cityName) {
+                        apiLocation = cityName;
+                    }
+                }
+
+                // 优先级 3：API 失败/无结果时，根据 region 国家代码兜底
+                if (!apiLocation && capturedRegionCode.length > 0) {
+                    apiLocation = [CityManager.sharedInstance getCountryNameWithCode:capturedRegionCode];
+                }
+
+                if (apiLocation) {
+                    [locationCache setObject:apiLocation forKey:cacheKey];
+                    updateLabelWithLocation(label, apiLocation);
+                } else {
+                    updateLabelWithLocation(label, @"未知地区");
+                }
+            });
+        }];
+
+        return label;
+    }
+
+    // 没有 cityCode，仅有 regionCode 时直接用 region 兜底
+    if (regionCode.length > 0) {
         displayLocation = [CityManager.sharedInstance getCountryNameWithCode:regionCode];
     }
 
     if (!displayLocation) {
         displayLocation = @"未知地区";
-        updateLabelWithLocation(label, displayLocation);
-        return label;
     }
 
     [locationCache setObject:displayLocation forKey:cacheKey];
