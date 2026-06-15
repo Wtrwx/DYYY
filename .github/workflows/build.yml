@@ -17,6 +17,7 @@ on:
       - '*.S'
       - 'DYYY.plist'
       - 'control'
+      - 'Makefile'
       - 'Resources/**'
       - 'layout/**'
   workflow_dispatch:
@@ -36,7 +37,33 @@ permissions:
   contents: write
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.relevance.outputs.should_build }}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect build-relevant changes
+        id: relevance
+        env:
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]] ||
+             .github/scripts/build-relevance.sh range "$PUSH_BEFORE" "$GITHUB_SHA"; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            echo "Build-relevant plugin, package, or Makefile changes detected."
+          else
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+            echo "Only non-build Makefile settings changed; skipping Deb build and Release."
+          fi
+
   build:
+    needs: changes
+    if: needs.changes.outputs.should_build == 'true'
     runs-on: macos-latest
 
     steps:
