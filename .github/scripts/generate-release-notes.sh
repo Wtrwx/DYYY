@@ -11,13 +11,14 @@ zero_sha="0000000000000000000000000000000000000000"
 features_file=$(mktemp)
 improvements_file=$(mktemp)
 fixes_file=$(mktemp)
-trap 'rm -f "$features_file" "$improvements_file" "$fixes_file"' EXIT
+package_file=$(mktemp)
+trap 'rm -f "$features_file" "$improvements_file" "$fixes_file" "$package_file"' EXIT
 
 is_plugin_file() {
     local path=$1
 
     case "$path" in
-        DYYY.plist|Resources/*|layout/*)
+        DYYY.plist|control|Resources/*|layout/*)
             return 0
             ;;
     esac
@@ -31,6 +32,13 @@ is_plugin_file() {
     fi
 
     return 1
+}
+
+commit_touches_control() {
+    local hash=$1
+
+    git diff-tree --root --no-commit-id --name-only -r "$hash" |
+        grep -Fxq 'control'
 }
 
 commit_touches_plugin() {
@@ -74,6 +82,28 @@ while IFS=$'\t' read -r hash subject; do
     short_hash=${hash:0:8}
     entry="- **${subject}** ([\`${short_hash}\`](${server_url}/${repository}/commit/${hash}))"
 
+    if commit_touches_control "$hash"; then
+        previous_version=$(
+            git show "${hash}^:control" 2>/dev/null |
+                awk -F': ' '$1 == "Version" { print $2; exit }' || true
+        )
+        current_version=$(
+            git show "${hash}:control" 2>/dev/null |
+                awk -F': ' '$1 == "Version" { print $2; exit }' || true
+        )
+
+        if [[ -n "$current_version" && "$previous_version" != "$current_version" ]]; then
+            if [[ -n "$previous_version" ]]; then
+                entry="- **版本更新：\`${previous_version}\` → \`${current_version}\`** ([\`${short_hash}\`](${server_url}/${repository}/commit/${hash}))"
+            else
+                entry="- **版本设置为 \`${current_version}\`** ([\`${short_hash}\`](${server_url}/${repository}/commit/${hash}))"
+            fi
+        fi
+
+        printf '%s\n' "$entry" >> "$package_file"
+        continue
+    fi
+
     case "$subject" in
         新增*|增加*|添加*|支持*|引入*|实现*|feat:*|feat\(*|Feature*|Add*)
             printf '%s\n' "$entry" >> "$features_file"
@@ -90,7 +120,7 @@ done < <(git log --reverse --format=$'%H\t%s' "$commit_range")
 cat > "$notes_file" <<EOF
 # 更新日志
 
-本次构建包含 ${relevant_count} 项插件功能变更，以下为详细更新内容：
+本次构建包含 ${relevant_count} 项插件或版本变更，以下为详细更新内容：
 EOF
 
 append_section() {
@@ -106,9 +136,10 @@ append_section() {
 append_section "新增功能" "$features_file"
 append_section "体验优化与调整" "$improvements_file"
 append_section "问题修复" "$fixes_file"
+append_section "版本与打包信息" "$package_file"
 
 if (( relevant_count == 0 )); then
-    printf '\n本次手动构建未检测到新的插件功能变更。\n' >> "$notes_file"
+    printf '\n本次手动构建未检测到新的插件功能或版本变更。\n' >> "$notes_file"
 fi
 
 cat >> "$notes_file" <<'EOF'

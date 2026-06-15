@@ -16,6 +16,7 @@ on:
       - '*.s'
       - '*.S'
       - 'DYYY.plist'
+      - 'control'
       - 'Resources/**'
       - 'layout/**'
   workflow_dispatch:
