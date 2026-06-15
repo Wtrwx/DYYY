@@ -4,6 +4,20 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '*.h'
+      - '*.m'
+      - '*.mm'
+      - '*.x'
+      - '*.xm'
+      - '*.c'
+      - '*.cc'
+      - '*.cpp'
+      - '*.s'
+      - '*.S'
+      - 'DYYY.plist'
+      - 'Resources/**'
+      - 'layout/**'
   workflow_dispatch:
     inputs:
       scheme:
