@@ -22,7 +22,8 @@ revert_file=$(mktemp)
 records_file=$(mktemp)
 skip_file=$(mktemp)
 contributors_file=$(mktemp)
-trap 'rm -f "$feat_file" "$fix_file" "$perf_file" "$refactor_file" "$docs_file" "$style_file" "$chore_file" "$revert_file" "$records_file" "$skip_file" "$contributors_file"' EXIT
+groups_file=$(mktemp)
+trap 'rm -f "$feat_file" "$fix_file" "$perf_file" "$refactor_file" "$docs_file" "$style_file" "$chore_file" "$revert_file" "$records_file" "$skip_file" "$contributors_file" "$groups_file"' EXIT
 
 trim_text() {
     local value=$1
@@ -208,6 +209,22 @@ keyword_content_for_subject() {
     esac
 }
 
+feature_group_for_subject() {
+    local subject=$1
+
+    case "$subject" in
+        *快捷倍速*|*倍速侧边*|*倍速锁定*|*倍速长按*|*倍速设置*|*倍速悬浮*|*倍速按钮*)
+            printf '快捷倍速'
+            ;;
+        *隐藏头像及周边*|*头像加号*|*圆形底板*)
+            printf '隐藏头像及周边'
+            ;;
+        *推荐音乐过滤*|*推荐低赞过滤*|*搜索视频广告*|*推荐特效*|*合集*广告*)
+            printf '推荐流过滤'
+            ;;
+    esac
+}
+
 summarize_commit_title() {
     local hash=$1
     local subject=$2
@@ -288,6 +305,62 @@ summarize_commit_title() {
     esac
 }
 
+normalize_group_text() {
+    local value=$1
+
+    value=$(strip_commit_type_prefix "$value")
+    value=$(printf '%s' "$value" |
+        sed -E 's/^(新增|增加|添加|支持|引入|实现|兜底修复|修复|解决|恢复|纠正|修改|调整|优化|完善|重构|简化|清理|整理|更新|规范|回滚|撤销|取消)[[:space:]:：]*//')
+    value=$(printf '%s' "$value" |
+        sed -E 's/(相关功能|相关问题|相关逻辑|相关配置|已知问题|的问题|问题|异常|失效|漏放|不能|闪退|逻辑|功能|选项|状态|改动|变更|同步|显示|隐藏|判定|配置|结构)$//')
+    value=$(printf '%s' "$value" |
+        tr -d '[:space:]' |
+        sed -E 's/[[:punct:]，。；：“”"'\''（）()、]//g')
+
+    printf '%s' "$value"
+}
+
+summary_group_key() {
+    local hash=$1
+    local subject=$2
+    local commit_type=$3
+    local summary_title=$4
+    local feature_group
+    local keyword_content
+    local normalized
+
+    if commit_touches_control "$hash"; then
+        printf 'version:版本号'
+        return
+    fi
+
+    if commit_touches_path "$hash" "Makefile" &&
+       ! commit_touches_direct_build_path "$hash"; then
+        printf 'build:Deb 构建配置'
+        return
+    fi
+
+    feature_group=$(feature_group_for_subject "$subject")
+    if [[ -n "$feature_group" ]]; then
+        printf 'feature:%s' "$feature_group"
+        return
+    fi
+
+    keyword_content=$(keyword_content_for_subject "$subject" "$commit_type")
+    if [[ -n "$keyword_content" ]]; then
+        printf 'keyword:%s' "$keyword_content"
+        return
+    fi
+
+    normalized=$(normalize_group_text "$summary_title")
+    if [[ -n "$normalized" ]]; then
+        printf 'text:%s' "$normalized"
+        return
+    fi
+
+    printf 'hash:%s' "$hash"
+}
+
 section_file_for_type() {
     case "$1" in
         feat) printf '%s' "$feat_file" ;;
@@ -303,14 +376,20 @@ section_file_for_type() {
 
 reverted_commit_hash() {
     local hash=$1
+    local body
     local target_hash
     local resolved_hash
 
-    target_hash=$(
-        git show -s --format=%B "$hash" |
-            sed -nE 's/^This reverts commit ([0-9a-fA-F]{7,40})\.$/\1/p' |
-            head -n 1
-    )
+    body=$(git show -s --format=%B "$hash")
+    target_hash=$(printf '%s\n' "$body" |
+        sed -nE 's/^This reverts commit ([0-9a-fA-F]{7,40})\.$/\1/p' |
+        head -n 1)
+
+    if [[ -z "$target_hash" ]]; then
+        target_hash=$(printf '%s\n' "$body" |
+            grep -Eoi '[0-9a-f]{7,40}' |
+            head -n 1 || true)
+    fi
 
     if [[ -z "$target_hash" ]]; then
         return
@@ -318,6 +397,17 @@ reverted_commit_hash() {
 
     resolved_hash=$(git rev-parse --verify "${target_hash}^{commit}" 2>/dev/null || true)
     printf '%s' "${resolved_hash:-$target_hash}"
+}
+
+record_hash_for() {
+    local target_hash=$1
+
+    awk -F $'\t' -v target="$target_hash" '
+        $1 == target || index($1, target) == 1 || index(target, $1) == 1 {
+            print $1
+            exit
+        }
+    ' "$records_file"
 }
 
 reverted_subject_from_title() {
@@ -343,7 +433,7 @@ normalize_revert_match_text() {
     value=$(printf '%s' "$value" |
         sed -E 's/^(新增|增加|添加|支持|引入|实现|修复|解决|恢复|纠正|修改|调整|优化|完善|重构|简化|清理|整理)[[:space:]:：]*//')
     value=$(printf '%s' "$value" |
-        sed -E 's/(的问题|问题|逻辑|优化|功能|选项|状态)$//')
+        sed -E 's/(的问题|问题|逻辑|优化|功能|选项|状态|改动|变更|同步|显示|隐藏|判定|异常|失效|不能|闪退)$//')
     value=$(printf '%s' "$value" |
         tr -d '[:space:]' |
         sed -E 's/[[:punct:]，。；：“”"'\''（）()、]//g')
@@ -351,17 +441,22 @@ normalize_revert_match_text() {
     printf '%s' "$value"
 }
 
-record_contains_hash() {
-    local target_hash=$1
+revert_key_matches_candidate() {
+    local target_key=$1
+    local candidate_key=$2
 
-    awk -F $'\t' -v target="$target_hash" '
-        $1 == target || index($1, target) == 1 || index(target, $1) == 1 {
-            found = 1
-        }
-        END {
-            exit found ? 0 : 1
-        }
-    ' "$records_file"
+    [[ -n "$target_key" && -n "$candidate_key" ]] || return 1
+
+    if [[ "$target_key" == "$candidate_key" ]]; then
+        return 0
+    fi
+
+    if (( ${#target_key} >= 6 && ${#candidate_key} >= 6 )); then
+        [[ "$target_key" == *"$candidate_key"* || "$candidate_key" == *"$target_key"* ]]
+        return
+    fi
+
+    return 1
 }
 
 mark_skip_pair() {
@@ -376,6 +471,7 @@ detect_same_range_reverts() {
     local subject
     local commit_type
     local target_hash
+    local matched_hash
     local target_subject
     local target_key
     local candidate_hash
@@ -388,8 +484,12 @@ detect_same_range_reverts() {
         [[ "$commit_type" == "revert" ]] || continue
 
         target_hash=$(reverted_commit_hash "$hash")
-        if [[ -n "$target_hash" ]] && record_contains_hash "$target_hash"; then
-            mark_skip_pair "$hash" "$target_hash"
+        matched_hash=""
+        if [[ -n "$target_hash" ]]; then
+            matched_hash=$(record_hash_for "$target_hash")
+        fi
+        if [[ -n "$matched_hash" ]]; then
+            mark_skip_pair "$hash" "$matched_hash"
             continue
         fi
 
@@ -402,9 +502,10 @@ detect_same_range_reverts() {
         while IFS=$'\t' read -r candidate_hash candidate_subject candidate_type; do
             [[ -n "$candidate_hash" ]] || continue
             [[ "$candidate_hash" == "$hash" ]] && continue
+            git merge-base --is-ancestor "$candidate_hash" "$hash" 2>/dev/null || continue
 
             candidate_key=$(normalize_revert_match_text "$candidate_subject")
-            if [[ -n "$candidate_key" && "$candidate_key" == "$target_key" ]]; then
+            if revert_key_matches_candidate "$target_key" "$candidate_key"; then
                 mark_skip_pair "$hash" "$candidate_hash"
                 break
             fi
@@ -415,7 +516,120 @@ detect_same_range_reverts() {
 commit_is_skipped() {
     local hash=$1
 
-    grep -Fxq "$hash" "$skip_file"
+    awk -v target="$hash" '
+        $1 == target || index($1, target) == 1 || index(target, $1) == 1 {
+            found = 1
+        }
+        END {
+            exit found ? 0 : 1
+        }
+    ' "$skip_file"
+}
+
+group_label() {
+    local group_key=$1
+
+    printf '%s' "${group_key#*:}"
+}
+
+aggregate_group_title() {
+    local commit_type=$1
+    local group_key=$2
+    local titles_file=$3
+    local title_count=$4
+    local label
+
+    if (( title_count <= 1 )); then
+        head -n 1 "$titles_file"
+        return
+    fi
+
+    label=$(group_label "$group_key")
+    case "$label" in
+        版本号)
+            printf '更新版本号'
+            return
+            ;;
+        Deb\ 构建配置)
+            printf '调整 Deb 构建配置'
+            return
+            ;;
+    esac
+
+    case "$commit_type" in
+        feat)
+            printf '新增%s相关功能' "$label"
+            ;;
+        fix)
+            printf '修正%s相关问题' "$label"
+            ;;
+        perf)
+            printf '优化%s运行表现' "$label"
+            ;;
+        refactor)
+            printf '整理%s相关逻辑' "$label"
+            ;;
+        docs)
+            printf '更新%s相关说明' "$label"
+            ;;
+        style)
+            printf '规范%s相关格式' "$label"
+            ;;
+        revert)
+            printf '回滚%s相关变更' "$label"
+            ;;
+        *)
+            printf '调整%s相关配置' "$label"
+            ;;
+    esac
+}
+
+append_grouped_entries_for_type() {
+    local commit_type=$1
+    local section_file=$2
+    local group_key
+    local title
+    local hash
+    local short_hash
+    local title_count
+    local hash_links
+    local summary_title
+    local titles_file
+
+    while IFS= read -r group_key; do
+        [[ -n "$group_key" ]] || continue
+
+        titles_file=$(mktemp)
+        hash_links=""
+        while IFS=$'\t' read -r title hash; do
+            [[ -n "$hash" ]] || continue
+            if ! grep -Fxq "$title" "$titles_file"; then
+                printf '%s\n' "$title" >> "$titles_file"
+            fi
+
+            short_hash=${hash:0:8}
+            if [[ -n "$hash_links" ]]; then
+                hash_links+=", "
+            fi
+            hash_links+="[\`${short_hash}\`](${server_url}/${repository}/commit/${hash})"
+        done < <(
+            awk -F $'\t' -v type="$commit_type" -v key="$group_key" '
+                $1 == type && $2 == key { print $3 "\t" $4 }
+            ' "$groups_file"
+        )
+
+        title_count=$(awk 'NF { count++ } END { print count + 0 }' "$titles_file")
+        summary_title=$(aggregate_group_title "$commit_type" "$group_key" "$titles_file" "$title_count")
+        rm -f "$titles_file"
+
+        if [[ -n "$summary_title" && -n "$hash_links" ]]; then
+            printf -- '- `%s` **%s** (%s)\n' "$commit_type" "$summary_title" "$hash_links" >> "$section_file"
+        fi
+    done < <(
+        awk -F $'\t' -v type="$commit_type" '
+            $1 == type && !seen[$2]++ { print $2 }
+        ' "$groups_file"
+    )
 }
 
 commit_touches_control() {
@@ -546,12 +760,21 @@ while IFS=$'\t' read -r hash subject commit_type; do
     fi
 
     relevant_count=$((relevant_count + 1))
-    short_hash=${hash:0:8}
     summary_title=$(summarize_commit_title "$hash" "$subject" "$commit_type")
-    entry="- \`${commit_type}\` **${summary_title}** ([\`${short_hash}\`](${server_url}/${repository}/commit/${hash}))"
-    printf '%s\n' "$entry" >> "$(section_file_for_type "$commit_type")"
+    group_key=$(summary_group_key "$hash" "$subject" "$commit_type" "$summary_title")
+    summary_title=$(printf '%s' "$summary_title" | tr '\t' ' ')
+    printf '%s\t%s\t%s\t%s\n' "$commit_type" "$group_key" "$summary_title" "$hash" >> "$groups_file"
     record_contributor_for_commit "$hash"
 done < "$records_file"
+
+append_grouped_entries_for_type "feat" "$feat_file"
+append_grouped_entries_for_type "fix" "$fix_file"
+append_grouped_entries_for_type "perf" "$perf_file"
+append_grouped_entries_for_type "refactor" "$refactor_file"
+append_grouped_entries_for_type "docs" "$docs_file"
+append_grouped_entries_for_type "style" "$style_file"
+append_grouped_entries_for_type "chore" "$chore_file"
+append_grouped_entries_for_type "revert" "$revert_file"
 
 cat > "$notes_file" <<EOF
 ## ${release_title} 更新日志
