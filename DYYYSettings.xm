@@ -53,6 +53,8 @@ static BOOL DYYYSettingsSearchIndexBuilt = NO;
 static NSString *const kDYYYFeedNowPlayingSettingTitle = @"屏蔽灵动岛抖音播放信息";
 static NSString *const kDYYYFeedNowPlayingSettingIdentifier = @"DYYYDisableFeedNowPlayingInfo";
 static NSString *const kDYYYFeedNowPlayingSVGIconName = @"ic_liveactivityplayslash_outlined_20";
+static NSString *const kDYYYCommentPausePlaybackSettingIdentifier = @"DYYYCommentPausePlayback";
+static NSString *const kDYYYCommentPausePlaybackSVGIconName = @"ic_commentpause_dyyy_outlined_20";
 
 static UIImage *DYYYFeedNowPlayingSVGIcon(CGSize requestedSize) {
     CGSize targetSize = requestedSize;
@@ -128,6 +130,80 @@ static UIImage *DYYYFeedNowPlayingSVGIcon(CGSize requestedSize) {
     return image;
 }
 
+static UIImage *DYYYCommentPausePlaybackIcon(CGSize requestedSize) {
+    CGSize targetSize = requestedSize;
+    if (targetSize.width <= 0 || targetSize.height <= 0) {
+        targetSize = CGSizeMake(20, 20);
+    }
+
+    static NSCache<NSString *, UIImage *> *imageCache;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+      imageCache = [[NSCache alloc] init];
+    });
+
+    NSString *cacheKey = NSStringFromCGSize(targetSize);
+    UIImage *cachedImage = [imageCache objectForKey:cacheKey];
+    if (cachedImage) {
+        return cachedImage;
+    }
+
+    UIGraphicsBeginImageContextWithOptions(targetSize, NO, 0);
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    if (!context) {
+        UIGraphicsEndImageContext();
+        return nil;
+    }
+
+    CGContextScaleCTM(context, targetSize.width / 20.0, targetSize.height / 20.0);
+    UIColor *iconColor = [UIColor colorWithRed:22.0 / 255.0 green:24.0 / 255.0 blue:35.0 / 255.0 alpha:1.0];
+    CGContextSetStrokeColorWithColor(context, iconColor.CGColor);
+    CGContextSetFillColorWithColor(context, iconColor.CGColor);
+    CGContextSetLineCap(context, kCGLineCapRound);
+    CGContextSetLineJoin(context, kCGLineJoinRound);
+    CGContextSetLineWidth(context, 1.55);
+
+    UIBezierPath *bubble = [UIBezierPath bezierPath];
+    [bubble moveToPoint:CGPointMake(6.25, 3.8)];
+    [bubble addLineToPoint:CGPointMake(13.6, 3.8)];
+    [bubble addCurveToPoint:CGPointMake(17.0, 7.2)
+              controlPoint1:CGPointMake(15.65, 3.8)
+              controlPoint2:CGPointMake(17.0, 5.15)];
+    [bubble addLineToPoint:CGPointMake(17.0, 10.35)];
+    [bubble addCurveToPoint:CGPointMake(13.6, 13.75)
+              controlPoint1:CGPointMake(17.0, 12.4)
+              controlPoint2:CGPointMake(15.65, 13.75)];
+    [bubble addLineToPoint:CGPointMake(9.2, 13.75)];
+    [bubble addLineToPoint:CGPointMake(5.55, 16.6)];
+    [bubble addCurveToPoint:CGPointMake(4.55, 15.9)
+              controlPoint1:CGPointMake(5.1, 16.95)
+              controlPoint2:CGPointMake(4.55, 16.65)];
+    [bubble addLineToPoint:CGPointMake(4.55, 13.25)];
+    [bubble addCurveToPoint:CGPointMake(3.0, 10.35)
+              controlPoint1:CGPointMake(3.55, 12.6)
+              controlPoint2:CGPointMake(3.0, 11.55)];
+    [bubble addLineToPoint:CGPointMake(3.0, 7.2)];
+    [bubble addCurveToPoint:CGPointMake(6.25, 3.8)
+              controlPoint1:CGPointMake(3.0, 5.15)
+              controlPoint2:CGPointMake(4.25, 3.8)];
+    [bubble stroke];
+
+    CGContextSetLineWidth(context, 1.85);
+    CGContextMoveToPoint(context, 8.35, 7.05);
+    CGContextAddLineToPoint(context, 8.35, 11.45);
+    CGContextMoveToPoint(context, 11.65, 7.05);
+    CGContextAddLineToPoint(context, 11.65, 11.45);
+    CGContextStrokePath(context);
+
+    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    image = [image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+    if (image) {
+        [imageCache setObject:image forKey:cacheKey];
+    }
+    return image;
+}
+
 @interface AWESettingsTableViewCell : UITableViewCell
 @property(nonatomic, strong) AWESettingItemModel *itemModel;
 @property(nonatomic, strong) UILabel *titleLabel;
@@ -136,18 +212,25 @@ static UIImage *DYYYFeedNowPlayingSVGIcon(CGSize requestedSize) {
 - (void)updateSubviewsAfterLayout;
 @end
 
-static void DYYYApplyFeedNowPlayingIconToCell(AWESettingsTableViewCell *cell) {
+static void DYYYApplyGeneratedSettingIconToCell(AWESettingsTableViewCell *cell) {
     AWESettingItemModel *itemModel = cell.itemModel;
-    if (![itemModel.identifier isEqualToString:kDYYYFeedNowPlayingSettingIdentifier]) {
-        return;
-    }
-
     UIImageView *iconView = cell.iconImageView;
     if (!iconView) {
         return;
     }
 
-    iconView.image = DYYYFeedNowPlayingSVGIcon(iconView.bounds.size);
+    UIImage *iconImage = nil;
+    if ([itemModel.identifier isEqualToString:kDYYYFeedNowPlayingSettingIdentifier]) {
+        iconImage = DYYYFeedNowPlayingSVGIcon(iconView.bounds.size);
+    } else if ([itemModel.identifier isEqualToString:kDYYYCommentPausePlaybackSettingIdentifier]) {
+        iconImage = DYYYCommentPausePlaybackIcon(iconView.bounds.size);
+    }
+
+    if (!iconImage) {
+        return;
+    }
+
+    iconView.image = iconImage;
     iconView.contentMode = UIViewContentModeScaleAspectFit;
     iconView.hidden = NO;
     iconView.alpha = 1.0;
@@ -695,7 +778,7 @@ static void DYYYBuildSettingsSearchIndexIfNeeded(NSArray<AWESettingItemModel *> 
     [coordinator updateLayout];
     for (AWESettingsTableViewCell *cell in self.tableView.visibleCells) {
         if ([cell isKindOfClass:%c(AWESettingsTableViewCell)]) {
-            DYYYApplyFeedNowPlayingIconToCell(cell);
+            DYYYApplyGeneratedSettingIconToCell(cell);
         }
     }
 }
@@ -723,17 +806,17 @@ static void DYYYBuildSettingsSearchIndexIfNeeded(NSArray<AWESettingItemModel *> 
 
 - (void)setItemModel:(AWESettingItemModel *)itemModel {
     %orig;
-    DYYYApplyFeedNowPlayingIconToCell(self);
+    DYYYApplyGeneratedSettingIconToCell(self);
 }
 
 - (void)updateSubviews {
     %orig;
-    DYYYApplyFeedNowPlayingIconToCell(self);
+    DYYYApplyGeneratedSettingIconToCell(self);
 }
 
 - (void)updateSubviewsAfterLayout {
     %orig;
-    DYYYApplyFeedNowPlayingIconToCell(self);
+    DYYYApplyGeneratedSettingIconToCell(self);
 }
 
 %end
@@ -3519,6 +3602,14 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
               @"detail" : @"",
               @"cellType" : @37,
               @"imageName" : @"ic_dansquare_outlined_20"
+          },
+          @{
+              @"identifier" : kDYYYCommentPausePlaybackSettingIdentifier,
+              @"title" : @"查看评论暂停播放",
+              @"subTitle" : @"打开评论区时暂停当前播放",
+              @"detail" : @"",
+              @"cellType" : @37,
+              @"imageName" : kDYYYCommentPausePlaybackSVGIconName
           },
           @{
               @"identifier" : @"DYYYEnableDoubleTapMenu",

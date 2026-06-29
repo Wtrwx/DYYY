@@ -227,6 +227,8 @@ static __weak AWEAwemeModel *dyyyCurrentSpeedAweme = nil;
 static NSString *dyyyLastAutoRestoredSpeedAwemeIdentifier = nil;
 static BOOL dyyyLongPressFastSpeedActive = NO;
 static BOOL dyyyLongPressLockedSpeedActive = NO;
+static __weak id dyyyCommentPausePlaybackTarget = nil;
+static BOOL dyyyCommentPausePlaybackActive = NO;
 
 static void DYYYClearLongPressSpeedState(void) {
     dyyyLongPressFastSpeedActive = NO;
@@ -533,6 +535,155 @@ static BOOL DYYYApplyPlaybackSpeed(AWEPlayInteractionViewController *interaction
 
 static BOOL DYYYApplyPlaybackSpeedToVisiblePlayer(double speed) {
     return DYYYSetPlaybackRateOnTarget(DYYYBestVisiblePlaybackRateTarget(nil), speed);
+}
+
+static BOOL DYYYPlaybackTargetSupportsPlayPause(id target) {
+    return target &&
+           [target respondsToSelector:@selector(play)] &&
+           [target respondsToSelector:@selector(pause)] &&
+           [target respondsToSelector:@selector(isPlaying)];
+}
+
+static id DYYYObjectReturnedBySelector(id object, SEL selector) {
+    if (!object || ![object respondsToSelector:selector]) {
+        return nil;
+    }
+
+    @try {
+        id (*messageSend)(id, SEL) = (id (*)(id, SEL))objc_msgSend;
+        return messageSend(object, selector);
+    } @catch (NSException *exception) {
+        return nil;
+    }
+}
+
+static id DYYYPlaybackControlTargetFromObject(id object) {
+    if (DYYYPlaybackTargetSupportsPlayPause(object)) {
+        return object;
+    }
+
+    SEL directSelectors[] = {
+        @selector(playVideoViewController),
+        @selector(playerViewController),
+        @selector(videoDelegate),
+        @selector(player),
+    };
+
+    for (NSUInteger i = 0; i < sizeof(directSelectors) / sizeof(SEL); i++) {
+        id candidate = DYYYObjectReturnedBySelector(object, directSelectors[i]);
+        if (DYYYPlaybackTargetSupportsPlayPause(candidate)) {
+            return candidate;
+        }
+
+        id nestedPlayer = DYYYObjectReturnedBySelector(candidate, @selector(player));
+        if (DYYYPlaybackTargetSupportsPlayPause(nestedPlayer)) {
+            return nestedPlayer;
+        }
+    }
+
+    return nil;
+}
+
+static id DYYYResolveCommentPausePlaybackTarget(void) {
+    AWEPlayInteractionViewController *interactionController = DYYYResolveCurrentSpeedInteractionController(nil);
+    Protocol *speedControllerProtocol = NSProtocolFromString(@"AWEFastSpeedControllerProtocol");
+    if (interactionController && speedControllerProtocol && [interactionController respondsToSelector:@selector(controllerByProtocol:)]) {
+        @try {
+            id speedController = [interactionController controllerByProtocol:speedControllerProtocol];
+            id target = DYYYPlaybackControlTargetFromObject(speedController);
+            if (target) {
+                return target;
+            }
+        } @catch (NSException *exception) {
+        }
+    }
+
+    id target = DYYYPlaybackControlTargetFromObject(interactionController);
+    if (target) {
+        return target;
+    }
+
+    target = DYYYPlaybackControlTargetFromObject(DYYYBestVisiblePlaybackRateTarget(nil));
+    return target;
+}
+
+static BOOL DYYYPlaybackTargetIsPlaying(id target, BOOL *isPlaying) {
+    if (!target || ![target respondsToSelector:@selector(isPlaying)]) {
+        return NO;
+    }
+
+    @try {
+        BOOL (*messageSend)(id, SEL) = (BOOL (*)(id, SEL))objc_msgSend;
+        if (isPlaying) {
+            *isPlaying = messageSend(target, @selector(isPlaying));
+        }
+        return YES;
+    } @catch (NSException *exception) {
+        return NO;
+    }
+}
+
+static BOOL DYYYSendPlaybackControl(id target, SEL selector) {
+    if (!target || ![target respondsToSelector:selector]) {
+        return NO;
+    }
+
+    @try {
+        void (*messageSend)(id, SEL) = (void (*)(id, SEL))objc_msgSend;
+        messageSend(target, selector);
+        return YES;
+    } @catch (NSException *exception) {
+        return NO;
+    }
+}
+
+static BOOL DYYYPlaybackTargetIsVisible(id target) {
+    if ([target isKindOfClass:[UIViewController class]]) {
+        return DYYYViewControllerVisibilityScore((UIViewController *)target) >= 0.0;
+    }
+    if ([target isKindOfClass:[UIView class]]) {
+        UIView *view = (UIView *)target;
+        return view.window && !view.hidden && view.alpha > 0.01 && !CGRectIsEmpty(view.bounds);
+    }
+    return target != nil;
+}
+
+static void DYYYCommentPausePlaybackIfNeeded(void) {
+    if (!DYYYGetBool(@"DYYYCommentPausePlayback") || dyyyCommentPausePlaybackActive) {
+        return;
+    }
+
+    id target = DYYYResolveCommentPausePlaybackTarget();
+    BOOL isPlaying = NO;
+    if (!DYYYPlaybackTargetIsPlaying(target, &isPlaying) || !isPlaying) {
+        return;
+    }
+
+    if (DYYYSendPlaybackControl(target, @selector(pause))) {
+        dyyyCommentPausePlaybackTarget = target;
+        dyyyCommentPausePlaybackActive = YES;
+    }
+}
+
+static void DYYYCommentRestorePlaybackIfNeeded(void) {
+    if (!dyyyCommentPausePlaybackActive) {
+        return;
+    }
+
+    id target = dyyyCommentPausePlaybackTarget;
+    dyyyCommentPausePlaybackActive = NO;
+    dyyyCommentPausePlaybackTarget = nil;
+
+    if (!target || !DYYYPlaybackTargetIsVisible(target)) {
+        return;
+    }
+
+    BOOL isPlaying = NO;
+    if (DYYYPlaybackTargetIsPlaying(target, &isPlaying) && isPlaying) {
+        return;
+    }
+
+    DYYYSendPlaybackControl(target, @selector(play));
 }
 
 static double DYYYConfiguredPlaybackSpeed(void) {
@@ -11318,6 +11469,7 @@ static Class tabBarButtonClass = nil;
     dyyyCommentViewVisible = YES;
     updateSpeedButtonVisibility();
     updateClearButtonVisibility();
+    DYYYCommentPausePlaybackIfNeeded();
     NSString *transparentValue = [[NSUserDefaults standardUserDefaults] objectForKey:@"DYYYTopBarTransparent"];
     if (transparentValue && transparentValue.length > 0) {
         CGFloat alphaValue = [transparentValue floatValue];
@@ -11341,6 +11493,7 @@ static Class tabBarButtonClass = nil;
     dyyyCommentViewVisible = NO;
     updateSpeedButtonVisibility();
     updateClearButtonVisibility();
+    DYYYCommentRestorePlaybackIfNeeded();
 }
 
 - (void)viewDidLayoutSubviews {
