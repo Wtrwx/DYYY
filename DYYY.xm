@@ -13288,6 +13288,34 @@ static Class GuideViewClass = nil;
 static Class MuteViewClass = nil;
 static Class TagViewClass = nil;
 
+static BOOL DYYYLivePreStreamStackHasScalableContent(UIView *stackView) {
+    if (!stackView) {
+        return NO;
+    }
+
+    Class guideViewClass = GuideViewClass ?: NSClassFromString(@"AWELivePrestreamGuideView");
+    Class muteViewClass = MuteViewClass ?: NSClassFromString(@"AFDCancelMuteAwemeView");
+    Class tagViewClass = TagViewClass ?: NSClassFromString(@"AWELiveFeedLabelTagView");
+
+    return [DYYYUtils containsSubviewOfClass:guideViewClass inContainer:stackView] ||
+           [DYYYUtils containsSubviewOfClass:muteViewClass inContainer:stackView] ||
+           [DYYYUtils containsSubviewOfClass:tagViewClass inContainer:stackView];
+}
+
+static BOOL DYYYLivePreStreamShouldUseNestedLiveStack(UIView *stackView) {
+    Class liveStackClass = NSClassFromString(@"IESLiveStackView");
+    if (!stackView || !liveStackClass || [stackView isKindOfClass:liveStackClass]) {
+        return NO;
+    }
+
+    for (UIView *subview in stackView.subviews) {
+        if ([subview isKindOfClass:liveStackClass] && DYYYLivePreStreamStackHasScalableContent(subview)) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
 %hook AWEElementStackView
 
 - (void)setAlpha:(CGFloat)alpha {
@@ -13416,6 +13444,13 @@ static Class TagViewClass = nil;
     UIViewController *viewController = [DYYYUtils firstAvailableViewControllerFromView:self];
 
     if ([viewController isKindOfClass:%c(AWELiveNewPreStreamViewController)]) {
+        if (DYYYLivePreStreamShouldUseNestedLiveStack(self)) {
+            if (!CGAffineTransformEqualToTransform(self.transform, CGAffineTransformIdentity)) {
+                self.transform = CGAffineTransformIdentity;
+            }
+            return;
+        }
+
         const BOOL shouldShiftUp = DYYYGetBool(@"DYYYEnableFullScreen");
         const CGFloat labelScaleValue = DYYYGetFloat(@"DYYYNicknameScale");
         const CGFloat targetLabelScale = (labelScaleValue != 0.0) ? MAX(0.01, labelScaleValue) : 1.0;
@@ -13437,7 +13472,7 @@ static Class TagViewClass = nil;
 
         if ([DYYYUtils containsSubviewOfClass:GuideViewClass inContainer:self]) {
             currentScale = targetLabelScale;
-            tx = 0; // 中对齐
+            tx = (boundsWidth - boundsWidth * currentScale) / 2 - boundsWidth * (1 - currentScale); // 左对齐
         } else if ([DYYYUtils containsSubviewOfClass:MuteViewClass inContainer:self]) {
             currentScale = targetElementScale;
             tx = (boundsWidth - boundsWidth * currentScale) / 2; // 右对齐
@@ -13653,7 +13688,7 @@ static Class TagViewClass = nil;
 
         if ([DYYYUtils containsSubviewOfClass:GuideViewClass inContainer:self]) {
             currentScale = targetLabelScale;
-            tx = 0; // 中对齐
+            tx = (boundsWidth - boundsWidth * currentScale) / 2 - boundsWidth * (1 - currentScale); // 左对齐
         } else if ([DYYYUtils containsSubviewOfClass:MuteViewClass inContainer:self]) {
             currentScale = targetElementScale;
             tx = (boundsWidth - boundsWidth * currentScale) / 2; // 右对齐
