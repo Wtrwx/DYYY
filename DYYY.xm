@@ -5017,6 +5017,245 @@ static BOOL isGestureActive = NO;
 }
 %end
 
+static char kDYYYAvatarPreviewSaveLongPressKey;
+
+static id DYYYAvatarPreviewObjectForSelector(id object, NSString *selectorName) {
+    if (!object || selectorName.length == 0) {
+        return nil;
+    }
+
+    SEL selector = NSSelectorFromString(selectorName);
+    if (![object respondsToSelector:selector]) {
+        return nil;
+    }
+
+    return ((id (*)(id, SEL))objc_msgSend)(object, selector);
+}
+
+static NSURL *DYYYAvatarPreviewURLFromString(NSString *urlString) {
+    if (![urlString isKindOfClass:NSString.class] || urlString.length == 0) {
+        return nil;
+    }
+
+    NSString *normalizedURLString = urlString;
+    if ([normalizedURLString hasPrefix:@"//"]) {
+        normalizedURLString = [@"https:" stringByAppendingString:normalizedURLString];
+    }
+
+    NSURL *url = [NSURL URLWithString:normalizedURLString];
+    if (!url.scheme || !url.host) {
+        return nil;
+    }
+
+    return url;
+}
+
+static NSURL *DYYYAvatarPreviewURLFromURLList(NSArray *urlList) {
+    if (![urlList isKindOfClass:NSArray.class] || urlList.count == 0) {
+        return nil;
+    }
+
+    for (id urlValue in urlList) {
+        if ([urlValue isKindOfClass:NSURL.class]) {
+            return urlValue;
+        }
+        NSURL *url = DYYYAvatarPreviewURLFromString(urlValue);
+        if (url) {
+            return url;
+        }
+    }
+
+    return nil;
+}
+
+static NSURL *DYYYAvatarPreviewURLFromObject(id object) {
+    if (!object) {
+        return nil;
+    }
+
+    if ([object isKindOfClass:NSURL.class]) {
+        return object;
+    }
+
+    if ([object isKindOfClass:NSString.class]) {
+        return DYYYAvatarPreviewURLFromString(object);
+    }
+
+    if ([object isKindOfClass:NSArray.class]) {
+        return DYYYAvatarPreviewURLFromURLList(object);
+    }
+
+    NSURL *originURL = DYYYAvatarPreviewURLFromURLList(DYYYAvatarPreviewObjectForSelector(object, @"originURLList"));
+    if (originURL) {
+        return originURL;
+    }
+
+    NSURL *urlListURL = DYYYAvatarPreviewURLFromURLList(DYYYAvatarPreviewObjectForSelector(object, @"URLList"));
+    if (urlListURL) {
+        return urlListURL;
+    }
+
+    id dyyyDownloadURL = DYYYAvatarPreviewObjectForSelector(object, @"getDYYYSrcURLDownload");
+    if ([dyyyDownloadURL isKindOfClass:NSURL.class]) {
+        return dyyyDownloadURL;
+    }
+
+    return nil;
+}
+
+static NSURL *DYYYAvatarPreviewSourceURLForController(id controller) {
+    NSArray<NSString *> *controllerURLSelectors = @[
+        @"avatarImageURL",
+        @"avatarImagePlaceholderURL",
+    ];
+
+    for (NSString *selectorName in controllerURLSelectors) {
+        NSURL *url = DYYYAvatarPreviewURLFromObject(DYYYAvatarPreviewObjectForSelector(controller, selectorName));
+        if (url) {
+            return url;
+        }
+    }
+
+    id user = DYYYAvatarPreviewObjectForSelector(controller, @"user");
+    NSArray<NSString *> *userAvatarSelectors = @[
+        @"avatarLarger",
+        @"avatar300X300",
+        @"avatar300x300",
+        @"avatar168X168",
+        @"avatar168x168",
+        @"avatarMedium",
+        @"avatarThumb",
+    ];
+
+    for (NSString *selectorName in userAvatarSelectors) {
+        NSURL *url = DYYYAvatarPreviewURLFromObject(DYYYAvatarPreviewObjectForSelector(user, selectorName));
+        if (url) {
+            return url;
+        }
+    }
+
+    return nil;
+}
+
+static BOOL DYYYInvokeAvatarPreviewNativeSave(id controller) {
+    id functionManager = DYYYAvatarPreviewObjectForSelector(controller, @"functionManager");
+    if (!functionManager || ![functionManager respondsToSelector:@selector(didClickedSaveAvatar)]) {
+        return NO;
+    }
+
+    ((void (*)(id, SEL))objc_msgSend)(functionManager, @selector(didClickedSaveAvatar));
+    return YES;
+}
+
+static void DYYYAttachAvatarPreviewSaveLongPressToView(id controller, UIView *targetView) {
+    if (!controller || !targetView || objc_getAssociatedObject(targetView, &kDYYYAvatarPreviewSaveLongPressKey)) {
+        return;
+    }
+
+    targetView.userInteractionEnabled = YES;
+    UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc] initWithTarget:controller action:@selector(dyyy_handleAvatarPreviewSaveLongPress:)];
+    longPress.minimumPressDuration = 0.5;
+    longPress.cancelsTouchesInView = NO;
+    [targetView addGestureRecognizer:longPress];
+    objc_setAssociatedObject(targetView, &kDYYYAvatarPreviewSaveLongPressKey, longPress, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(longPress, &kDYYYAvatarPreviewSaveLongPressKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+static void DYYYAttachAvatarPreviewSaveLongPress(id controller) {
+    if (!controller || !DYYYGetBool(@"DYYYEnableSaveAvatar")) {
+        return;
+    }
+
+    id gestureView = DYYYAvatarPreviewObjectForSelector(controller, @"avatarGestureView");
+    if ([gestureView isKindOfClass:UIView.class]) {
+        DYYYAttachAvatarPreviewSaveLongPressToView(controller, gestureView);
+    }
+
+    id imageView = DYYYAvatarPreviewObjectForSelector(controller, @"avatarImageView");
+    if ([imageView isKindOfClass:UIView.class]) {
+        DYYYAttachAvatarPreviewSaveLongPressToView(controller, imageView);
+    }
+
+    id rootView = DYYYAvatarPreviewObjectForSelector(controller, @"view");
+    if ([rootView isKindOfClass:UIView.class]) {
+        DYYYAttachAvatarPreviewSaveLongPressToView(controller, rootView);
+    }
+}
+
+%hook AWEProfileAvatarViewController
+- (void)viewDidLoad {
+    %orig;
+    DYYYAttachAvatarPreviewSaveLongPress(self);
+}
+
+- (void)viewDidAppear:(BOOL)animated {
+    %orig(animated);
+    DYYYAttachAvatarPreviewSaveLongPress(self);
+}
+
+- (void)p_setupViews {
+    %orig;
+    DYYYAttachAvatarPreviewSaveLongPress(self);
+}
+
+%new
+- (void)dyyy_saveAvatarPreviewFromDouyinSource {
+    NSURL *avatarURL = DYYYAvatarPreviewSourceURLForController(self);
+    if (avatarURL) {
+        [DYYYManager downloadMedia:avatarURL
+                         mediaType:MediaTypeImage
+                             audio:nil
+                        completion:^(BOOL success) {
+                          if (!success) {
+                              [DYYYUtils showToast:@"头像下载失败"];
+                          }
+                        }];
+        return;
+    }
+
+    if (DYYYInvokeAvatarPreviewNativeSave(self)) {
+        [DYYYUtils showToast:@"正在保存头像..."];
+        return;
+    }
+
+    [DYYYUtils showToast:@"无法获取头像原始链接"];
+}
+
+%new
+- (void)dyyy_handleAvatarPreviewSaveLongPress:(UILongPressGestureRecognizer *)gesture {
+    if (gesture.state != UIGestureRecognizerStateBegan || !DYYYGetBool(@"DYYYEnableSaveAvatar")) {
+        return;
+    }
+
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:nil message:nil preferredStyle:UIAlertControllerStyleActionSheet];
+    [alert addAction:[UIAlertAction actionWithTitle:@"保存头像"
+                                              style:UIAlertActionStyleDefault
+                                            handler:^(__unused UIAlertAction *action) {
+                                              ((void (*)(id, SEL))objc_msgSend)(self, @selector(dyyy_saveAvatarPreviewFromDouyinSource));
+                                            }]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+
+    UIView *sourceView = gesture.view;
+    if (!sourceView) {
+        id rootView = DYYYAvatarPreviewObjectForSelector(self, @"view");
+        if ([rootView isKindOfClass:UIView.class]) {
+            sourceView = rootView;
+        }
+    }
+    if (alert.popoverPresentationController && sourceView) {
+        alert.popoverPresentationController.sourceView = sourceView;
+        CGPoint location = [gesture locationInView:sourceView];
+        alert.popoverPresentationController.sourceRect = CGRectMake(location.x, location.y, 1.0, 1.0);
+    }
+
+    UIViewController *presentingController = (UIViewController *)self;
+    while (presentingController.presentedViewController) {
+        presentingController = presentingController.presentedViewController;
+    }
+    [presentingController presentViewController:alert animated:YES completion:nil];
+}
+%end
+
 %hook AWECommentMediaDownloadConfigLivePhoto
 
 BOOL commentLivePhotoNotWaterMark = DYYYGetBool(@"DYYYCommentLivePhotoNotWaterMark");
