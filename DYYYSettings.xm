@@ -2178,7 +2178,7 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
               @"identifier" : @"DYYYHideFeedAnchorContainer",
               @"title" : @"隐藏视频锚点",
               @"detail" : @"",
-              @"cellType" : @37,
+              @"cellType" : @6,
               @"imageName" : @"ic_eyeslash_outlined_16"
           },
           @{@"identifier" : @"DYYYHideLocation",

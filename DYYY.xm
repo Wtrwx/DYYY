@@ -9462,6 +9462,19 @@ static void DYYYHideProfilePostGuideView(UIView *view) {
 
 %end
 
+static BOOL DYYYShouldHideTemplateVideoForAweme(AWEAwemeModel *aweme) {
+    if (!DYYYGetBool(@"DYYYHideTemplateVideo")) {
+        return NO;
+    }
+
+    if (![aweme respondsToSelector:@selector(referString)]) {
+        return YES;
+    }
+
+    NSString *referString = aweme.referString;
+    return referString.length == 0 || [referString isEqualToString:@"homepage_hot"];
+}
+
 %hook AWEAwemeModel
 
 - (id)initWithDictionary:(id)arg1 error:(id *)arg2 {
@@ -9963,13 +9976,20 @@ static void DYYYHideProfilePostGuideView(UIView *view) {
 	%orig;
 }
 
-// 屏蔽底部合集（只对推荐页生效）
+// 屏蔽底部合集
 - (id)mixInfo {
-	BOOL DYYYHideTemplateVideo = DYYYGetBool(@"DYYYHideTemplateVideo");
-	if (DYYYHideTemplateVideo && [self.referString isEqualToString:@"homepage_hot"]) {
+	if (DYYYShouldHideTemplateVideoForAweme(self)) {
 		return nil;
 	}
 	return %orig;
+}
+
+- (void)setMixInfo:(id)info {
+	if (DYYYShouldHideTemplateVideoForAweme(self)) {
+		%orig(nil);
+		return;
+	}
+	%orig;
 }
 
 // 屏蔽短剧信息（复用屏蔽合集开关，只对推荐页生效）
@@ -10288,6 +10308,25 @@ static void DYYYHideProfilePostGuideView(UIView *view) {
 		return @{};
 	}
 	return %orig;
+}
+
+%end
+
+%hook AWESearchMixVideoModel
+
+- (id)mixInfo {
+	if (DYYYGetBool(@"DYYYHideTemplateVideo")) {
+		return nil;
+	}
+	return %orig;
+}
+
+- (void)setMixInfo:(id)info {
+	if (DYYYGetBool(@"DYYYHideTemplateVideo")) {
+		%orig(nil);
+		return;
+	}
+	%orig;
 }
 
 %end
@@ -13620,6 +13659,12 @@ static Class TagViewClass = nil;
 %hook AWEMixVideoPanelMoreView
 
 - (void)setFrame:(CGRect)frame {
+    if (DYYYGetBool(@"DYYYHideTemplateVideo")) {
+        self.hidden = YES;
+        %orig(frame);
+        return;
+    }
+
     if (DYYYGetBool(@"DYYYEnableFullScreen")) {
         CGFloat targetY = frame.origin.y - gCurrentTabBarHeight;
         CGFloat screenHeightMinusGDiff = [UIScreen mainScreen].bounds.size.height - gCurrentTabBarHeight;
@@ -13635,6 +13680,11 @@ static Class TagViewClass = nil;
 
 - (void)layoutSubviews {
     %orig;
+
+    if (DYYYGetBool(@"DYYYHideTemplateVideo")) {
+        self.hidden = YES;
+        return;
+    }
 
     if (DYYYGetBool(@"DYYYEnableFullScreen")) {
         self.backgroundColor = [UIColor clearColor];
