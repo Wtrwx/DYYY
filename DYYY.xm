@@ -6421,6 +6421,42 @@ static const void *kDYYYLiveDurationRoomKey = &kDYYYLiveDurationRoomKey;
 static NSString *const kDYYYLiveDurationCenterXPercentKey = @"DYYYLiveDurationCenterXPercent";
 static NSString *const kDYYYLiveDurationCenterYPercentKey = @"DYYYLiveDurationCenterYPercent";
 static NSString *const kDYYYLiveDurationPositionLockedKey = @"DYYYLiveDurationPositionLocked";
+static BOOL dyyyLiveDurationOfficialClearScreenActive = NO;
+
+static void DYYYLiveDurationUpdateView(UIView *root);
+static void DYYYLiveDurationSetOfficialClearScreenActive(BOOL active);
+
+static NSHashTable<UIView *> *DYYYLiveDurationTrackedRoots(void) {
+    static NSHashTable<UIView *> *trackedRoots = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+      trackedRoots = [NSHashTable weakObjectsHashTable];
+    });
+    return trackedRoots;
+}
+
+static void DYYYLiveDurationTrackRoot(UIView *root) {
+    if (!root) {
+        return;
+    }
+    [DYYYLiveDurationTrackedRoots() addObject:root];
+}
+
+static void DYYYLiveDurationUntrackRoot(UIView *root) {
+    if (!root) {
+        return;
+    }
+
+    NSHashTable<UIView *> *trackedRoots = DYYYLiveDurationTrackedRoots();
+    [trackedRoots removeObject:root];
+    if (trackedRoots.count == 0) {
+        dyyyLiveDurationOfficialClearScreenActive = NO;
+    }
+}
+
+static BOOL DYYYLiveDurationOfficialClearScreenActive(void) {
+    return dyyyLiveDurationOfficialClearScreenActive;
+}
 
 static UIEdgeInsets DYYYLiveDurationSafeInsets(UIView *root) {
     return [root respondsToSelector:@selector(safeAreaInsets)] ? root.safeAreaInsets : UIEdgeInsetsZero;
@@ -6577,6 +6613,33 @@ static CGPoint DYYYLiveDurationClampedCenter(CGPoint center, CGSize viewSize, UI
 }
 
 @end
+
+static void DYYYLiveDurationSetOfficialClearScreenActive(BOOL active) {
+    void (^applyBlock)(void) = ^{
+      dyyyLiveDurationOfficialClearScreenActive = active;
+      NSArray<UIView *> *roots = [[DYYYLiveDurationTrackedRoots() allObjects] copy];
+      for (UIView *root in roots) {
+          if (!root.window) {
+              DYYYLiveDurationUntrackRoot(root);
+              continue;
+          }
+
+          DYYYLiveDurationView *durationView = objc_getAssociatedObject(root, kDYYYLiveDurationViewKey);
+          if (active) {
+              durationView.dragging = NO;
+              durationView.hidden = YES;
+          } else {
+              DYYYLiveDurationUpdateView(root);
+          }
+      }
+    };
+
+    if ([NSThread isMainThread]) {
+        applyBlock();
+    } else {
+        dispatch_async(dispatch_get_main_queue(), applyBlock);
+    }
+}
 
 static id DYYYLiveDurationSafeValue(id obj, NSString *key) {
     if (!obj || key.length == 0) {
@@ -6811,6 +6874,7 @@ static void DYYYLiveDurationRemoveFromView(UIView *root) {
     [durationView removeFromSuperview];
     objc_setAssociatedObject(root, kDYYYLiveDurationViewKey, nil, OBJC_ASSOCIATION_ASSIGN);
     objc_setAssociatedObject(root, kDYYYLiveDurationRoomKey, nil, OBJC_ASSOCIATION_ASSIGN);
+    DYYYLiveDurationUntrackRoot(root);
 }
 
 static void DYYYLiveDurationUpdateView(UIView *root) {
@@ -6826,6 +6890,12 @@ static void DYYYLiveDurationUpdateView(UIView *root) {
     id roomModel = objc_getAssociatedObject(root, kDYYYLiveDurationRoomKey);
     NSTimeInterval elapsed = DYYYLiveDurationElapsedSeconds(roomModel);
     DYYYLiveDurationView *durationView = objc_getAssociatedObject(root, kDYYYLiveDurationViewKey);
+    if (DYYYLiveDurationOfficialClearScreenActive()) {
+        durationView.dragging = NO;
+        durationView.hidden = YES;
+        return;
+    }
+
     if (elapsed < 0.0) {
         durationView.hidden = YES;
         return;
@@ -6898,6 +6968,8 @@ static void DYYYLiveDurationInstallOnView(UIView *root, id carrier) {
           DYYYLiveDurationRemoveFromView(root);
           return;
       }
+
+      DYYYLiveDurationTrackRoot(root);
 
       id room = DYYYLiveDurationRoomFromCarrier(carrier);
       if (!DYYYLiveDurationHasValidLiveTime(room)) {
@@ -7133,6 +7205,54 @@ static void DYYYLiveDurationInstallFromInnerFeedCell(id cell) {
         DYYYLiveDurationRemoveFromView(viewController.view);
     }
     %orig;
+}
+
+%end
+
+%hook IESLiveCleanScreenNormalAbility
+
+- (void)switchToCleanScreenModeWithOffset:(double)offset duration:(double)duration completion:(id)completion {
+    DYYYLiveDurationSetOfficialClearScreenActive(YES);
+    %orig;
+}
+
+- (void)p_switchToCleanScreenModeWithOffset:(double)offset duration:(double)duration completion:(id)completion {
+    DYYYLiveDurationSetOfficialClearScreenActive(YES);
+    %orig;
+}
+
+- (void)p_prepareCleanScreenWithMode:(long long)mode type:(long long)type {
+    DYYYLiveDurationSetOfficialClearScreenActive(YES);
+    %orig;
+}
+
+- (void)exitCleanScreenIfNeed {
+    %orig;
+    DYYYLiveDurationSetOfficialClearScreenActive(NO);
+}
+
+- (void)p_exitCleanScreenWithType:(long long)type duration:(double)duration {
+    %orig;
+    DYYYLiveDurationSetOfficialClearScreenActive(NO);
+}
+
+- (void)p_exitCleanScreenWithType:(long long)type {
+    %orig;
+    DYYYLiveDurationSetOfficialClearScreenActive(NO);
+}
+
+%end
+
+%hook IESLiveClearScreenServiceImpl
+
+- (void)switchToCleanScreenModeWithOffset:(double)offset duration:(double)duration completion:(id)completion {
+    DYYYLiveDurationSetOfficialClearScreenActive(YES);
+    %orig;
+}
+
+- (void)exitCleanScreenIfNeed {
+    %orig;
+    DYYYLiveDurationSetOfficialClearScreenActive(NO);
 }
 
 %end
