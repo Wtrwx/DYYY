@@ -9562,6 +9562,26 @@ static void DYYYHideProfilePostGuideView(UIView *view) {
 
 %end
 
+static BOOL DYYYAwemeModelIsRecommendFeed(AWEAwemeModel *aweme) {
+    if (![aweme respondsToSelector:@selector(referString)]) {
+        return NO;
+    }
+
+    return [aweme.referString isEqualToString:@"homepage_hot"];
+}
+
+static BOOL DYYYAwemeModelHasLiveSignal(AWEAwemeModel *aweme) {
+    if ([aweme respondsToSelector:@selector(isLive)] && aweme.isLive) {
+        return YES;
+    }
+
+    if ([aweme respondsToSelector:@selector(cellRoom)] && aweme.cellRoom != nil) {
+        return YES;
+    }
+
+    return [aweme respondsToSelector:@selector(videoFeedTag)] && [aweme.videoFeedTag isEqualToString:@"直播中"];
+}
+
 %hook AWEHotListDataController
 
 %new
@@ -9657,6 +9677,7 @@ static void DYYYHideProfilePostGuideView(UIView *view) {
     // --- 配置读取 ---
     NSInteger daysThreshold = DYYYGetInteger(@"DYYYFilterTimeLimit");
     BOOL skipLive = DYYYGetBool(@"DYYYSkipLive"); // 读取直播过滤开关
+    BOOL skipAllLive = DYYYGetBool(@"DYYYSkipAllLive");
     NSInteger minLikesThreshold = DYYYGetInteger(@"DYYYFilterLowLikes"); // 读取低赞过滤阈值 (例如: 1000)
     BOOL skipPhotoText = DYYYGetBool(@"DYYYSkipPhotoText"); // 图文过滤
     BOOL skipPhoto = DYYYGetBool(@"DYYYSkipPhoto"); // 图集过滤
@@ -9677,23 +9698,29 @@ static void DYYYHideProfilePostGuideView(UIView *view) {
         }
 
         AWEAwemeModel *m = (AWEAwemeModel *)obj;
+        BOOL isRecommendFeed = DYYYAwemeModelIsRecommendFeed(m);
+        BOOL isLiveAweme = DYYYAwemeModelHasLiveSignal(m);
 
         // 1. 广告过滤：合集、搜索内流、分页追加等旁路也会进入此共享转换。
         if (noAds && [DYYYUtils isAdvertisementAwemeModel:m]) {
             continue;
         }
 
-        // 2. 直播过滤逻辑 (仅依赖 cellRoom)
-        if (skipLive && [m respondsToSelector:@selector(cellRoom)] && m.cellRoom != nil) {
+        // 2. 直播过滤：当前路径是推荐流转换，全部过滤同样覆盖这里。
+        if ((skipAllLive || skipLive) && isLiveAweme) {
             continue; // 命中直播过滤，跳过
+        }
+
+        if (isLiveAweme) {
+            [baseFiltered addObject:obj];
+            continue;
         }
 
         // 2.1 图文模式过滤逻辑（推荐页）
         if (skipPhotoText &&
             [m respondsToSelector:@selector(isNewTextMode)] &&
             m.isNewTextMode &&
-            [m respondsToSelector:@selector(referString)] &&
-            [m.referString isEqualToString:@"homepage_hot"]) {
+            isRecommendFeed) {
             continue; // 图文模式且来自推荐页，跳过
         }
 
@@ -9701,15 +9728,13 @@ static void DYYYHideProfilePostGuideView(UIView *view) {
         if (skipPhoto &&
             [m respondsToSelector:@selector(awemeType)] &&
             m.awemeType == 68 &&
-            [m respondsToSelector:@selector(referString)] &&
-            [m.referString isEqualToString:@"homepage_hot"]) {
+            isRecommendFeed) {
             continue; // 图集且来自推荐页，跳过
         }
 
         // 2.3 音乐过滤逻辑（推荐页）
         if (skipMusic &&
-            [m respondsToSelector:@selector(referString)] &&
-            [m.referString isEqualToString:@"homepage_hot"] &&
+            isRecommendFeed &&
             [m respondsToSelector:@selector(musicCard)] &&
             m.musicCard) {
             continue; // 音乐卡片且来自推荐页，跳过
@@ -9755,6 +9780,11 @@ static void DYYYHideProfilePostGuideView(UIView *view) {
         }
 
         AWEAwemeModel *m = (AWEAwemeModel *)obj;
+        if (DYYYAwemeModelHasLiveSignal(m)) {
+            [lowLikesFiltered addObject:obj];
+            continue;
+        }
+
         NSNumber *diggCountValue = [self dyyy_resolvedDiggCountForAweme:m];
 
         if (!diggCountValue) {
@@ -9927,8 +9957,8 @@ static BOOL DYYYShouldHideTemplateVideoForAweme(AWEAwemeModel *aweme) {
 
     BOOL shouldFilterAds = noAds && [DYYYUtils isAdvertisementAwemeModel:self];
     BOOL shouldFilterHotSpot = skipHotSpot && self.hotSpotLynxCardModel;
-    BOOL shouldFilterAllLive = skipAllLive && [self.videoFeedTag isEqualToString:@"直播中"];
-    BOOL isRecommendFeed = [self.referString isEqualToString:@"homepage_hot"];
+    BOOL isRecommendFeed = DYYYAwemeModelIsRecommendFeed(self);
+    BOOL shouldFilterAllLive = skipAllLive && DYYYAwemeModelHasLiveSignal(self);
     BOOL shouldskipPhoto = skipPhoto && (self.awemeType == 68) && isRecommendFeed;
     BOOL shouldskipPhotoText = skipPhotoText && self.isNewTextMode && isRecommendFeed;
     BOOL shouldFilterMusic = skipMusic && self.musicCard && isRecommendFeed;
