@@ -1073,10 +1073,110 @@ static void DYYYHandleCurrentSpeedAwemeChanged(id aweme) {
 %end
 
 // 抖音 39.1.0 访问他人主页时会由详情组件直接上传访客记录
+static NSString *const kDYYYDisableProfileVisitRecordUploadKey = @"DYYYDisableProfileVisitRecordUpload";
+static NSString *const kDYYYProfileVisitRecordUploadPath = @"/aweme/v1/profile/record/";
+
+static BOOL DYYYShouldBlockProfileVisitRecordUpload(void) {
+    return DYYYGetBool(kDYYYDisableProfileVisitRecordUploadKey);
+}
+
+static id DYYYProfileVisitRecordValueForSelector(id object, SEL selector) {
+    if (!object || !selector || ![object respondsToSelector:selector]) {
+        return nil;
+    }
+
+    @try {
+        return ((id (*)(id, SEL))objc_msgSend)(object, selector);
+    } @catch (__unused NSException *exception) {
+        return nil;
+    }
+}
+
+static NSString *DYYYProfileVisitRecordURLStringFromObject(id object, NSUInteger depth) {
+    if (!object || depth > 3) {
+        return nil;
+    }
+
+    if ([object isKindOfClass:NSString.class]) {
+        return (NSString *)object;
+    }
+
+    if ([object isKindOfClass:NSURL.class]) {
+        return [(NSURL *)object absoluteString];
+    }
+
+    if ([object isKindOfClass:NSURLRequest.class]) {
+        return ((NSURLRequest *)object).URL.absoluteString;
+    }
+
+    SEL selectors[] = {
+        @selector(URL),
+        @selector(url),
+        @selector(requestURL),
+        @selector(requestUrl),
+        @selector(requestUrlString),
+        @selector(URLString),
+        @selector(urlString),
+        @selector(absoluteString),
+        @selector(request)
+    };
+
+    for (NSUInteger idx = 0; idx < sizeof(selectors) / sizeof(selectors[0]); idx++) {
+        id value = DYYYProfileVisitRecordValueForSelector(object, selectors[idx]);
+        if (!value || value == object) {
+            continue;
+        }
+
+        NSString *urlString = DYYYProfileVisitRecordURLStringFromObject(value, depth + 1);
+        if (urlString.length > 0) {
+            return urlString;
+        }
+    }
+
+    return nil;
+}
+
+static BOOL DYYYIsProfileVisitRecordUploadURLString(NSString *urlString) {
+    if (![urlString isKindOfClass:NSString.class] || urlString.length == 0) {
+        return NO;
+    }
+
+    if ([urlString isEqualToString:kDYYYProfileVisitRecordUploadPath]) {
+        return YES;
+    }
+
+    if ([urlString containsString:kDYYYProfileVisitRecordUploadPath]) {
+        NSURLComponents *components = [NSURLComponents componentsWithString:urlString];
+        NSString *path = components.path;
+        if (path.length > 0) {
+            return [path isEqualToString:kDYYYProfileVisitRecordUploadPath];
+        }
+
+        return [urlString containsString:kDYYYProfileVisitRecordUploadPath];
+    }
+
+    return NO;
+}
+
+static BOOL DYYYShouldBlockProfileVisitRecordRequestObject(id requestObject) {
+    if (!DYYYShouldBlockProfileVisitRecordUpload()) {
+        return NO;
+    }
+
+    NSString *urlString = DYYYProfileVisitRecordURLStringFromObject(requestObject, 0);
+    return DYYYIsProfileVisitRecordUploadURLString(urlString);
+}
+
+static NSError *DYYYProfileVisitRecordBlockedError(void) {
+    return [NSError errorWithDomain:@"DYYY.ProfileVisitRecordUpload"
+                               code:NSURLErrorCancelled
+                           userInfo:@{NSLocalizedDescriptionKey : @"DYYY blocked profile visit record upload"}];
+}
+
 %hook AWEProfileUserDetailComponent
 
 - (void)reportUserDetailVisitIfNeeded:(id)user {
-    if (DYYYGetBool(@"DYYYDisableProfileVisitRecordUpload")) {
+    if (DYYYShouldBlockProfileVisitRecordUpload()) {
         return;
     }
 
@@ -1088,12 +1188,148 @@ static void DYYYHandleCurrentSpeedAwemeChanged(id aweme) {
 // 兼容旧版访客记录上传路径
 %hook AWEProfileRecordHelper
 
-+ (void)postProfileRecordWithParams:(id)params completionBlock:(id)completionBlock {
-    if (DYYYGetBool(@"DYYYDisableProfileVisitRecordUpload")) {
++ (void)postProfileRecordWithParams:(id)params {
+    if (DYYYShouldBlockProfileVisitRecordUpload()) {
         return;
     }
 
     %orig;
+}
+
++ (void)postProfileRecordWithParams:(id)params completionBlock:(id)completionBlock {
+    if (DYYYShouldBlockProfileVisitRecordUpload()) {
+        return;
+    }
+
+    %orig;
+}
+
++ (void)postProfileRecordWithKey:(id)key valueDic:(id)valueDic {
+    if (DYYYShouldBlockProfileVisitRecordUpload()) {
+        return;
+    }
+
+    %orig;
+}
+
++ (void)postProfileRecordWithKey:(id)key valueDic:(id)valueDic completionBlock:(id)completionBlock {
+    if (DYYYShouldBlockProfileVisitRecordUpload()) {
+        return;
+    }
+
+    %orig;
+}
+
+%end
+
+%hook TTHttpTask
+
+- (void)resume {
+    if (DYYYShouldBlockProfileVisitRecordRequestObject(self)) {
+        return;
+    }
+
+    %orig;
+}
+
+%end
+
+%hook TTHttpTaskChromium
+
+- (void)runRequestFiltersAndStart {
+    if (DYYYShouldBlockProfileVisitRecordRequestObject(self)) {
+        return;
+    }
+
+    %orig;
+}
+
+- (void)resume {
+    if (DYYYShouldBlockProfileVisitRecordRequestObject(self)) {
+        return;
+    }
+
+    %orig;
+}
+
+%end
+
+%hook NSURLSession
+
+- (NSURLSessionDataTask *)dataTaskWithURL:(NSURL *)url {
+    if (DYYYShouldBlockProfileVisitRecordRequestObject(url)) {
+        return nil;
+    }
+
+    return %orig;
+}
+
+- (NSURLSessionDataTask *)dataTaskWithURL:(NSURL *)url completionHandler:(void (^)(NSData *data, NSURLResponse *response, NSError *error))completionHandler {
+    if (DYYYShouldBlockProfileVisitRecordRequestObject(url)) {
+        if (completionHandler) {
+            completionHandler(nil, nil, DYYYProfileVisitRecordBlockedError());
+        }
+        return nil;
+    }
+
+    return %orig;
+}
+
+- (NSURLSessionDataTask *)dataTaskWithRequest:(NSURLRequest *)request {
+    if (DYYYShouldBlockProfileVisitRecordRequestObject(request)) {
+        return nil;
+    }
+
+    return %orig;
+}
+
+- (NSURLSessionDataTask *)dataTaskWithRequest:(NSURLRequest *)request completionHandler:(void (^)(NSData *data, NSURLResponse *response, NSError *error))completionHandler {
+    if (DYYYShouldBlockProfileVisitRecordRequestObject(request)) {
+        if (completionHandler) {
+            completionHandler(nil, nil, DYYYProfileVisitRecordBlockedError());
+        }
+        return nil;
+    }
+
+    return %orig;
+}
+
+- (NSURLSessionUploadTask *)uploadTaskWithRequest:(NSURLRequest *)request fromData:(NSData *)bodyData {
+    if (DYYYShouldBlockProfileVisitRecordRequestObject(request)) {
+        return nil;
+    }
+
+    return %orig;
+}
+
+- (NSURLSessionUploadTask *)uploadTaskWithRequest:(NSURLRequest *)request fromData:(NSData *)bodyData completionHandler:(void (^)(NSData *data, NSURLResponse *response, NSError *error))completionHandler {
+    if (DYYYShouldBlockProfileVisitRecordRequestObject(request)) {
+        if (completionHandler) {
+            completionHandler(nil, nil, DYYYProfileVisitRecordBlockedError());
+        }
+        return nil;
+    }
+
+    return %orig;
+}
+
+- (NSURLSessionUploadTask *)uploadTaskWithRequest:(NSURLRequest *)request fromFile:(NSURL *)fileURL {
+    if (DYYYShouldBlockProfileVisitRecordRequestObject(request)) {
+        return nil;
+    }
+
+    return %orig;
+}
+
+- (NSURLSessionUploadTask *)uploadTaskWithRequest:(NSURLRequest *)request fromFile:(NSURL *)fileURL completionHandler:(void (^)(NSData *data, NSURLResponse *response, NSError *error))completionHandler {
+    if (DYYYShouldBlockProfileVisitRecordRequestObject(request)) {
+        if (completionHandler) {
+            completionHandler(nil, nil, DYYYProfileVisitRecordBlockedError());
+        }
+        return nil;
+    }
+
+    return %orig;
 }
 
 %end
