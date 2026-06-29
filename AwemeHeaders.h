@@ -746,7 +746,28 @@ typedef NS_ENUM(NSUInteger, DYEdgeMode) {
 @interface AWEProfileMixItemCollectionViewCell : UICollectionViewCell
 @end
 
+@interface AWEProfilePublishGuideCollectionViewCell : UICollectionViewCell
+@end
+
 @interface AWEProfileTaskCardStyleListCollectionViewCell : UIView
+@end
+
+@interface AWEUserProfileUGCContributionGuideCollectionViewCell : UICollectionViewCell
+@end
+
+@interface AWEUserProfileUGCContributionGuideEmptyCollectionViewCell : UICollectionViewCell
+@end
+
+@interface AWEUserProfileUGCHeaderContributionGuideBannerSectionCell : UICollectionViewCell
+@end
+
+@interface AWEUserProfileUGCHeaderContributionGuideBannerSectionController : NSObject
+@end
+
+@interface AWEUserProfileUGCHeaderContributionGuideBannerSectionViewModel : NSObject
+@end
+
+@interface AWEUserProfileUGCTaskCardStyleListCollectionViewCell : UICollectionViewCell
 @end
 
 @interface AWEProfileUserDetailComponent : NSObject

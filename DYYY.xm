@@ -7923,6 +7923,25 @@ static NSHashTable *processedParentViews = nil;
 %end
 
 // 隐藏自己无公开作品的视图
+static void DYYYHideProfilePostGuideView(UIView *view) {
+    if (!view) {
+        return;
+    }
+
+    view.hidden = YES;
+    view.alpha = 0.0;
+    view.userInteractionEnabled = NO;
+    view.accessibilityElementsHidden = YES;
+
+    if ([view isKindOfClass:[UICollectionViewCell class]]) {
+        UIView *contentView = ((UICollectionViewCell *)view).contentView;
+        contentView.hidden = YES;
+        contentView.alpha = 0.0;
+        contentView.userInteractionEnabled = NO;
+        contentView.accessibilityElementsHidden = YES;
+    }
+}
+
 %hook AWEProfileMixItemCollectionViewCell
 - (void)layoutSubviews {
     %orig;
@@ -7948,6 +7967,24 @@ static NSHashTable *processedParentViews = nil;
 
 %end
 
+%hook AWEProfilePublishGuideCollectionViewCell
+
+- (void)didMoveToWindow {
+    %orig;
+    if (DYYYGetBool(@"DYYYHidePostView")) {
+        DYYYHideProfilePostGuideView((UIView *)self);
+    }
+}
+
+- (void)layoutSubviews {
+    %orig;
+    if (DYYYGetBool(@"DYYYHidePostView")) {
+        DYYYHideProfilePostGuideView((UIView *)self);
+    }
+}
+
+%end
+
 %hook AWEProfileTaskCardStyleListCollectionViewCell
 - (BOOL)shouldShowPublishGuide {
     if (DYYYGetBool(@"DYYYHidePostView")) {
@@ -7955,6 +7992,101 @@ static NSHashTable *processedParentViews = nil;
     }
     return %orig;
 }
+%end
+
+%hook AWEUserProfileUGCHeaderContributionGuideBannerSectionViewModel
+
+- (CGSize)sectionSize {
+    if (DYYYGetBool(@"DYYYHidePostView")) {
+        return CGSizeZero;
+    }
+    return %orig;
+}
+
+%end
+
+%hook AWEUserProfileUGCHeaderContributionGuideBannerSectionController
+
+- (void)configCell:(UICollectionViewCell *)cell index:(NSInteger)index model:(id)model {
+    if (DYYYGetBool(@"DYYYHidePostView")) {
+        DYYYHideProfilePostGuideView(cell);
+        return;
+    }
+    %orig(cell, index, model);
+}
+
+%end
+
+%hook AWEUserProfileUGCContributionGuideCollectionViewCell
+
+- (void)didMoveToWindow {
+    %orig;
+    if (DYYYGetBool(@"DYYYHidePostView")) {
+        DYYYHideProfilePostGuideView((UIView *)self);
+    }
+}
+
+- (void)layoutSubviews {
+    %orig;
+    if (DYYYGetBool(@"DYYYHidePostView")) {
+        DYYYHideProfilePostGuideView((UIView *)self);
+    }
+}
+
+%end
+
+%hook AWEUserProfileUGCContributionGuideEmptyCollectionViewCell
+
+- (void)didMoveToWindow {
+    %orig;
+    if (DYYYGetBool(@"DYYYHidePostView")) {
+        DYYYHideProfilePostGuideView((UIView *)self);
+    }
+}
+
+- (void)layoutSubviews {
+    %orig;
+    if (DYYYGetBool(@"DYYYHidePostView")) {
+        DYYYHideProfilePostGuideView((UIView *)self);
+    }
+}
+
+%end
+
+%hook AWEUserProfileUGCHeaderContributionGuideBannerSectionCell
+
+- (void)didMoveToWindow {
+    %orig;
+    if (DYYYGetBool(@"DYYYHidePostView")) {
+        DYYYHideProfilePostGuideView((UIView *)self);
+    }
+}
+
+- (void)layoutSubviews {
+    %orig;
+    if (DYYYGetBool(@"DYYYHidePostView")) {
+        DYYYHideProfilePostGuideView((UIView *)self);
+    }
+}
+
+%end
+
+%hook AWEUserProfileUGCTaskCardStyleListCollectionViewCell
+
+- (void)didMoveToWindow {
+    %orig;
+    if (DYYYGetBool(@"DYYYHidePostView")) {
+        DYYYHideProfilePostGuideView((UIView *)self);
+    }
+}
+
+- (void)layoutSubviews {
+    %orig;
+    if (DYYYGetBool(@"DYYYHidePostView")) {
+        DYYYHideProfilePostGuideView((UIView *)self);
+    }
+}
+
 %end
 
 %hook AWEProfileRichEmptyView
