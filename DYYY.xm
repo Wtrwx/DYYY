@@ -12827,7 +12827,9 @@ static Class TagViewClass = nil;
         CGAffineTransform targetTransform = CGAffineTransformIdentity;
         CGFloat boundsWidth = self.bounds.size.width;
         CGFloat currentScale = 1.0;
-        CGFloat targetHeight, tx, ty = 0;
+        CGFloat targetHeight = 0;
+        CGFloat tx = 0;
+        CGFloat ty = 0;
         UIWindow *keyWindow = [DYYYUtils getActiveWindow];
         if (keyWindow && keyWindow.safeAreaInsets.bottom == 0) {
             targetHeight = gCurrentTabBarHeight - originalTabBarHeight;
@@ -13041,7 +13043,9 @@ static Class TagViewClass = nil;
         CGAffineTransform targetTransform = CGAffineTransformIdentity;
         CGFloat boundsWidth = self.bounds.size.width;
         CGFloat currentScale = 1.0;
-        CGFloat targetHeight, tx, ty = 0;
+        CGFloat targetHeight = 0;
+        CGFloat tx = 0;
+        CGFloat ty = -20;
         UIWindow *keyWindow = [DYYYUtils getActiveWindow];
         if (keyWindow && keyWindow.safeAreaInsets.bottom == 0) {
             targetHeight = gCurrentTabBarHeight - originalTabBarHeight;
@@ -13069,7 +13073,7 @@ static Class TagViewClass = nil;
         if (shouldShiftUp) {
             ty -= targetHeight;
         }
-        targetTransform = CGAffineTransformMakeTranslation(0, -20);
+        targetTransform = CGAffineTransformMake(currentScale, 0, 0, currentScale, tx, ty);
 
         if (!CGAffineTransformEqualToTransform(self.transform, targetTransform)) {
             self.transform = targetTransform;
