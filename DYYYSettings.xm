@@ -56,7 +56,6 @@ static NSString *const kDYYYFeedNowPlayingSVGIconName = @"ic_liveactivityplaysla
 static NSString *const kDYYYCommentPausePlaybackSettingIdentifier = @"DYYYCommentPausePlayback";
 static NSString *const kDYYYCommentPausePlaybackSVGIconName = @"ic_commentpause_dyyy_outlined_20";
 static NSString *const kDYYYHideRecommendAppDownloadSettingIdentifier = @"DYYYHideRecommendAppDownload";
-static NSString *const kDYYYHideRecommendAppDownloadSVGIconName = @"ic_dyyy_appdownloadslash_outlined_20";
 
 static UIImage *DYYYFeedNowPlayingSVGIcon(CGSize requestedSize) {
     CGSize targetSize = requestedSize;
@@ -206,71 +205,6 @@ static UIImage *DYYYCommentPausePlaybackIcon(CGSize requestedSize) {
     return image;
 }
 
-static UIImage *DYYYRecommendAppDownloadIcon(CGSize requestedSize) {
-    CGSize targetSize = requestedSize;
-    if (targetSize.width <= 0 || targetSize.height <= 0) {
-        targetSize = CGSizeMake(20, 20);
-    }
-
-    static NSCache<NSString *, UIImage *> *imageCache;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-      imageCache = [[NSCache alloc] init];
-    });
-
-    NSString *cacheKey = NSStringFromCGSize(targetSize);
-    UIImage *cachedImage = [imageCache objectForKey:cacheKey];
-    if (cachedImage) {
-        return cachedImage;
-    }
-
-    UIGraphicsBeginImageContextWithOptions(targetSize, NO, 0);
-    CGContextRef context = UIGraphicsGetCurrentContext();
-    if (!context) {
-        UIGraphicsEndImageContext();
-        return nil;
-    }
-
-    CGContextScaleCTM(context, targetSize.width / 20.0, targetSize.height / 20.0);
-    UIColor *iconColor = [UIColor colorWithRed:22.0 / 255.0 green:24.0 / 255.0 blue:35.0 / 255.0 alpha:1.0];
-    CGContextSetStrokeColorWithColor(context, iconColor.CGColor);
-    CGContextSetLineCap(context, kCGLineCapRound);
-    CGContextSetLineJoin(context, kCGLineJoinRound);
-    CGContextSetLineWidth(context, 1.55);
-
-    UIBezierPath *banner = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(2.5, 5.25, 15.0, 9.5) cornerRadius:2.2];
-    [banner stroke];
-
-    UIBezierPath *appIcon = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(4.7, 7.45, 3.8, 3.8) cornerRadius:0.95];
-    [appIcon stroke];
-
-    CGContextMoveToPoint(context, 9.95, 8.0);
-    CGContextAddLineToPoint(context, 12.95, 8.0);
-    CGContextMoveToPoint(context, 9.95, 10.7);
-    CGContextAddLineToPoint(context, 11.75, 10.7);
-    CGContextStrokePath(context);
-
-    CGContextMoveToPoint(context, 14.45, 7.45);
-    CGContextAddLineToPoint(context, 14.45, 11.1);
-    CGContextMoveToPoint(context, 12.95, 9.75);
-    CGContextAddLineToPoint(context, 14.45, 11.25);
-    CGContextAddLineToPoint(context, 15.95, 9.75);
-    CGContextStrokePath(context);
-
-    CGContextSetLineWidth(context, 1.65);
-    CGContextMoveToPoint(context, 4.15, 3.75);
-    CGContextAddLineToPoint(context, 15.85, 16.25);
-    CGContextStrokePath(context);
-
-    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
-    image = [image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
-    if (image) {
-        [imageCache setObject:image forKey:cacheKey];
-    }
-    return image;
-}
-
 @interface AWESettingsTableViewCell : UITableViewCell
 @property(nonatomic, strong) AWESettingItemModel *itemModel;
 @property(nonatomic, strong) UILabel *titleLabel;
@@ -291,8 +225,6 @@ static void DYYYApplyGeneratedSettingIconToCell(AWESettingsTableViewCell *cell) 
         iconImage = DYYYFeedNowPlayingSVGIcon(iconView.bounds.size);
     } else if ([itemModel.identifier isEqualToString:kDYYYCommentPausePlaybackSettingIdentifier]) {
         iconImage = DYYYCommentPausePlaybackIcon(iconView.bounds.size);
-    } else if ([itemModel.identifier isEqualToString:kDYYYHideRecommendAppDownloadSettingIdentifier]) {
-        iconImage = DYYYRecommendAppDownloadIcon(iconView.bounds.size);
     }
 
     if (!iconImage) {
@@ -2019,7 +1951,7 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
             @"title" : @"隐藏推荐应用下载",
             @"detail" : @"",
             @"cellType" : @6,
-            @"imageName" : kDYYYHideRecommendAppDownloadSVGIconName},
+            @"imageName" : @"ic_eyeslash_outlined_16"},
           @{
               @"identifier" : @"DYYYHideGradient",
               @"title" : @"隐藏遮罩效果",
