@@ -12252,19 +12252,13 @@ static Class tabBarButtonClass = nil;
     }
 
     if (!useFullHeight && [currentReferString isEqualToString:@"chat"]) {
-        NSString *currentVersion = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
-        if (currentVersion.length == 0) {
-            Class managerClass = %c(AWEVersionUpdateManager);
-            if (managerClass && [managerClass respondsToSelector:@selector(sharedInstance)]) {
-                AWEVersionUpdateManager *manager = [managerClass sharedInstance];
-                if ([manager respondsToSelector:@selector(currentVersion)]) {
-                    currentVersion = manager.currentVersion;
-                }
-            }
-        }
+        AWEAwemeModel *currentModel = self.model;
+        BOOL isLiveModel = currentModel && (([currentModel respondsToSelector:@selector(isLive)] && currentModel.isLive) ||
+                                            ([currentModel respondsToSelector:@selector(cellRoom)] && currentModel.cellRoom != nil) ||
+                                            ([currentModel respondsToSelector:@selector(videoFeedTag)] && [currentModel.videoFeedTag isEqualToString:@"直播中"]));
 
-        // 39.2.0 及更早版本的私信播放页以完整高度布局信息区，否则底部约束会整体上移。 （靠版本号判断不靠谱，这个是 abtest 的）
-        if (currentVersion.length > 0 && [DYYYUtils compareVersion:currentVersion toVersion:@"39.2.0"] != NSOrderedDescending) {
+        // 私信视频的信息区依赖完整高度；直播内容保持原布局，避免影响直播文案位置。
+        if (!isLiveModel) {
             useFullHeight = YES;
         }
     }
