@@ -6967,6 +6967,79 @@ static void DYYYApplyAvatarFollowPromptSettingsWithRetry(id owner) {
 }
 %end
 
+// 隐藏文案下推荐应用下载横幅
+static void DYYYHideRecommendAppDownloadViewForOwner(id owner) {
+    id addFeedMusicView = DYYYKVCValueIfPossible(owner, @"addFeedMusicView");
+    if ([addFeedMusicView isKindOfClass:[UIView class]]) {
+        UIView *view = (UIView *)addFeedMusicView;
+        view.hidden = YES;
+        [view removeFromSuperview];
+    }
+    DYYYSetKVCValueIfPossible(owner, @"addFeedMusicView", nil);
+}
+
+%hook AWEPlayInteractionMusicAiRefactorListenFeedController
+
+- (BOOL)shouldShowAddFeedMusicView {
+    if (DYYYGetBool(@"DYYYHideRecommendAppDownload")) {
+        return NO;
+    }
+    return %orig;
+}
+
+- (void)showFeedMusicViewIfNeeded {
+    if (DYYYGetBool(@"DYYYHideRecommendAppDownload")) {
+        DYYYHideRecommendAppDownloadViewForOwner(self);
+        return;
+    }
+    %orig;
+}
+
+- (void)setAddFeedMusicView:(UIView *)view {
+    if (DYYYGetBool(@"DYYYHideRecommendAppDownload")) {
+        if ([view isKindOfClass:[UIView class]]) {
+            view.hidden = YES;
+            [view removeFromSuperview];
+        }
+        %orig(nil);
+        return;
+    }
+    %orig;
+}
+
+- (void)updateAddFeedMusicViewLayoutWithShowSpeedControl:(BOOL)showSpeedControl {
+    if (DYYYGetBool(@"DYYYHideRecommendAppDownload")) {
+        DYYYHideRecommendAppDownloadViewForOwner(self);
+        return;
+    }
+    %orig;
+}
+
+%end
+
+%hook AWEFeedMeetMusicView
+
+- (void)layoutSubviews {
+    if (DYYYGetBool(@"DYYYHideRecommendAppDownload")) {
+        UIView *view = (UIView *)self;
+        view.hidden = YES;
+        [view removeFromSuperview];
+        return;
+    }
+    %orig;
+}
+
+- (void)didMoveToWindow {
+    %orig;
+    if (DYYYGetBool(@"DYYYHideRecommendAppDownload")) {
+        UIView *view = (UIView *)self;
+        view.hidden = YES;
+        [view removeFromSuperview];
+    }
+}
+
+%end
+
 %hook AWEMusicCoverButton
 
 - (void)layoutSubviews {
