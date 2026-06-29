@@ -2192,6 +2192,17 @@ static BOOL DYYYShouldForceHideAvatarActionLayer(CALayer *layer);
 static BOOL DYYYShouldClearAvatarActionLayer(CALayer *layer);
 static void DYYYPrepareAvatarActionSublayer(CALayer *parentLayer, CALayer *sublayer);
 
+// 收藏按钮在部分视频中会异步重建图片/动画图层，标记后在写入点继续压制。
+static char kDYYYFeedVideoCollectButtonHiddenViewKey;
+static char kDYYYFeedVideoCollectButtonHiddenLayerKey;
+static char kDYYYFeedVideoCollectButtonDeferredApplyKey;
+
+static BOOL DYYYShouldForceHideFeedVideoCollectButtonLayer(CALayer *layer);
+static BOOL DYYYShouldClearFeedVideoCollectButtonLayer(CALayer *layer);
+static void DYYYPrepareFeedVideoCollectButtonSublayer(CALayer *parentLayer, CALayer *sublayer);
+static BOOL DYYYShouldForceHideFeedVideoCollectButtonView(UIView *view);
+static void DYYYMarkFeedVideoCollectButtonViewHidden(UIView *view);
+
 static void DYYYDisableExtendedRangeForLayer(CALayer *layer) {
     if (!DYYYShouldDisableAllHDR() || !layer) {
         return;
@@ -3016,60 +3027,73 @@ static void DYYYDisableAVPlayerItemHDRMetadata(AVPlayerItem *item) {
 %hook CALayer
 
 - (void)setHidden:(BOOL)hidden {
-    %orig(DYYYShouldForceHideAvatarActionLayer(self) ? YES : hidden);
+    BOOL shouldForceHidden = DYYYShouldForceHideAvatarActionLayer(self) || DYYYShouldForceHideFeedVideoCollectButtonLayer(self);
+    %orig(shouldForceHidden ? YES : hidden);
 }
 
 - (void)setContents:(id)contents {
-    %orig(DYYYShouldClearAvatarActionLayer(self) ? nil : contents);
+    BOOL shouldClearLayer = DYYYShouldClearAvatarActionLayer(self) || DYYYShouldClearFeedVideoCollectButtonLayer(self);
+    %orig(shouldClearLayer ? nil : contents);
 }
 
 - (void)setBackgroundColor:(CGColorRef)backgroundColor {
-    %orig(DYYYShouldClearAvatarActionLayer(self) ? UIColor.clearColor.CGColor : backgroundColor);
+    BOOL shouldClearLayer = DYYYShouldClearAvatarActionLayer(self) || DYYYShouldClearFeedVideoCollectButtonLayer(self);
+    %orig(shouldClearLayer ? UIColor.clearColor.CGColor : backgroundColor);
 }
 
 - (void)setOpaque:(BOOL)opaque {
-    %orig(DYYYShouldClearAvatarActionLayer(self) ? NO : opaque);
+    BOOL shouldClearLayer = DYYYShouldClearAvatarActionLayer(self) || DYYYShouldClearFeedVideoCollectButtonLayer(self);
+    %orig(shouldClearLayer ? NO : opaque);
 }
 
 - (void)setBorderWidth:(CGFloat)borderWidth {
-    %orig(DYYYShouldClearAvatarActionLayer(self) ? 0.0 : borderWidth);
+    BOOL shouldClearLayer = DYYYShouldClearAvatarActionLayer(self) || DYYYShouldClearFeedVideoCollectButtonLayer(self);
+    %orig(shouldClearLayer ? 0.0 : borderWidth);
 }
 
 - (void)setBorderColor:(CGColorRef)borderColor {
-    %orig(DYYYShouldClearAvatarActionLayer(self) ? UIColor.clearColor.CGColor : borderColor);
+    BOOL shouldClearLayer = DYYYShouldClearAvatarActionLayer(self) || DYYYShouldClearFeedVideoCollectButtonLayer(self);
+    %orig(shouldClearLayer ? UIColor.clearColor.CGColor : borderColor);
 }
 
 - (void)setShadowOpacity:(float)shadowOpacity {
-    %orig(DYYYShouldClearAvatarActionLayer(self) ? 0.0f : shadowOpacity);
+    BOOL shouldClearLayer = DYYYShouldClearAvatarActionLayer(self) || DYYYShouldClearFeedVideoCollectButtonLayer(self);
+    %orig(shouldClearLayer ? 0.0f : shadowOpacity);
 }
 
 - (void)setShadowColor:(CGColorRef)shadowColor {
-    %orig(DYYYShouldClearAvatarActionLayer(self) ? UIColor.clearColor.CGColor : shadowColor);
+    BOOL shouldClearLayer = DYYYShouldClearAvatarActionLayer(self) || DYYYShouldClearFeedVideoCollectButtonLayer(self);
+    %orig(shouldClearLayer ? UIColor.clearColor.CGColor : shadowColor);
 }
 
 - (void)addSublayer:(CALayer *)layer {
     DYYYPrepareAvatarActionSublayer(self, layer);
+    DYYYPrepareFeedVideoCollectButtonSublayer(self, layer);
     %orig(layer);
 }
 
 - (void)insertSublayer:(CALayer *)layer atIndex:(unsigned int)index {
     DYYYPrepareAvatarActionSublayer(self, layer);
+    DYYYPrepareFeedVideoCollectButtonSublayer(self, layer);
     %orig(layer, index);
 }
 
 - (void)insertSublayer:(CALayer *)layer below:(CALayer *)sibling {
     DYYYPrepareAvatarActionSublayer(self, layer);
+    DYYYPrepareFeedVideoCollectButtonSublayer(self, layer);
     %orig(layer, sibling);
 }
 
 - (void)insertSublayer:(CALayer *)layer above:(CALayer *)sibling {
     DYYYPrepareAvatarActionSublayer(self, layer);
+    DYYYPrepareFeedVideoCollectButtonSublayer(self, layer);
     %orig(layer, sibling);
 }
 
 - (void)setSublayers:(NSArray<CALayer *> *)sublayers {
     for (CALayer *layer in sublayers) {
         DYYYPrepareAvatarActionSublayer(self, layer);
+        DYYYPrepareFeedVideoCollectButtonSublayer(self, layer);
     }
     %orig(sublayers);
 }
@@ -3106,11 +3130,13 @@ static void DYYYDisableAVPlayerItemHDRMetadata(AVPlayerItem *item) {
 %hook CAShapeLayer
 
 - (void)setFillColor:(CGColorRef)fillColor {
-    %orig(DYYYShouldClearAvatarActionLayer(self) ? UIColor.clearColor.CGColor : fillColor);
+    BOOL shouldClearLayer = DYYYShouldClearAvatarActionLayer(self) || DYYYShouldClearFeedVideoCollectButtonLayer(self);
+    %orig(shouldClearLayer ? UIColor.clearColor.CGColor : fillColor);
 }
 
 - (void)setStrokeColor:(CGColorRef)strokeColor {
-    %orig(DYYYShouldClearAvatarActionLayer(self) ? UIColor.clearColor.CGColor : strokeColor);
+    BOOL shouldClearLayer = DYYYShouldClearAvatarActionLayer(self) || DYYYShouldClearFeedVideoCollectButtonLayer(self);
+    %orig(shouldClearLayer ? UIColor.clearColor.CGColor : strokeColor);
 }
 
 %end
@@ -3838,12 +3864,205 @@ static void DYYYDisableAVPlayerItemHDRMetadata(AVPlayerItem *item) {
 }
 %end
 
+static BOOL DYYYFeedVideoCollectButtonHideEnabled(void) {
+    return DYYYGetBool(@"DYYYHideCollectButton");
+}
+
+static NSString *DYYYObjectStringForSelector(id object, SEL selector) {
+    if (!object || !selector || ![object respondsToSelector:selector]) {
+        return nil;
+    }
+
+    id value = nil;
+    @try {
+        value = ((id (*)(id, SEL))objc_msgSend)(object, selector);
+    } @catch (__unused NSException *exception) {
+        value = nil;
+    }
+
+    return [value isKindOfClass:[NSString class]] ? (NSString *)value : nil;
+}
+
+static BOOL DYYYFeedVideoCollectKeywordMatches(NSString *value) {
+    if (value.length == 0) {
+        return NO;
+    }
+
+    NSString *lowercaseValue = value.lowercaseString;
+    return [value containsString:@"收藏"] ||
+           [lowercaseValue containsString:@"favorite"] ||
+           [lowercaseValue containsString:@"collect"] ||
+           [lowercaseValue containsString:@"collection"];
+}
+
+static BOOL DYYYIsFeedVideoCollectButton(id button) {
+    if (!button) {
+        return NO;
+    }
+
+    Class feedVideoButtonClass = NSClassFromString(@"AWEFeedVideoButton");
+    if (!feedVideoButtonClass || ![button isKindOfClass:feedVideoButtonClass]) {
+        return NO;
+    }
+
+    NSString *accessibilityLabel = DYYYObjectStringForSelector(button, @selector(accessibilityLabel));
+    if (DYYYFeedVideoCollectKeywordMatches(accessibilityLabel)) {
+        return YES;
+    }
+
+    NSString *accessibilityIdentifier = DYYYObjectStringForSelector(button, @selector(accessibilityIdentifier));
+    if (DYYYFeedVideoCollectKeywordMatches(accessibilityIdentifier)) {
+        return YES;
+    }
+
+    NSString *imageNameString = DYYYObjectStringForSelector(button, @selector(imageNameString));
+    return DYYYFeedVideoCollectKeywordMatches(imageNameString);
+}
+
+static void DYYYMarkFeedVideoCollectButtonLayerHidden(CALayer *layer) {
+    if (!layer) {
+        return;
+    }
+
+    objc_setAssociatedObject(layer, &kDYYYFeedVideoCollectButtonHiddenLayerKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    layer.hidden = YES;
+    layer.contents = nil;
+    layer.opacity = 0.0f;
+    layer.backgroundColor = UIColor.clearColor.CGColor;
+    layer.borderWidth = 0.0;
+    layer.borderColor = UIColor.clearColor.CGColor;
+    layer.shadowOpacity = 0.0f;
+    layer.shadowColor = UIColor.clearColor.CGColor;
+    if ([layer isKindOfClass:[CAShapeLayer class]]) {
+        CAShapeLayer *shapeLayer = (CAShapeLayer *)layer;
+        shapeLayer.fillColor = UIColor.clearColor.CGColor;
+        shapeLayer.strokeColor = UIColor.clearColor.CGColor;
+    }
+
+    for (CALayer *sublayer in [layer.sublayers copy]) {
+        DYYYMarkFeedVideoCollectButtonLayerHidden(sublayer);
+    }
+}
+
+static BOOL DYYYShouldForceHideFeedVideoCollectButtonLayer(CALayer *layer) {
+    return layer && objc_getAssociatedObject(layer, &kDYYYFeedVideoCollectButtonHiddenLayerKey) && DYYYFeedVideoCollectButtonHideEnabled();
+}
+
+static BOOL DYYYShouldClearFeedVideoCollectButtonLayer(CALayer *layer) {
+    return DYYYShouldForceHideFeedVideoCollectButtonLayer(layer);
+}
+
+static void DYYYPrepareFeedVideoCollectButtonSublayer(CALayer *parentLayer, CALayer *sublayer) {
+    if (!parentLayer || !sublayer) {
+        return;
+    }
+
+    if (objc_getAssociatedObject(parentLayer, &kDYYYFeedVideoCollectButtonHiddenLayerKey) && DYYYFeedVideoCollectButtonHideEnabled()) {
+        DYYYMarkFeedVideoCollectButtonLayerHidden(sublayer);
+    }
+}
+
+static BOOL DYYYShouldForceHideFeedVideoCollectButtonView(UIView *view) {
+    return view && objc_getAssociatedObject(view, &kDYYYFeedVideoCollectButtonHiddenViewKey) && DYYYFeedVideoCollectButtonHideEnabled();
+}
+
+static void DYYYClearFeedVideoCollectImageView(UIImageView *imageView) {
+    if (!imageView) {
+        return;
+    }
+
+    imageView.image = nil;
+    imageView.highlightedImage = nil;
+    imageView.animationImages = nil;
+    imageView.highlightedAnimationImages = nil;
+}
+
+static void DYYYMarkFeedVideoCollectButtonViewHidden(UIView *view) {
+    if (!view) {
+        return;
+    }
+
+    objc_setAssociatedObject(view, &kDYYYFeedVideoCollectButtonHiddenViewKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    view.hidden = YES;
+    view.alpha = 0.0;
+    view.userInteractionEnabled = NO;
+    view.accessibilityElementsHidden = YES;
+    view.backgroundColor = UIColor.clearColor;
+    if ([view isKindOfClass:[UIImageView class]]) {
+        DYYYClearFeedVideoCollectImageView((UIImageView *)view);
+    }
+    DYYYMarkFeedVideoCollectButtonLayerHidden(view.layer);
+
+    for (UIView *subview in [view.subviews copy]) {
+        DYYYMarkFeedVideoCollectButtonViewHidden(subview);
+    }
+}
+
+static void DYYYSetFeedVideoButtonLabelsHidden(UIView *view, BOOL hidden) {
+    if (!view) {
+        return;
+    }
+
+    if ([view isKindOfClass:[UILabel class]]) {
+        view.hidden = hidden;
+    }
+
+    for (UIView *subview in [view.subviews copy]) {
+        DYYYSetFeedVideoButtonLabelsHidden(subview, hidden);
+    }
+}
+
+static void DYYYApplyFeedVideoCollectButtonSettings(AWEFeedVideoButton *button) {
+    if (!DYYYIsFeedVideoCollectButton(button)) {
+        return;
+    }
+
+    if (DYYYFeedVideoCollectButtonHideEnabled()) {
+        DYYYMarkFeedVideoCollectButtonViewHidden(button);
+        [button removeFromSuperview];
+        return;
+    }
+
+    if (DYYYGetBool(@"DYYYHideCollectLabel")) {
+        DYYYSetFeedVideoButtonLabelsHidden(button, YES);
+    }
+}
+
+static void DYYYApplyFeedVideoCollectButtonSettingsWithRetry(AWEFeedVideoButton *button) {
+    if (!DYYYIsFeedVideoCollectButton(button)) {
+        return;
+    }
+
+    DYYYApplyFeedVideoCollectButtonSettings(button);
+    if (!DYYYFeedVideoCollectButtonHideEnabled() || objc_getAssociatedObject(button, &kDYYYFeedVideoCollectButtonDeferredApplyKey)) {
+        return;
+    }
+
+    objc_setAssociatedObject(button, &kDYYYFeedVideoCollectButtonDeferredApplyKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    __weak AWEFeedVideoButton *weakButton = button;
+    dispatch_async(dispatch_get_main_queue(), ^{
+      AWEFeedVideoButton *strongButton = weakButton;
+      if (!strongButton) {
+          return;
+      }
+      DYYYApplyFeedVideoCollectButtonSettings(strongButton);
+      dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        AWEFeedVideoButton *delayedButton = weakButton;
+        if (!delayedButton) {
+            return;
+        }
+        DYYYApplyFeedVideoCollectButtonSettings(delayedButton);
+        objc_setAssociatedObject(delayedButton, &kDYYYFeedVideoCollectButtonDeferredApplyKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+      });
+    });
+}
+
 %hook AWEFeedVideoButton
 - (id)touchUpInsideBlock {
     id r = %orig;
 
     // 只有收藏按钮才显示确认弹窗
-    if (DYYYGetBool(@"DYYYCollectTips") && [self.accessibilityLabel isEqualToString:@"收藏"]) {
+    if (DYYYGetBool(@"DYYYCollectTips") && DYYYIsFeedVideoCollectButton(self)) {
 
         dispatch_async(dispatch_get_main_queue(), ^{
           [DYYYBottomAlertView showAlertWithTitle:@"收藏确认"
@@ -4516,6 +4735,13 @@ static NSString *const kDYYYLongPressCopyEnabledKey = @"DYYYLongPressCopyTextEna
                 nameString = func(self, @selector(imageNameString));
             }
         }
+	}
+
+    BOOL isCollectButton = DYYYIsFeedVideoCollectButton(self) || DYYYFeedVideoCollectKeywordMatches(nameString);
+    if (isCollectButton && DYYYFeedVideoCollectButtonHideEnabled()) {
+        DYYYMarkFeedVideoCollectButtonViewHidden(self);
+        %orig(nil);
+        return;
     }
 
     NSString *customFileName = DYYYCustomIconFileNameForButtonName(nameString);
@@ -4524,9 +4750,12 @@ static NSString *const kDYYYLongPressCopyEnabledKey = @"DYYYLongPressCopyTextEna
         if (customImage) {
             imageToApply = customImage;
         }
-    }
+	}
 
     %orig(imageToApply);
+    if (isCollectButton) {
+        DYYYApplyFeedVideoCollectButtonSettingsWithRetry(self);
+    }
 }
 
 %end
@@ -6859,6 +7088,7 @@ static void DYYYApplyAvatarFollowPromptSettingsWithRetry(id owner) {
     %orig;
 
     NSString *accessibilityLabel = self.accessibilityLabel;
+    BOOL isCollectButton = DYYYIsFeedVideoCollectButton(self);
 
     BOOL hideBtn = NO;
     BOOL hideLabel = NO;
@@ -6872,7 +7102,7 @@ static void DYYYApplyAvatarFollowPromptSettingsWithRetry(id owner) {
     } else if ([accessibilityLabel isEqualToString:@"分享"]) {
         hideBtn = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideShareButton"];
         hideLabel = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideShareLabel"];
-    } else if ([accessibilityLabel isEqualToString:@"收藏"]) {
+    } else if (isCollectButton) {
         hideBtn = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideCollectButton"];
         hideLabel = [[NSUserDefaults standardUserDefaults] boolForKey:@"DYYYHideCollectLabel"];
     }
@@ -6882,7 +7112,16 @@ static void DYYYApplyAvatarFollowPromptSettingsWithRetry(id owner) {
     }
 
     if (hideBtn) {
+        if (isCollectButton) {
+            DYYYApplyFeedVideoCollectButtonSettingsWithRetry(self);
+            return;
+        }
         [self removeFromSuperview];
+        return;
+    }
+
+    if (isCollectButton && hideLabel) {
+        DYYYSetFeedVideoButtonLabelsHidden(self, YES);
         return;
     }
 
@@ -12306,7 +12545,9 @@ static Class tabBarButtonClass = nil;
 %hook UIView
 
 - (void)setHidden:(BOOL)hidden {
-    BOOL shouldForceHidden = DYYYShouldForceAvatarActionViewHidden(self) || DYYYShouldForceAvatarSurroundingViewHidden(self);
+    BOOL shouldForceHidden = DYYYShouldForceAvatarActionViewHidden(self) ||
+                             DYYYShouldForceAvatarSurroundingViewHidden(self) ||
+                             DYYYShouldForceHideFeedVideoCollectButtonView(self);
     %orig(shouldForceHidden ? YES : hidden);
 }
 
@@ -12315,6 +12556,10 @@ static Class tabBarButtonClass = nil;
 
     if (!subview) {
         return;
+    }
+
+    if (DYYYShouldForceHideFeedVideoCollectButtonView(self)) {
+        DYYYMarkFeedVideoCollectButtonViewHidden(subview);
     }
 
     BOOL hasSuppressedChrome = objc_getAssociatedObject(self, &kDYYYAvatarActionChromeViewKey) != nil;
@@ -12367,6 +12612,11 @@ static Class tabBarButtonClass = nil;
         dispatch_async(dispatch_get_main_queue(), ^{
           [self setBackgroundColor:backgroundColor];
         });
+        return;
+    }
+
+    if (DYYYShouldForceHideFeedVideoCollectButtonView(self)) {
+        %orig([UIColor clearColor]);
         return;
     }
 
@@ -13858,24 +14108,44 @@ static Class TagViewClass = nil;
 
 %hook UIImageView
 - (void)setImage:(UIImage *)image {
+    if (DYYYShouldForceHideFeedVideoCollectButtonView(self)) {
+        %orig(nil);
+        return;
+    }
+
     DYYYApplySDRDynamicRangeToImageView(self);
     %orig;
     DYYYApplySDRDynamicRangeToImageView(self);
 }
 
 - (void)setHighlightedImage:(UIImage *)highlightedImage {
+    if (DYYYShouldForceHideFeedVideoCollectButtonView(self)) {
+        %orig(nil);
+        return;
+    }
+
     DYYYApplySDRDynamicRangeToImageView(self);
     %orig;
     DYYYApplySDRDynamicRangeToImageView(self);
 }
 
 - (void)setAnimationImages:(NSArray<UIImage *> *)animationImages {
+    if (DYYYShouldForceHideFeedVideoCollectButtonView(self)) {
+        %orig(nil);
+        return;
+    }
+
     DYYYApplySDRDynamicRangeToImageView(self);
     %orig;
     DYYYApplySDRDynamicRangeToImageView(self);
 }
 
 - (void)setHighlightedAnimationImages:(NSArray<UIImage *> *)highlightedAnimationImages {
+    if (DYYYShouldForceHideFeedVideoCollectButtonView(self)) {
+        %orig(nil);
+        return;
+    }
+
     DYYYApplySDRDynamicRangeToImageView(self);
     %orig;
     DYYYApplySDRDynamicRangeToImageView(self);
@@ -13883,6 +14153,12 @@ static Class TagViewClass = nil;
 
 - (void)layoutSubviews {
     %orig;
+    if (DYYYShouldForceHideFeedVideoCollectButtonView(self)) {
+        DYYYClearFeedVideoCollectImageView(self);
+        self.hidden = YES;
+        return;
+    }
+
     DYYYApplySDRDynamicRangeToImageView(self);
     if (DYYYGetBool(@"DYYYHideCommentDiscover")) {
         if (!self.accessibilityLabel) {
