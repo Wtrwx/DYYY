@@ -13,6 +13,7 @@
 #import <math.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <stdlib.h>
 #import <substrate.h>
 #import <syslog.h>
 
@@ -619,7 +620,9 @@ static NSString *dyyyLastAutoRestoredSpeedAwemeIdentifier = nil;
 static BOOL dyyyLongPressFastSpeedActive = NO;
 static BOOL dyyyLongPressLockedSpeedActive = NO;
 static __weak id dyyyCommentPausePlaybackTarget = nil;
+static __weak UIViewController *dyyyCommentPausePlaybackController = nil;
 static BOOL dyyyCommentPausePlaybackActive = NO;
+static NSUInteger dyyyCommentPausePlaybackRestoreGeneration = 0;
 
 static void DYYYClearLongPressSpeedState(void) {
     dyyyLongPressFastSpeedActive = NO;
@@ -931,8 +934,7 @@ static BOOL DYYYApplyPlaybackSpeedToVisiblePlayer(double speed) {
 static BOOL DYYYPlaybackTargetSupportsPlayPause(id target) {
     return target &&
            [target respondsToSelector:@selector(play)] &&
-           [target respondsToSelector:@selector(pause)] &&
-           [target respondsToSelector:@selector(isPlaying)];
+           [target respondsToSelector:@selector(pause)];
 }
 
 static id DYYYObjectReturnedBySelector(id object, SEL selector) {
@@ -948,35 +950,128 @@ static id DYYYObjectReturnedBySelector(id object, SEL selector) {
     }
 }
 
-static id DYYYPlaybackControlTargetFromObject(id object) {
-    if (DYYYPlaybackTargetSupportsPlayPause(object)) {
-        return object;
+static char DYYYMethodReturnTypePrefix(id object, SEL selector) {
+    if (!object || !selector) {
+        return '\0';
     }
+
+    Method method = class_getInstanceMethod([object class], selector);
+    if (!method) {
+        return '\0';
+    }
+
+    char *returnType = method_copyReturnType(method);
+    if (!returnType) {
+        return '\0';
+    }
+
+    char prefix = returnType[0];
+    free(returnType);
+    return prefix;
+}
+
+static BOOL DYYYBoolValueReturnedBySelector(id object, SEL selector, BOOL *value) {
+    if (!object || ![object respondsToSelector:selector]) {
+        return NO;
+    }
+
+    char returnType = DYYYMethodReturnTypePrefix(object, selector);
+    if (returnType != 'B' && returnType != 'c' && returnType != 'C') {
+        return NO;
+    }
+
+    @try {
+        BOOL (*messageSend)(id, SEL) = (BOOL (*)(id, SEL))objc_msgSend;
+        if (value) {
+            *value = messageSend(object, selector);
+        }
+        return YES;
+    } @catch (NSException *exception) {
+        return NO;
+    }
+}
+
+static BOOL DYYYFloatValueReturnedBySelector(id object, SEL selector, float *value) {
+    if (!object || ![object respondsToSelector:selector]) {
+        return NO;
+    }
+
+    char returnType = DYYYMethodReturnTypePrefix(object, selector);
+    if (returnType != 'f' && returnType != 'd') {
+        return NO;
+    }
+
+    @try {
+        float floatValue = 0.0f;
+        if (returnType == 'd') {
+            double (*messageSend)(id, SEL) = (double (*)(id, SEL))objc_msgSend;
+            floatValue = (float)messageSend(object, selector);
+        } else {
+            float (*messageSend)(id, SEL) = (float (*)(id, SEL))objc_msgSend;
+            floatValue = messageSend(object, selector);
+        }
+
+        if (value) {
+            *value = floatValue;
+        }
+        return YES;
+    } @catch (NSException *exception) {
+        return NO;
+    }
+}
+
+static void DYYYAddPlaybackCandidate(NSMutableArray *candidates, id candidate) {
+    if (!candidate || candidates.count >= 32) {
+        return;
+    }
+
+    for (id existingCandidate in candidates) {
+        if (existingCandidate == candidate) {
+            return;
+        }
+    }
+
+    [candidates addObject:candidate];
+}
+
+static NSArray *DYYYPlaybackCandidatesFromObject(id object) {
+    NSMutableArray *candidates = [NSMutableArray array];
+    DYYYAddPlaybackCandidate(candidates, object);
 
     SEL directSelectors[] = {
         @selector(playVideoViewController),
         @selector(playerViewController),
         @selector(videoDelegate),
         @selector(player),
+        NSSelectorFromString(@"playerController"),
+        NSSelectorFromString(@"playbackController"),
+        NSSelectorFromString(@"playerManager"),
+        NSSelectorFromString(@"playerAdapter"),
+        NSSelectorFromString(@"playbackEngine"),
+        NSSelectorFromString(@"avPlayer"),
     };
 
-    for (NSUInteger i = 0; i < sizeof(directSelectors) / sizeof(SEL); i++) {
-        id candidate = DYYYObjectReturnedBySelector(object, directSelectors[i]);
+    for (NSUInteger index = 0; index < candidates.count; index++) {
+        id current = candidates[index];
+        for (NSUInteger i = 0; i < sizeof(directSelectors) / sizeof(SEL); i++) {
+            DYYYAddPlaybackCandidate(candidates, DYYYObjectReturnedBySelector(current, directSelectors[i]));
+        }
+    }
+
+    return candidates;
+}
+
+static id DYYYPlaybackControlTargetFromObject(id object) {
+    for (id candidate in DYYYPlaybackCandidatesFromObject(object)) {
         if (DYYYPlaybackTargetSupportsPlayPause(candidate)) {
             return candidate;
-        }
-
-        id nestedPlayer = DYYYObjectReturnedBySelector(candidate, @selector(player));
-        if (DYYYPlaybackTargetSupportsPlayPause(nestedPlayer)) {
-            return nestedPlayer;
         }
     }
 
     return nil;
 }
 
-static id DYYYResolveCommentPausePlaybackTarget(void) {
-    AWEPlayInteractionViewController *interactionController = DYYYResolveCurrentSpeedInteractionController(nil);
+static id DYYYResolveCommentPausePlaybackTarget(AWEPlayInteractionViewController *interactionController) {
     Protocol *speedControllerProtocol = NSProtocolFromString(@"AWEFastSpeedControllerProtocol");
     if (interactionController && speedControllerProtocol && [interactionController respondsToSelector:@selector(controllerByProtocol:)]) {
         @try {
@@ -994,24 +1089,74 @@ static id DYYYResolveCommentPausePlaybackTarget(void) {
         return target;
     }
 
+    target = DYYYPlaybackControlTargetFromObject(dyyyActiveSpeedPlayerViewController);
+    if (target) {
+        return target;
+    }
+
     target = DYYYPlaybackControlTargetFromObject(DYYYBestVisiblePlaybackRateTarget(nil));
     return target;
 }
 
 static BOOL DYYYPlaybackTargetIsPlaying(id target, BOOL *isPlaying) {
-    if (!target || ![target respondsToSelector:@selector(isPlaying)]) {
+    if (!target) {
         return NO;
     }
 
-    @try {
-        BOOL (*messageSend)(id, SEL) = (BOOL (*)(id, SEL))objc_msgSend;
-        if (isPlaying) {
-            *isPlaying = messageSend(target, @selector(isPlaying));
+    SEL playingSelectors[] = {
+        @selector(isPlaying),
+        NSSelectorFromString(@"playing"),
+        NSSelectorFromString(@"isVideoPlaying"),
+        NSSelectorFromString(@"isPlayerPlaying"),
+    };
+
+    for (NSUInteger i = 0; i < sizeof(playingSelectors) / sizeof(SEL); i++) {
+        if (DYYYBoolValueReturnedBySelector(target, playingSelectors[i], isPlaying)) {
+            return YES;
         }
-        return YES;
-    } @catch (NSException *exception) {
-        return NO;
     }
+
+    SEL pausedSelectors[] = {
+        NSSelectorFromString(@"isPaused"),
+        NSSelectorFromString(@"paused"),
+    };
+
+    for (NSUInteger i = 0; i < sizeof(pausedSelectors) / sizeof(SEL); i++) {
+        BOOL isPaused = NO;
+        if (DYYYBoolValueReturnedBySelector(target, pausedSelectors[i], &isPaused)) {
+            if (isPlaying) {
+                *isPlaying = !isPaused;
+            }
+            return YES;
+        }
+    }
+
+    SEL rateSelectors[] = {
+        NSSelectorFromString(@"rate"),
+        NSSelectorFromString(@"playbackRate"),
+    };
+
+    for (NSUInteger i = 0; i < sizeof(rateSelectors) / sizeof(SEL); i++) {
+        float rate = 0.0f;
+        if (DYYYFloatValueReturnedBySelector(target, rateSelectors[i], &rate)) {
+            if (isPlaying) {
+                *isPlaying = fabsf(rate) > FLT_EPSILON;
+            }
+            return YES;
+        }
+    }
+
+    return NO;
+}
+
+static BOOL DYYYPlaybackObjectIsPlaying(id object, BOOL *isPlaying) {
+    for (id candidate in DYYYPlaybackCandidatesFromObject(object)) {
+        if (DYYYPlaybackTargetIsPlaying(candidate, isPlaying)) {
+            return YES;
+        }
+    }
+
+    return NO;
 }
 
 static BOOL DYYYSendPlaybackControl(id target, SEL selector) {
@@ -1028,6 +1173,44 @@ static BOOL DYYYSendPlaybackControl(id target, SEL selector) {
     }
 }
 
+static BOOL DYYYSendFirstPlaybackControl(id target, SEL *selectors, NSUInteger count) {
+    for (NSUInteger i = 0; i < count; i++) {
+        if (DYYYSendPlaybackControl(target, selectors[i])) {
+            return YES;
+        }
+    }
+
+    return NO;
+}
+
+static BOOL DYYYSendOfficialCommentPauseIfPossible(id target) {
+    SEL selectors[] = {
+        NSSelectorFromString(@"pauseVideoIfPlayingWithoutShowingPauseIcon"),
+        NSSelectorFromString(@"pauseVideoIfPlaying"),
+    };
+
+    return DYYYSendFirstPlaybackControl(target, selectors, sizeof(selectors) / sizeof(SEL));
+}
+
+static BOOL DYYYSendPauseToPlaybackTarget(id target) {
+    SEL selectors[] = {
+        @selector(pause),
+        NSSelectorFromString(@"pauseVideo"),
+    };
+
+    return DYYYSendFirstPlaybackControl(target, selectors, sizeof(selectors) / sizeof(SEL));
+}
+
+static BOOL DYYYSendPlayToPlaybackTarget(id target) {
+    SEL selectors[] = {
+        @selector(play),
+        NSSelectorFromString(@"playVideo"),
+        NSSelectorFromString(@"resumeVideo"),
+    };
+
+    return DYYYSendFirstPlaybackControl(target, selectors, sizeof(selectors) / sizeof(SEL));
+}
+
 static BOOL DYYYPlaybackTargetIsVisible(id target) {
     if ([target isKindOfClass:[UIViewController class]]) {
         return DYYYViewControllerVisibilityScore((UIViewController *)target) >= 0.0;
@@ -1039,19 +1222,45 @@ static BOOL DYYYPlaybackTargetIsVisible(id target) {
     return target != nil;
 }
 
+static BOOL DYYYCommentPausePlaybackStateIsPlaying(id target, AWEPlayInteractionViewController *interactionController, BOOL *isPlaying) {
+    if (DYYYPlaybackObjectIsPlaying(target, isPlaying)) {
+        return YES;
+    }
+
+    if (DYYYPlaybackObjectIsPlaying(interactionController, isPlaying)) {
+        return YES;
+    }
+
+    if (DYYYPlaybackObjectIsPlaying(dyyyActiveSpeedPlayerViewController, isPlaying)) {
+        return YES;
+    }
+
+    return DYYYPlaybackObjectIsPlaying(DYYYBestVisiblePlaybackRateTarget(nil), isPlaying);
+}
+
 static void DYYYCommentPausePlaybackIfNeeded(void) {
     if (!DYYYGetBool(@"DYYYCommentPausePlayback") || dyyyCommentPausePlaybackActive) {
         return;
     }
 
-    id target = DYYYResolveCommentPausePlaybackTarget();
+    dyyyCommentPausePlaybackRestoreGeneration++;
+    AWEPlayInteractionViewController *interactionController = (AWEPlayInteractionViewController *)DYYYCurrentSpeedInteractionController();
+    id target = DYYYResolveCommentPausePlaybackTarget(interactionController);
     BOOL isPlaying = NO;
-    if (!DYYYPlaybackTargetIsPlaying(target, &isPlaying) || !isPlaying) {
+    if (!DYYYCommentPausePlaybackStateIsPlaying(target, interactionController, &isPlaying) || !isPlaying) {
         return;
     }
 
-    if (DYYYSendPlaybackControl(target, @selector(pause))) {
-        dyyyCommentPausePlaybackTarget = target;
+    BOOL didPause = DYYYSendOfficialCommentPauseIfPossible(interactionController);
+    if (!didPause) {
+        didPause = DYYYSendPauseToPlaybackTarget(target);
+    }
+    if (!didPause && target != interactionController) {
+        didPause = DYYYSendPauseToPlaybackTarget(interactionController);
+    }
+
+    if (didPause) {
+        dyyyCommentPausePlaybackTarget = target ?: interactionController ?: DYYYBestVisiblePlaybackRateTarget(nil);
         dyyyCommentPausePlaybackActive = YES;
     }
 }
@@ -1064,17 +1273,140 @@ static void DYYYCommentRestorePlaybackIfNeeded(void) {
     id target = dyyyCommentPausePlaybackTarget;
     dyyyCommentPausePlaybackActive = NO;
     dyyyCommentPausePlaybackTarget = nil;
+    dyyyCommentPausePlaybackController = nil;
+    dyyyCommentPausePlaybackRestoreGeneration++;
 
     if (!target || !DYYYPlaybackTargetIsVisible(target)) {
-        return;
+        target = DYYYResolveCommentPausePlaybackTarget((AWEPlayInteractionViewController *)DYYYCurrentSpeedInteractionController());
+        if (!target || !DYYYPlaybackTargetIsVisible(target)) {
+            return;
+        }
     }
 
     BOOL isPlaying = NO;
-    if (DYYYPlaybackTargetIsPlaying(target, &isPlaying) && isPlaying) {
+    if (DYYYPlaybackObjectIsPlaying(target, &isPlaying) && isPlaying) {
         return;
     }
 
-    DYYYSendPlaybackControl(target, @selector(play));
+    DYYYSendPlayToPlaybackTarget(target);
+}
+
+static BOOL DYYYCommentPausePlaybackClassNameIsPreview(NSString *className) {
+    if (className.length == 0) {
+        return NO;
+    }
+
+    static NSArray<NSString *> *previewClassNameFragments = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+      previewClassNameFragments = @[
+          @"CommentMediaFeed",
+          @"CommentMedia",
+          @"CommentImagePreview",
+          @"CommentImage",
+          @"CommentCellSticker",
+          @"CommentSticker",
+          @"CommentEmoji",
+          @"CommentEmoticon",
+          @"EmoticonPreview",
+          @"EmojiPreview",
+          @"AWEIMEmoticon",
+          @"AWEIMEmoji"
+      ];
+    });
+
+    for (NSString *fragment in previewClassNameFragments) {
+        if ([className containsString:fragment]) {
+            return YES;
+        }
+    }
+
+    return NO;
+}
+
+static BOOL DYYYCommentPausePlaybackViewControllerTreeIsPreview(UIViewController *viewController, NSUInteger depth) {
+    if (!viewController || depth > 8) {
+        return NO;
+    }
+
+    if (DYYYCommentPausePlaybackClassNameIsPreview(NSStringFromClass([viewController class]))) {
+        return YES;
+    }
+
+    if ([viewController isKindOfClass:[UINavigationController class]]) {
+        UINavigationController *navigationController = (UINavigationController *)viewController;
+        if (DYYYCommentPausePlaybackViewControllerTreeIsPreview(navigationController.visibleViewController ?: navigationController.topViewController, depth + 1)) {
+            return YES;
+        }
+    } else if ([viewController isKindOfClass:[UITabBarController class]]) {
+        if (DYYYCommentPausePlaybackViewControllerTreeIsPreview(((UITabBarController *)viewController).selectedViewController, depth + 1)) {
+            return YES;
+        }
+    }
+
+    for (UIViewController *childViewController in viewController.childViewControllers) {
+        if (DYYYCommentPausePlaybackViewControllerTreeIsPreview(childViewController, depth + 1)) {
+            return YES;
+        }
+    }
+
+    return DYYYCommentPausePlaybackViewControllerTreeIsPreview(viewController.presentedViewController, depth + 1);
+}
+
+static BOOL DYYYCommentPausePlaybackShouldDeferRestore(UIViewController *commentViewController) {
+    if (!commentViewController || commentViewController.isBeingDismissed) {
+        return NO;
+    }
+
+    UINavigationController *navigationController = commentViewController.navigationController;
+    if (navigationController && navigationController.view.window && !navigationController.isBeingDismissed) {
+        UIViewController *topViewController = navigationController.visibleViewController ?: navigationController.topViewController;
+        if (topViewController && topViewController != commentViewController) {
+            return YES;
+        }
+
+        UIViewController *presentedViewController = navigationController.presentedViewController;
+        if (presentedViewController && !presentedViewController.isBeingDismissed) {
+            return YES;
+        }
+    }
+
+    UIViewController *presentedViewController = commentViewController.presentedViewController;
+    if (presentedViewController && !presentedViewController.isBeingDismissed) {
+        return YES;
+    }
+
+    UIViewController *topViewController = [DYYYUtils topView];
+    return topViewController &&
+           topViewController != commentViewController &&
+           DYYYCommentPausePlaybackViewControllerTreeIsPreview(topViewController, 0);
+}
+
+static void DYYYQueueCommentRestorePlaybackCheck(UIViewController *commentViewController, NSUInteger generation, NSTimeInterval delay) {
+    __weak UIViewController *weakCommentViewController = commentViewController;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+      if (generation != dyyyCommentPausePlaybackRestoreGeneration || !dyyyCommentPausePlaybackActive) {
+          return;
+      }
+
+      UIViewController *strongCommentViewController = weakCommentViewController;
+      if (strongCommentViewController && DYYYCommentPausePlaybackShouldDeferRestore(strongCommentViewController)) {
+          DYYYQueueCommentRestorePlaybackCheck(strongCommentViewController, generation, 0.5);
+          return;
+      }
+
+      DYYYCommentRestorePlaybackIfNeeded();
+    });
+}
+
+static void DYYYScheduleCommentRestorePlaybackIfNeeded(UIViewController *commentViewController) {
+    if (!dyyyCommentPausePlaybackActive) {
+        return;
+    }
+
+    dyyyCommentPausePlaybackController = commentViewController;
+    dyyyCommentPausePlaybackRestoreGeneration++;
+    DYYYQueueCommentRestorePlaybackCheck(commentViewController, dyyyCommentPausePlaybackRestoreGeneration, 0.2);
 }
 
 static double DYYYConfiguredPlaybackSpeed(void) {
@@ -12843,6 +13175,8 @@ static Class tabBarButtonClass = nil;
 - (void)viewDidAppear:(BOOL)animated {
     %orig;
     dyyyCommentViewVisible = YES;
+    dyyyCommentPausePlaybackController = self;
+    dyyyCommentPausePlaybackRestoreGeneration++;
     updateSpeedButtonVisibility();
     updateClearButtonVisibility();
     DYYYCommentPausePlaybackIfNeeded();
@@ -12869,7 +13203,7 @@ static Class tabBarButtonClass = nil;
     dyyyCommentViewVisible = NO;
     updateSpeedButtonVisibility();
     updateClearButtonVisibility();
-    DYYYCommentRestorePlaybackIfNeeded();
+    DYYYScheduleCommentRestorePlaybackIfNeeded(self);
 }
 
 - (void)viewDidLayoutSubviews {
