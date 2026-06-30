@@ -4517,7 +4517,7 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
 
     AWESettingItemModel *loginBypassItem = [DYYYSettingsHelper createSettingItem:@{
         @"identifier" : @"DYYYEnableLoginBypass",
-        @"title" : @"启用绕登陆",
+        @"title" : @"启用绕登录",
         @"subTitle" : @"开启后可绕过登录时低版本/风险提示，登录成功后建议关闭重启",
         @"detail" : @"",
         @"cellType" : @37,
