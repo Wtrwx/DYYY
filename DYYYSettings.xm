@@ -2,6 +2,7 @@
 #import "DYYYManager.h"
 #import <MobileCoreServices/MobileCoreServices.h>
 #import <math.h>
+#import <stdlib.h>
 #import <UIKit/UIKit.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -57,6 +58,7 @@ static NSString *const kDYYYCommentPausePlaybackSettingIdentifier = @"DYYYCommen
 static NSString *const kDYYYCommentPausePlaybackSVGIconName = @"ic_commentpause_dyyy_outlined_20";
 static NSString *const kDYYYLoginBypassSVGIconName = @"ic_unlocknew_outlined_20";
 static NSString *const kDYYYHideRecommendAppDownloadSettingIdentifier = @"DYYYHideRecommendAppDownload";
+static NSString *const kDYYYMiniProgramJumpingAdsSettingIdentifier = @"DYYYEnableMiniProgramJumpingAds";
 
 static char kDYYYGeneratedSettingIconIdentifierKey;
 static char kDYYYGeneratedSettingIconRetryScheduledKey;
@@ -202,6 +204,43 @@ static UIImage *DYYYCommentPausePlaybackIcon(CGSize requestedSize) {
     });
 }
 
+static UIImage *DYYYMiniProgramJumpingAdsIcon(CGSize requestedSize) {
+    return DYYYRenderGeneratedSettingTemplateIcon(@"mini-program-jumping-ads", requestedSize, ^(CGContextRef context, CGSize targetSize) {
+      CGContextScaleCTM(context, targetSize.width / 20.0, targetSize.height / 20.0);
+      UIColor *iconColor = [UIColor colorWithRed:22.0 / 255.0 green:24.0 / 255.0 blue:35.0 / 255.0 alpha:1.0];
+      [iconColor setFill];
+      [iconColor setStroke];
+
+      UIBezierPath *roundedSquare = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(2.2, 2.2, 9.4, 9.4) cornerRadius:2.2];
+      [roundedSquare appendPath:[UIBezierPath bezierPathWithRoundedRect:CGRectMake(4.2, 4.2, 5.4, 5.4) cornerRadius:1.2]];
+      roundedSquare.usesEvenOddFillRule = YES;
+      [roundedSquare fill];
+
+      UIBezierPath *smallSquare = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(12.8, 3.0, 4.9, 4.9) cornerRadius:1.2];
+      [smallSquare fill];
+
+      UIBezierPath *bottomSquare = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(3.0, 12.8, 4.9, 4.9) cornerRadius:1.2];
+      [bottomSquare fill];
+
+      UIBezierPath *arrow = [UIBezierPath bezierPath];
+      [arrow moveToPoint:CGPointMake(10.9, 13.8)];
+      [arrow addLineToPoint:CGPointMake(16.1, 13.8)];
+      [arrow addLineToPoint:CGPointMake(14.2, 11.9)];
+      [arrow addCurveToPoint:CGPointMake(14.2, 10.95) controlPoint1:CGPointMake(13.95, 11.65) controlPoint2:CGPointMake(13.95, 11.2)];
+      [arrow addCurveToPoint:CGPointMake(15.15, 10.95) controlPoint1:CGPointMake(14.45, 10.7) controlPoint2:CGPointMake(14.9, 10.7)];
+      [arrow addLineToPoint:CGPointMake(18.45, 14.25)];
+      [arrow addCurveToPoint:CGPointMake(18.45, 15.2) controlPoint1:CGPointMake(18.7, 14.5) controlPoint2:CGPointMake(18.7, 14.95)];
+      [arrow addLineToPoint:CGPointMake(15.15, 18.5)];
+      [arrow addCurveToPoint:CGPointMake(14.2, 18.5) controlPoint1:CGPointMake(14.9, 18.75) controlPoint2:CGPointMake(14.45, 18.75)];
+      [arrow addCurveToPoint:CGPointMake(14.2, 17.55) controlPoint1:CGPointMake(13.95, 18.25) controlPoint2:CGPointMake(13.95, 17.8)];
+      [arrow addLineToPoint:CGPointMake(16.1, 15.65)];
+      [arrow addLineToPoint:CGPointMake(10.9, 15.65)];
+      [arrow addCurveToPoint:CGPointMake(10.9, 13.8) controlPoint1:CGPointMake(10.3, 15.65) controlPoint2:CGPointMake(10.3, 13.8)];
+      [arrow closePath];
+      [arrow fill];
+    });
+}
+
 @interface AWESettingsTableViewCell : UITableViewCell
 @property(nonatomic, strong) AWESettingItemModel *itemModel;
 @property(nonatomic, strong) UILabel *titleLabel;
@@ -212,7 +251,9 @@ static UIImage *DYYYCommentPausePlaybackIcon(CGSize requestedSize) {
 @end
 
 static BOOL DYYYIsGeneratedSettingIconIdentifier(NSString *identifier) {
-    return [identifier isEqualToString:kDYYYFeedNowPlayingSettingIdentifier] || [identifier isEqualToString:kDYYYCommentPausePlaybackSettingIdentifier];
+    return [identifier isEqualToString:kDYYYFeedNowPlayingSettingIdentifier] ||
+           [identifier isEqualToString:kDYYYCommentPausePlaybackSettingIdentifier] ||
+           [identifier isEqualToString:kDYYYMiniProgramJumpingAdsSettingIdentifier];
 }
 
 static UIImage *DYYYGeneratedSettingIconForIdentifier(NSString *identifier, CGSize targetSize) {
@@ -221,6 +262,9 @@ static UIImage *DYYYGeneratedSettingIconForIdentifier(NSString *identifier, CGSi
     }
     if ([identifier isEqualToString:kDYYYCommentPausePlaybackSettingIdentifier]) {
         return DYYYCommentPausePlaybackIcon(targetSize);
+    }
+    if ([identifier isEqualToString:kDYYYMiniProgramJumpingAdsSettingIdentifier]) {
+        return DYYYMiniProgramJumpingAdsIcon(targetSize);
     }
     return nil;
 }
@@ -303,6 +347,25 @@ static void DYYYRemoveRemoteConfigObserver(void) {
 
 static NSString *DYYYStringOrEmpty(id value) {
     return [value isKindOfClass:[NSString class]] ? (NSString *)value : @"";
+}
+
+static void DYYYRestartApplicationAfterDelay(NSTimeInterval delay) {
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(MAX(delay, 0.0) * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+      UIApplication *application = [UIApplication sharedApplication];
+      SEL suspendSelector = NSSelectorFromString(@"suspend");
+      if ([application respondsToSelector:suspendSelector]) {
+          ((void (*)(id, SEL))objc_msgSend)(application, suspendSelector);
+      }
+
+      dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.35 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        SEL terminateSelector = NSSelectorFromString(@"terminateWithSuccess");
+        if ([application respondsToSelector:terminateSelector]) {
+            ((void (*)(id, SEL))objc_msgSend)(application, terminateSelector);
+        } else {
+            exit(0);
+        }
+      });
+    });
 }
 
 static NSMutableDictionary<NSString *, NSMutableDictionary *> *DYYYSettingsSearchIndexMap(void) {
@@ -1480,6 +1543,12 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
             @"imageName" : @"ic_sun_outlined"},
           @{@"identifier" : @"DYYYNoAds",
             @"title" : @"启用屏蔽广告",
+            @"detail" : @"",
+            @"cellType" : @6,
+            @"imageName" : @"ic_ad_outlined_20"},
+          @{@"identifier" : kDYYYMiniProgramJumpingAdsSettingIdentifier,
+            @"title" : @"小程序跳广告",
+            @"subTitle" : @"自动关闭小程序奖励广告并返回奖励成功",
             @"detail" : @"",
             @"cellType" : @6,
             @"imageName" : @"ic_ad_outlined_20"},
@@ -4423,15 +4492,23 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
     };
     [cleanupItems addObject:cleanSettingsItem];
 
-    NSArray<NSString *> *customDirs = @[ @"Application Support/gurd_cache", @"Caches", @"BDByteCast", @"kitelog" ];
+    NSArray<NSString *> *customDirs = @[ @"Application Support", @"BDByteCast", @"kitelog" ];
     NSMutableSet<NSString *> *uniquePaths = [NSMutableSet set];
-    [uniquePaths addObject:NSTemporaryDirectory()];
-    [uniquePaths addObject:NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES).firstObject];
+    NSString *temporaryDirectory = NSTemporaryDirectory();
+    if (temporaryDirectory.length > 0) {
+        [uniquePaths addObject:temporaryDirectory];
+    }
+    NSString *cachesDirectory = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES).firstObject;
+    if (cachesDirectory.length > 0) {
+        [uniquePaths addObject:cachesDirectory];
+    }
     NSString *libraryDir = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES).firstObject;
-    for (NSString *sub in customDirs) {
-        NSString *fullPath = [libraryDir stringByAppendingPathComponent:sub];
-        if ([[NSFileManager defaultManager] fileExistsAtPath:fullPath]) {
-            [uniquePaths addObject:fullPath];
+    if (libraryDir.length > 0) {
+        for (NSString *sub in customDirs) {
+            NSString *fullPath = [libraryDir stringByAppendingPathComponent:sub];
+            if ([[NSFileManager defaultManager] fileExistsAtPath:fullPath]) {
+                [uniquePaths addObject:fullPath];
+            }
         }
     }
     NSArray<NSString *> *allPaths = [uniquePaths allObjects];
@@ -4477,8 +4554,8 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
 
         // 修复搜索界面的猜你想搜和猜你想看
         NSFileManager *fileManager = [NSFileManager defaultManager];
-        NSString *activeMetadataFilePath = [libraryDir stringByAppendingPathComponent:@"Application Support/gurd_cache/.active_metadata"];
-        if ([fileManager fileExistsAtPath:activeMetadataFilePath]) {
+        NSString *activeMetadataFilePath = libraryDir.length > 0 ? [libraryDir stringByAppendingPathComponent:@"Application Support/gurd_cache/.active_metadata"] : nil;
+        if (activeMetadataFilePath.length > 0 && [fileManager fileExistsAtPath:activeMetadataFilePath]) {
             [fileManager removeItemAtPath:activeMetadataFilePath error:nil];
         }
 
@@ -4490,12 +4567,12 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
         unsigned long long clearedSize = (initialSize > afterSize) ? (initialSize - afterSize) : 0;
 
         dispatch_async(dispatch_get_main_queue(), ^{
-          [DYYYUtils showToast:[NSString stringWithFormat:@"已清理 %@ 缓存", [DYYYUtils formattedSize:clearedSize]]];
+          [DYYYUtils showToast:[NSString stringWithFormat:@"已清理 %@ 缓存，应用即将重启", [DYYYUtils formattedSize:clearedSize]]];
 
           strongCleanCacheItem.detail = [DYYYUtils formattedSize:afterSize];
-          // Re-enable the button after cleaning is done
           strongCleanCacheItem.isEnable = YES;
           [strongCleanCacheItem refreshCell];
+          DYYYRestartApplicationAfterDelay(1.2);
         });
       });
     };

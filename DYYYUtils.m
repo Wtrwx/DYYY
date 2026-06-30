@@ -1153,7 +1153,7 @@ static void DYYYApplyDisplayLocationToLabel(UILabel *label, NSString *displayLoc
 
     NSDirectoryEnumerator *enumerator = [fileManager enumeratorAtURL:directoryURL
                                           includingPropertiesForKeys:@[ NSURLIsDirectoryKey, NSURLIsSymbolicLinkKey ]
-                                                             options:NSDirectoryEnumerationSkipsHiddenFiles
+                                                             options:0
                                                         errorHandler:^BOOL(NSURL *url, NSError *enumError) {
                                                           NSLog(@"[CacheClean] Error enumerating directory %@: %@", url, enumError);
                                                           return YES;

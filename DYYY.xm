@@ -43,6 +43,7 @@ static CGFloat originalTabBarHeight = kInvalidHeight;
 static NSString *const kDYYYGlobalTransparencyKey = @"DYYYGlobalTransparency";
 static NSString *const kDYYYGlobalTransparencyDidChangeNotification = @"DYYYGlobalTransparencyDidChangeNotification";
 static NSString *const kDYYYEnableLoginBypassKey = @"DYYYEnableLoginBypass";
+static NSString *const kDYYYMiniProgramJumpingAdsKey = @"DYYYEnableMiniProgramJumpingAds";
 static char kDYYYGlobalTransparencyBaseAlphaKey;
 static NSInteger dyyyGlobalTransparencyMutationDepth = 0;
 
@@ -11518,6 +11519,39 @@ static BOOL DYYYShouldHideTemplateVideoForAweme(AWEAwemeModel *aweme) {
 }
 %end
 
+%group DYYYMiniProgramJumpingAdsGroup
+%hook BDARewardedVideoAdBaseController
+
+- (BOOL)sendReward {
+    if (DYYYGetBool(kDYYYMiniProgramJumpingAdsKey)) {
+        return YES;
+    }
+    return %orig;
+}
+
+- (BOOL)sendFirstReward {
+    if (DYYYGetBool(kDYYYMiniProgramJumpingAdsKey)) {
+        return YES;
+    }
+    return %orig;
+}
+
+- (void)viewDidAppear:(BOOL)animated {
+    %orig;
+    if (!DYYYGetBool(kDYYYMiniProgramJumpingAdsKey)) {
+        return;
+    }
+
+    SEL closeSelector = NSSelectorFromString(@"close");
+    id controller = (id)self;
+    if ([controller respondsToSelector:closeSelector]) {
+        ((void (*)(id, SEL))objc_msgSend)(controller, closeSelector);
+    }
+}
+
+%end
+%end
+
 // 去除启动视频广告
 %hook AWEAwesomeSplashFeedCellOldAccessoryView
 
@@ -15263,6 +15297,10 @@ static void findTargetViewInView(UIView *view) {
             %init(EnableStickerSaveMenu);
         }
         [FloatingSpeedButton reloadConfiguration];
+
+        if (objc_getClass("BDARewardedVideoAdBaseController")) {
+            %init(DYYYMiniProgramJumpingAdsGroup);
+        }
 
         // 初始化红包激励挂件容器视图类组
         Class incentivePendantClass = objc_getClass("AWEIncentiveSwiftImplDOUYINLite.IncentivePendantContainerView");
