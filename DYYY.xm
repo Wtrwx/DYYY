@@ -41,8 +41,399 @@ static CGFloat gCurrentTabBarHeight = kInvalidHeight;
 static CGFloat originalTabBarHeight = kInvalidHeight;
 static NSString *const kDYYYGlobalTransparencyKey = @"DYYYGlobalTransparency";
 static NSString *const kDYYYGlobalTransparencyDidChangeNotification = @"DYYYGlobalTransparencyDidChangeNotification";
+static NSString *const kDYYYEnableLoginBypassKey = @"DYYYEnableLoginBypass";
 static char kDYYYGlobalTransparencyBaseAlphaKey;
 static NSInteger dyyyGlobalTransparencyMutationDepth = 0;
+
+static BOOL DYYYLoginBypassEnabled(void) {
+    id storedValue = [[NSUserDefaults standardUserDefaults] objectForKey:kDYYYEnableLoginBypassKey];
+    return storedValue == nil ? YES : [storedValue boolValue];
+}
+
+static BOOL DYYYShouldBlockVersionUpdateWorkflow(void) {
+    return DYYYGetBool(@"DYYYNoUpdates") || DYYYLoginBypassEnabled();
+}
+
+static void DYYYLoginBypassInvokeCloseCallback(id callback) {
+    if (!callback) {
+        return;
+    }
+
+    void (^completionBlock)(void) = callback;
+    completionBlock();
+}
+
+static NSArray<NSString *> *DYYYLoginBypassTargetBundleIdentifiers(void) {
+    static NSArray<NSString *> *bundleIdentifiers = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+      bundleIdentifiers = @[
+          @"com.ss.iphone.ugc.Aweme",
+          @"com.ss.iphone.ugc.Aweme.beta",
+          @"com.ss.iphone.ugc.Aweme.internal",
+          @"com.ss.iphone.ugc.aweme.lite"
+      ];
+    });
+    return bundleIdentifiers;
+}
+
+static BOOL DYYYLoginBypassIsTargetBundleIdentifier(id value) {
+    if (![value isKindOfClass:[NSString class]]) {
+        return NO;
+    }
+
+    for (NSString *bundleIdentifier in DYYYLoginBypassTargetBundleIdentifiers()) {
+        if ([value isEqualToString:bundleIdentifier]) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
+static NSArray<NSString *> *DYYYLoginBypassEmojiSuffixes(void) {
+    static NSArray<NSString *> *suffixes = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+      suffixes = @[
+          @"\U0001F60A",
+          @"\U0001F60E",
+          @"\U0001F914",
+          @"\U0001F609",
+          @"\U0001F60B",
+          @"\U0001F60D",
+          @"\U0001F970",
+          @"\U0001F618",
+          @"\U0001F617",
+          @"\U0001F619",
+          @"\U0001F61A",
+          @"\U0001F642",
+          @"\U0001F917",
+          @"\U0001F929",
+          @"\U0001F928",
+          @"\U0001F9D0",
+          @"\U0001F913",
+          @"\U0001F607",
+          @"\U0001F973",
+          @"\U0001F60C",
+          @"\U0001F60F",
+          @"\U0001F60A",
+          @"\U0001F612",
+          @"\U0001F643"
+      ];
+    });
+    return suffixes;
+}
+
+static NSMutableDictionary<NSString *, NSString *> *DYYYLoginBypassReplacementCache(void) {
+    static NSMutableDictionary<NSString *, NSString *> *cache = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+      cache = [NSMutableDictionary dictionary];
+      [NSTimer scheduledTimerWithTimeInterval:60.0
+                                      repeats:YES
+                                        block:^(__unused NSTimer *timer) {
+                                          @synchronized(cache) {
+                                              [cache removeAllObjects];
+                                          }
+                                        }];
+    });
+    return cache;
+}
+
+static NSString *DYYYLoginBypassReplacementBundleIdentifier(NSString *bundleIdentifier) {
+    if (!DYYYLoginBypassEnabled() || !DYYYLoginBypassIsTargetBundleIdentifier(bundleIdentifier)) {
+        return bundleIdentifier;
+    }
+
+    NSMutableDictionary<NSString *, NSString *> *cache = DYYYLoginBypassReplacementCache();
+    @synchronized(cache) {
+        NSString *cachedValue = cache[bundleIdentifier];
+        if (cachedValue.length > 0) {
+            return cachedValue;
+        }
+
+        NSArray<NSString *> *suffixes = DYYYLoginBypassEmojiSuffixes();
+        if (suffixes.count == 0) {
+            return bundleIdentifier;
+        }
+
+        NSString *suffix = suffixes[arc4random_uniform((uint32_t)suffixes.count)];
+        NSString *replacement = [bundleIdentifier stringByAppendingString:suffix];
+        if (replacement.length > 0 && cache.count <= 99) {
+            cache[bundleIdentifier] = replacement;
+        }
+        return replacement ?: bundleIdentifier;
+    }
+}
+
+static NSString *DYYYLoginBypassHeaderValueByReplacingBundleIdentifier(NSString *value, NSString *field) {
+    if (!DYYYLoginBypassEnabled() || ![value isKindOfClass:[NSString class]] || ![field isKindOfClass:[NSString class]]) {
+        return value;
+    }
+
+    NSString *lowercaseField = [field lowercaseString];
+    BOOL isBundleHeaderField = [lowercaseField isEqualToString:@"x-bundle-id"] || [lowercaseField isEqualToString:@"bundle-identifier"] ||
+                               [lowercaseField isEqualToString:@"app-bundle-id"] || [lowercaseField isEqualToString:@"x-app-bundle-id"];
+    if (!isBundleHeaderField || !DYYYLoginBypassIsTargetBundleIdentifier(value)) {
+        return value;
+    }
+
+    return DYYYLoginBypassReplacementBundleIdentifier(value);
+}
+
+static NSDictionary *DYYYLoginBypassHeadersByReplacingBundleIdentifiers(NSDictionary *headers) {
+    if (!DYYYLoginBypassEnabled() || ![headers isKindOfClass:[NSDictionary class]]) {
+        return headers;
+    }
+
+    NSMutableDictionary *mutableHeaders = [headers mutableCopy];
+    NSArray<NSString *> *headerKeys = @[ @"X-Bundle-ID", @"X-App-Bundle-ID", @"Bundle-Identifier", @"App-Bundle-ID" ];
+    for (NSString *headerKey in headerKeys) {
+        id value = mutableHeaders[headerKey];
+        if (DYYYLoginBypassIsTargetBundleIdentifier(value)) {
+            mutableHeaders[headerKey] = DYYYLoginBypassReplacementBundleIdentifier(value);
+        }
+
+        NSString *lowercaseKey = [headerKey lowercaseString];
+        id lowercaseValue = mutableHeaders[lowercaseKey];
+        if (DYYYLoginBypassIsTargetBundleIdentifier(lowercaseValue)) {
+            mutableHeaders[lowercaseKey] = DYYYLoginBypassReplacementBundleIdentifier(lowercaseValue);
+        }
+    }
+
+    return mutableHeaders;
+}
+
+static BOOL DYYYLoginBypassURLStringContainsBundleKey(NSString *urlString) {
+    return [urlString containsString:@"bundle_id"] || [urlString containsString:@"bundleId"] || [urlString containsString:@"bundle_identifier"];
+}
+
+static NSURL *DYYYLoginBypassURLByReplacingBundleIdentifier(NSURL *url) {
+    if (!DYYYLoginBypassEnabled() || ![url isKindOfClass:[NSURL class]]) {
+        return url;
+    }
+
+    NSString *absoluteString = [url absoluteString];
+    if (absoluteString.length == 0 || !DYYYLoginBypassURLStringContainsBundleKey(absoluteString)) {
+        return url;
+    }
+
+    NSString *updatedString = absoluteString;
+    NSString *awemeBundleIdentifier = @"com.ss.iphone.ugc.Aweme";
+    NSString *liteBundleIdentifier = @"com.ss.iphone.ugc.aweme.lite";
+    if ([updatedString containsString:awemeBundleIdentifier]) {
+        updatedString = [updatedString stringByReplacingOccurrencesOfString:awemeBundleIdentifier
+                                                                 withString:DYYYLoginBypassReplacementBundleIdentifier(awemeBundleIdentifier)];
+    } else if ([updatedString containsString:liteBundleIdentifier]) {
+        updatedString = [updatedString stringByReplacingOccurrencesOfString:liteBundleIdentifier
+                                                                 withString:DYYYLoginBypassReplacementBundleIdentifier(liteBundleIdentifier)];
+    }
+
+    if ([updatedString isEqualToString:absoluteString]) {
+        return url;
+    }
+
+    return [NSURL URLWithString:updatedString] ?: url;
+}
+
+%hook NSBundle
+- (NSString *)bundleIdentifier {
+    NSString *bundleIdentifier = %orig;
+    return DYYYLoginBypassReplacementBundleIdentifier(bundleIdentifier);
+}
+
+- (NSDictionary *)infoDictionary {
+    NSDictionary *infoDictionary = %orig;
+    if (!DYYYLoginBypassEnabled() || ![infoDictionary isKindOfClass:[NSDictionary class]]) {
+        return infoDictionary;
+    }
+
+    NSString *bundleIdentifier = infoDictionary[@"CFBundleIdentifier"];
+    if (!DYYYLoginBypassIsTargetBundleIdentifier(bundleIdentifier)) {
+        return infoDictionary;
+    }
+
+    NSMutableDictionary *mutableInfoDictionary = [infoDictionary mutableCopy];
+    mutableInfoDictionary[@"CFBundleIdentifier"] = DYYYLoginBypassReplacementBundleIdentifier(bundleIdentifier);
+    return mutableInfoDictionary;
+}
+
++ (NSBundle *)mainBundle {
+    return %orig;
+}
+%end
+
+%hook NSURLRequest
+- (NSURL *)URL {
+    NSURL *url = %orig;
+    return DYYYLoginBypassURLByReplacingBundleIdentifier(url);
+}
+%end
+
+%hook NSMutableURLRequest
+- (void)setValue:(NSString *)value forHTTPHeaderField:(NSString *)field {
+    %orig(DYYYLoginBypassHeaderValueByReplacingBundleIdentifier(value, field), field);
+}
+
+- (void)addValue:(NSString *)value forHTTPHeaderField:(NSString *)field {
+    %orig(DYYYLoginBypassHeaderValueByReplacingBundleIdentifier(value, field), field);
+}
+%end
+
+%hook NSURLSessionConfiguration
+- (NSDictionary *)HTTPAdditionalHeaders {
+    return DYYYLoginBypassHeadersByReplacingBundleIdentifiers(%orig);
+}
+
+- (void)setHTTPAdditionalHeaders:(NSDictionary *)headers {
+    %orig(DYYYLoginBypassHeadersByReplacingBundleIdentifiers(headers));
+}
+%end
+
+%group DYYYLoginBypassVersionUpdateAlert
+%hook AWEVersionUpdateAlert
+- (BOOL)canShow {
+    return DYYYShouldBlockVersionUpdateWorkflow() ? NO : %orig;
+}
+
+- (BOOL)canShowWithUpgradeStatus {
+    return DYYYShouldBlockVersionUpdateWorkflow() ? NO : %orig;
+}
+
+- (BOOL)isUpgradeStatusVersionValid {
+    return DYYYShouldBlockVersionUpdateWorkflow() ? NO : %orig;
+}
+
+- (BOOL)versionCompareForNeedUpgrade {
+    return DYYYShouldBlockVersionUpdateWorkflow() ? NO : %orig;
+}
+
+- (void)showWithCloseCallback:(id)closeCallback {
+    if (DYYYShouldBlockVersionUpdateWorkflow()) {
+        DYYYLoginBypassInvokeCloseCallback(closeCallback);
+        return;
+    }
+    %orig(closeCallback);
+}
+
+- (void)_showUpgradeModal {
+    if (DYYYShouldBlockVersionUpdateWorkflow()) {
+        return;
+    }
+    %orig;
+}
+
+- (void)showDialog {
+    if (DYYYShouldBlockVersionUpdateWorkflow()) {
+        return;
+    }
+    %orig;
+}
+
+- (void)requestNewVersion {
+    if (DYYYShouldBlockVersionUpdateWorkflow()) {
+        return;
+    }
+    %orig;
+}
+%end
+%end
+
+%group DYYYLoginBypassVersionUpdatePopup
+%hook AWEVersionUpdatePopup
+- (BOOL)isShowing {
+    return DYYYShouldBlockVersionUpdateWorkflow() ? NO : %orig;
+}
+
+- (void)showDialog {
+    if (DYYYShouldBlockVersionUpdateWorkflow()) {
+        return;
+    }
+    %orig;
+}
+
+- (void)showInfoPanel {
+    if (DYYYShouldBlockVersionUpdateWorkflow()) {
+        return;
+    }
+    %orig;
+}
+
+- (void)p_showDialog {
+    if (DYYYShouldBlockVersionUpdateWorkflow()) {
+        return;
+    }
+    %orig;
+}
+
+- (void)p_showInfoPanel {
+    if (DYYYShouldBlockVersionUpdateWorkflow()) {
+        return;
+    }
+    %orig;
+}
+%end
+%end
+
+%group DYYYLoginBypassVersionUpdateWorkflow
+%hook AWEVersionUpdateWorkflow
+- (void)startVersionUpdateWorkflow:(id)request completion:(id)completion {
+    if (DYYYShouldBlockVersionUpdateWorkflow()) {
+        DYYYLoginBypassInvokeCloseCallback(completion);
+        return;
+    }
+    %orig(request, completion);
+}
+
+- (void)openAppStore {
+    if (DYYYShouldBlockVersionUpdateWorkflow()) {
+        return;
+    }
+    %orig;
+}
+
+- (void)showLoadingView {
+    if (DYYYShouldBlockVersionUpdateWorkflow()) {
+        return;
+    }
+    %orig;
+}
+%end
+%end
+
+%group DYYYLoginBypassTeenVersionUpdateManager
+%hook AWETeenVersionUpdateManager
+- (BOOL)canShow {
+    return DYYYShouldBlockVersionUpdateWorkflow() ? NO : %orig;
+}
+
+- (void)showWithCloseCallback:(id)closeCallback {
+    if (DYYYShouldBlockVersionUpdateWorkflow()) {
+        DYYYLoginBypassInvokeCloseCallback(closeCallback);
+        return;
+    }
+    %orig(closeCallback);
+}
+
+- (void)p_showUpgradeAlert {
+    if (DYYYShouldBlockVersionUpdateWorkflow()) {
+        return;
+    }
+    %orig;
+}
+
+- (BOOL)versionCompareForUpgrade {
+    return DYYYShouldBlockVersionUpdateWorkflow() ? NO : %orig;
+}
+
+- (void)requestNewVersion {
+    if (DYYYShouldBlockVersionUpdateWorkflow()) {
+        return;
+    }
+    %orig;
+}
+%end
+%end
 
 static void updateGlobalTransparencyCache() {
     NSString *transparentValue = DYYYGetString(kDYYYGlobalTransparencyKey);
@@ -4797,22 +5188,19 @@ static NSString *const kDYYYLongPressCopyEnabledKey = @"DYYYLongPressCopyTextEna
 %hook AWEVersionUpdateManager
 
 - (void)startVersionUpdateWorkflow:(id)arg1 completion:(id)arg2 {
-    if (DYYYGetBool(@"DYYYNoUpdates")) {
-        if (arg2) {
-            void (^completionBlock)(void) = arg2;
-            completionBlock();
-        }
+    if (DYYYShouldBlockVersionUpdateWorkflow()) {
+        DYYYLoginBypassInvokeCloseCallback(arg2);
     } else {
         %orig;
     }
 }
 
 - (id)workflow {
-    return DYYYGetBool(@"DYYYNoUpdates") ? nil : %orig;
+    return DYYYShouldBlockVersionUpdateWorkflow() ? nil : %orig;
 }
 
 - (id)badgeModule {
-    return DYYYGetBool(@"DYYYNoUpdates") ? nil : %orig;
+    return DYYYShouldBlockVersionUpdateWorkflow() ? nil : %orig;
 }
 
 %end
@@ -14487,6 +14875,19 @@ static void findTargetViewInView(UIView *view) {
     }];
 
     DYYYMigrateCombinedHDRModeIfNeeded();
+
+    if (objc_getClass("AWEVersionUpdateAlert")) {
+        %init(DYYYLoginBypassVersionUpdateAlert);
+    }
+    if (objc_getClass("AWEVersionUpdatePopup")) {
+        %init(DYYYLoginBypassVersionUpdatePopup);
+    }
+    if (objc_getClass("AWEVersionUpdateWorkflow")) {
+        %init(DYYYLoginBypassVersionUpdateWorkflow);
+    }
+    if (objc_getClass("AWETeenVersionUpdateManager")) {
+        %init(DYYYLoginBypassTeenVersionUpdateManager);
+    }
 
     Class interactionBaseLabelClass = objc_getClass("AWECommentSwiftBizUI.CommentInteractionBaseLabel");
     if (interactionBaseLabelClass) {

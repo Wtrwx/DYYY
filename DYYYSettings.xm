@@ -55,6 +55,8 @@ static NSString *const kDYYYFeedNowPlayingSettingIdentifier = @"DYYYDisableFeedN
 static NSString *const kDYYYFeedNowPlayingSVGIconName = @"ic_liveactivityplayslash_outlined_20";
 static NSString *const kDYYYCommentPausePlaybackSettingIdentifier = @"DYYYCommentPausePlayback";
 static NSString *const kDYYYCommentPausePlaybackSVGIconName = @"ic_commentpause_dyyy_outlined_20";
+static NSString *const kDYYYLoginBypassSettingIdentifier = @"DYYYEnableLoginBypass";
+static NSString *const kDYYYLoginBypassSVGIconName = @"ic_loginbypass_dyyy_outlined_20";
 static NSString *const kDYYYHideRecommendAppDownloadSettingIdentifier = @"DYYYHideRecommendAppDownload";
 
 static UIImage *DYYYFeedNowPlayingSVGIcon(CGSize requestedSize) {
@@ -205,6 +207,73 @@ static UIImage *DYYYCommentPausePlaybackIcon(CGSize requestedSize) {
     return image;
 }
 
+static UIImage *DYYYLoginBypassSettingIcon(CGSize requestedSize) {
+    CGSize targetSize = requestedSize;
+    if (targetSize.width <= 0 || targetSize.height <= 0) {
+        targetSize = CGSizeMake(20, 20);
+    }
+
+    static NSCache<NSString *, UIImage *> *imageCache;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+      imageCache = [[NSCache alloc] init];
+    });
+
+    NSString *cacheKey = NSStringFromCGSize(targetSize);
+    UIImage *cachedImage = [imageCache objectForKey:cacheKey];
+    if (cachedImage) {
+        return cachedImage;
+    }
+
+    UIGraphicsBeginImageContextWithOptions(targetSize, NO, 0);
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    if (!context) {
+        UIGraphicsEndImageContext();
+        return nil;
+    }
+
+    CGContextScaleCTM(context, targetSize.width / 20.0, targetSize.height / 20.0);
+    UIColor *iconColor = [UIColor colorWithRed:22.0 / 255.0 green:24.0 / 255.0 blue:35.0 / 255.0 alpha:1.0];
+    CGContextSetStrokeColorWithColor(context, iconColor.CGColor);
+    CGContextSetFillColorWithColor(context, iconColor.CGColor);
+    CGContextSetLineCap(context, kCGLineCapRound);
+    CGContextSetLineJoin(context, kCGLineJoinRound);
+    CGContextSetLineWidth(context, 2.05);
+
+    UIBezierPath *shield = [UIBezierPath bezierPath];
+    [shield moveToPoint:CGPointMake(10.0, 2.35)];
+    [shield addCurveToPoint:CGPointMake(15.8, 4.45)
+              controlPoint1:CGPointMake(11.75, 3.45)
+              controlPoint2:CGPointMake(13.75, 4.15)];
+    [shield addLineToPoint:CGPointMake(15.8, 8.35)];
+    [shield addCurveToPoint:CGPointMake(10.0, 16.85)
+              controlPoint1:CGPointMake(15.8, 12.1)
+              controlPoint2:CGPointMake(13.45, 15.15)];
+    [shield addCurveToPoint:CGPointMake(4.2, 8.35)
+              controlPoint1:CGPointMake(6.55, 15.15)
+              controlPoint2:CGPointMake(4.2, 12.1)];
+    [shield addLineToPoint:CGPointMake(4.2, 4.45)];
+    [shield addCurveToPoint:CGPointMake(10.0, 2.35)
+              controlPoint1:CGPointMake(6.25, 4.15)
+              controlPoint2:CGPointMake(8.25, 3.45)];
+    [shield closePath];
+    [shield stroke];
+
+    UIBezierPath *keyhole = [UIBezierPath bezierPathWithOvalInRect:CGRectMake(8.85, 7.65, 2.3, 2.3)];
+    [keyhole fill];
+
+    UIBezierPath *slot = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(9.25, 9.45, 1.5, 3.15) cornerRadius:0.75];
+    [slot fill];
+
+    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    image = [image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+    if (image) {
+        [imageCache setObject:image forKey:cacheKey];
+    }
+    return image;
+}
+
 @interface AWESettingsTableViewCell : UITableViewCell
 @property(nonatomic, strong) AWESettingItemModel *itemModel;
 @property(nonatomic, strong) UILabel *titleLabel;
@@ -225,6 +294,8 @@ static void DYYYApplyGeneratedSettingIconToCell(AWESettingsTableViewCell *cell) 
         iconImage = DYYYFeedNowPlayingSVGIcon(iconView.bounds.size);
     } else if ([itemModel.identifier isEqualToString:kDYYYCommentPausePlaybackSettingIdentifier]) {
         iconImage = DYYYCommentPausePlaybackIcon(iconView.bounds.size);
+    } else if ([itemModel.identifier isEqualToString:kDYYYLoginBypassSettingIdentifier]) {
+        iconImage = DYYYLoginBypassSettingIcon(iconView.bounds.size);
     }
 
     if (!iconImage) {
@@ -236,6 +307,14 @@ static void DYYYApplyGeneratedSettingIconToCell(AWESettingsTableViewCell *cell) 
     iconView.hidden = NO;
     iconView.alpha = 1.0;
     iconView.tintColor = cell.titleLabel.textColor;
+
+    if ([itemModel.identifier isEqualToString:kDYYYLoginBypassSettingIdentifier] && cell.titleLabel.superview && iconView.superview &&
+        CGRectGetHeight(cell.titleLabel.bounds) > 0 && CGRectGetHeight(iconView.bounds) > 0) {
+        CGPoint titleCenter = [cell.titleLabel.superview convertPoint:cell.titleLabel.center toView:iconView.superview];
+        CGRect iconFrame = iconView.frame;
+        iconFrame.origin.y = round(titleCenter.y - CGRectGetHeight(iconFrame) / 2.0);
+        iconView.frame = iconFrame;
+    }
 }
 
 static void DYYYRemoveRemoteConfigObserver(void) {
@@ -4448,6 +4527,22 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
     aboutSection.sectionHeaderHeight = 40;
     aboutSection.type = 0;
     NSMutableArray<AWESettingItemModel *> *aboutItems = [NSMutableArray array];
+
+    NSUserDefaults *loginBypassDefaults = [NSUserDefaults standardUserDefaults];
+    if ([loginBypassDefaults objectForKey:@"DYYYEnableLoginBypass"] == nil) {
+        [loginBypassDefaults setBool:YES forKey:@"DYYYEnableLoginBypass"];
+    }
+
+    AWESettingItemModel *loginBypassItem = [DYYYSettingsHelper createSettingItem:@{
+        @"identifier" : @"DYYYEnableLoginBypass",
+        @"title" : @"启用绕登陆",
+        @"subTitle" : @"开启后可绕过登录时低版本/风险提示，登录成功后建议关闭重启",
+        @"detail" : @"",
+        @"cellType" : @37,
+        @"imageName" : kDYYYLoginBypassSVGIconName
+    }];
+    loginBypassItem.detail = @"";
+    [aboutItems addObject:loginBypassItem];
 
     // 添加关于
     AWESettingItemModel *aboutItem = [[%c(AWESettingItemModel) alloc] init];
