@@ -55,11 +55,13 @@ static NSString *const kDYYYFeedNowPlayingSettingIdentifier = @"DYYYDisableFeedN
 static NSString *const kDYYYFeedNowPlayingSVGIconName = @"ic_liveactivityplayslash_outlined_20";
 static NSString *const kDYYYCommentPausePlaybackSettingIdentifier = @"DYYYCommentPausePlayback";
 static NSString *const kDYYYCommentPausePlaybackSVGIconName = @"ic_commentpause_dyyy_outlined_20";
-static NSString *const kDYYYLoginBypassSettingIdentifier = @"DYYYEnableLoginBypass";
-static NSString *const kDYYYLoginBypassSVGIconName = @"ic_loginbypass_dyyy_outlined_20";
+static NSString *const kDYYYLoginBypassSVGIconName = @"ic_unlocknew_outlined_20";
 static NSString *const kDYYYHideRecommendAppDownloadSettingIdentifier = @"DYYYHideRecommendAppDownload";
 
-static UIImage *DYYYFeedNowPlayingSVGIcon(CGSize requestedSize) {
+static char kDYYYGeneratedSettingIconIdentifierKey;
+static char kDYYYGeneratedSettingIconRetryScheduledKey;
+
+static UIImage *DYYYRenderGeneratedSettingTemplateIcon(NSString *cacheName, CGSize requestedSize, void (^drawBlock)(CGContextRef context, CGSize targetSize)) {
     CGSize targetSize = requestedSize;
     if (targetSize.width <= 0 || targetSize.height <= 0) {
         targetSize = CGSizeMake(20, 20);
@@ -69,9 +71,10 @@ static UIImage *DYYYFeedNowPlayingSVGIcon(CGSize requestedSize) {
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
       imageCache = [[NSCache alloc] init];
+      imageCache.countLimit = 16;
     });
 
-    NSString *cacheKey = NSStringFromCGSize(targetSize);
+    NSString *cacheKey = [NSString stringWithFormat:@"%@-%@", cacheName, NSStringFromCGSize(targetSize)];
     UIImage *cachedImage = [imageCache objectForKey:cacheKey];
     if (cachedImage) {
         return cachedImage;
@@ -84,45 +87,9 @@ static UIImage *DYYYFeedNowPlayingSVGIcon(CGSize requestedSize) {
         return nil;
     }
 
-    CGContextScaleCTM(context, targetSize.width / 20.0, targetSize.height / 20.0);
-    UIColor *iconColor = [UIColor colorWithRed:22.0 / 255.0 green:24.0 / 255.0 blue:35.0 / 255.0 alpha:1.0];
-    [iconColor setFill];
-    [iconColor setStroke];
-
-    UIBezierPath *capsule = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(1.25, 5.25, 17.5, 9.5) cornerRadius:4.7];
-    [capsule appendPath:[UIBezierPath bezierPathWithRoundedRect:CGRectMake(2.75, 6.75, 14.5, 6.5) cornerRadius:3.2]];
-    capsule.usesEvenOddFillRule = YES;
-    [capsule fill];
-
-    UIBezierPath *play = [UIBezierPath bezierPath];
-    [play moveToPoint:CGPointMake(8.05, 7.438)];
-    [play addCurveToPoint:CGPointMake(8.95682, 6.93014)
-            controlPoint1:CGPointMake(8.05, 6.97219)
-            controlPoint2:CGPointMake(8.55983, 6.68648)];
-    [play addLineToPoint:CGPointMake(13.2548, 9.56814)];
-    [play addCurveToPoint:CGPointMake(13.2548, 10.4319)
-            controlPoint1:CGPointMake(13.6332, 9.80046)
-            controlPoint2:CGPointMake(13.6332, 10.1995)];
-    [play addLineToPoint:CGPointMake(8.95682, 13.0699)];
-    [play addCurveToPoint:CGPointMake(8.05, 12.562)
-            controlPoint1:CGPointMake(8.55983, 13.3135)
-            controlPoint2:CGPointMake(8.05, 13.0278)];
-    [play closePath];
-    [play fill];
-
-    CGContextSetBlendMode(context, kCGBlendModeClear);
-    CGContextSetLineCap(context, kCGLineCapRound);
-    CGContextSetLineWidth(context, 2.35);
-    CGContextMoveToPoint(context, 3.6, 2.65);
-    CGContextAddLineToPoint(context, 16.4, 17.35);
-    CGContextStrokePath(context);
-
-    CGContextSetBlendMode(context, kCGBlendModeNormal);
-    CGContextSetStrokeColorWithColor(context, iconColor.CGColor);
-    CGContextSetLineWidth(context, 1.5);
-    CGContextMoveToPoint(context, 3.6, 2.65);
-    CGContextAddLineToPoint(context, 16.4, 17.35);
-    CGContextStrokePath(context);
+    if (drawBlock) {
+        drawBlock(context, targetSize);
+    }
 
     UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
     UIGraphicsEndImageContext();
@@ -131,147 +98,108 @@ static UIImage *DYYYFeedNowPlayingSVGIcon(CGSize requestedSize) {
         [imageCache setObject:image forKey:cacheKey];
     }
     return image;
+}
+
+static UIImage *DYYYFeedNowPlayingIcon(CGSize requestedSize) {
+    return DYYYRenderGeneratedSettingTemplateIcon(@"feed-now-playing", requestedSize, ^(CGContextRef context, CGSize targetSize) {
+      CGContextScaleCTM(context, targetSize.width / 20.0, targetSize.height / 20.0);
+      UIColor *iconColor = [UIColor colorWithRed:22.0 / 255.0 green:24.0 / 255.0 blue:35.0 / 255.0 alpha:1.0];
+      [iconColor setFill];
+      [iconColor setStroke];
+
+      UIBezierPath *capsule = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(1.25, 5.25, 17.5, 9.5) cornerRadius:4.7];
+      [capsule appendPath:[UIBezierPath bezierPathWithRoundedRect:CGRectMake(2.75, 6.75, 14.5, 6.5) cornerRadius:3.2]];
+      capsule.usesEvenOddFillRule = YES;
+      [capsule fill];
+
+      UIBezierPath *play = [UIBezierPath bezierPath];
+      [play moveToPoint:CGPointMake(8.05, 7.438)];
+      [play addCurveToPoint:CGPointMake(8.95682, 6.93014)
+              controlPoint1:CGPointMake(8.05, 6.97219)
+              controlPoint2:CGPointMake(8.55983, 6.68648)];
+      [play addLineToPoint:CGPointMake(13.2548, 9.56814)];
+      [play addCurveToPoint:CGPointMake(13.2548, 10.4319)
+              controlPoint1:CGPointMake(13.6332, 9.80046)
+              controlPoint2:CGPointMake(13.6332, 10.1995)];
+      [play addLineToPoint:CGPointMake(8.95682, 13.0699)];
+      [play addCurveToPoint:CGPointMake(8.05, 12.562)
+              controlPoint1:CGPointMake(8.55983, 13.3135)
+              controlPoint2:CGPointMake(8.05, 13.0278)];
+      [play closePath];
+      [play fill];
+
+      CGContextSetBlendMode(context, kCGBlendModeClear);
+      CGContextSetLineCap(context, kCGLineCapRound);
+      CGContextSetLineWidth(context, 2.35);
+      CGContextMoveToPoint(context, 3.6, 2.65);
+      CGContextAddLineToPoint(context, 16.4, 17.35);
+      CGContextStrokePath(context);
+
+      CGContextSetBlendMode(context, kCGBlendModeNormal);
+      CGContextSetStrokeColorWithColor(context, iconColor.CGColor);
+      CGContextSetLineWidth(context, 1.5);
+      CGContextMoveToPoint(context, 3.6, 2.65);
+      CGContextAddLineToPoint(context, 16.4, 17.35);
+      CGContextStrokePath(context);
+    });
 }
 
 static UIImage *DYYYCommentPausePlaybackIcon(CGSize requestedSize) {
-    CGSize targetSize = requestedSize;
-    if (targetSize.width <= 0 || targetSize.height <= 0) {
-        targetSize = CGSizeMake(20, 20);
-    }
+    return DYYYRenderGeneratedSettingTemplateIcon(@"comment-pause-playback", requestedSize, ^(CGContextRef context, CGSize targetSize) {
+      CGContextScaleCTM(context, targetSize.width / 20.0, targetSize.height / 20.0);
+      UIColor *iconColor = [UIColor colorWithRed:22.0 / 255.0 green:24.0 / 255.0 blue:35.0 / 255.0 alpha:1.0];
+      [iconColor setFill];
 
-    static NSCache<NSString *, UIImage *> *imageCache;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-      imageCache = [[NSCache alloc] init];
+      UIBezierPath *bubble = [UIBezierPath bezierPath];
+      [bubble moveToPoint:CGPointMake(18.2295, 9.19579)];
+      [bubble addCurveToPoint:CGPointMake(9.99951, 1.77002)
+              controlPoint1:CGPointMake(18.2295, 5.01896)
+              controlPoint2:CGPointMake(14.465, 1.77002)];
+      [bubble addCurveToPoint:CGPointMake(1.76953, 9.1959)
+              controlPoint1:CGPointMake(5.53405, 1.77002)
+              controlPoint2:CGPointMake(1.76953, 5.01897)];
+      [bubble addCurveToPoint:CGPointMake(9.37823, 16.1374)
+              controlPoint1:CGPointMake(1.76953, 13.2087)
+              controlPoint2:CGPointMake(5.29956, 15.8541)];
+      [bubble addLineToPoint:CGPointMake(9.37823, 17.3396)];
+      [bubble addCurveToPoint:CGPointMake(10.5834, 18.078)
+              controlPoint1:CGPointMake(9.37823, 17.9499)
+              controlPoint2:CGPointMake(10.0237, 18.3639)];
+      [bubble addCurveToPoint:CGPointMake(15.6612, 14.5993)
+              controlPoint1:CGPointMake(11.2208, 17.7525)
+              controlPoint2:CGPointMake(13.9782, 16.2991)];
+      [bubble addCurveToPoint:CGPointMake(18.2295, 9.19579)
+              controlPoint1:CGPointMake(17.2249, 13.0198)
+              controlPoint2:CGPointMake(18.2295, 11.2807)];
+      [bubble closePath];
+
+      [bubble moveToPoint:CGPointMake(9.99951, 3.23002)];
+      [bubble addCurveToPoint:CGPointMake(16.7695, 9.19579)
+              controlPoint1:CGPointMake(13.8188, 3.23002)
+              controlPoint2:CGPointMake(16.7695, 5.97659)];
+      [bubble addCurveToPoint:CGPointMake(14.6236, 13.5721)
+              controlPoint1:CGPointMake(16.7695, 10.7555)
+              controlPoint2:CGPointMake(16.035, 12.1465)];
+      [bubble addCurveToPoint:CGPointMake(10.8382, 16.2821)
+              controlPoint1:CGPointMake(13.5418, 14.6648)
+              controlPoint2:CGPointMake(11.9072, 15.6785)];
+      [bubble addLineToPoint:CGPointMake(10.8382, 14.7027)];
+      [bubble addLineToPoint:CGPointMake(10.1082, 14.7027)];
+      [bubble addCurveToPoint:CGPointMake(3.22953, 9.1959)
+              controlPoint1:CGPointMake(6.20144, 14.7027)
+              controlPoint2:CGPointMake(3.22953, 12.3416)];
+      [bubble addCurveToPoint:CGPointMake(9.99951, 3.23002)
+              controlPoint1:CGPointMake(3.22953, 5.97658)
+              controlPoint2:CGPointMake(6.1803, 3.23002)];
+      [bubble closePath];
+      bubble.usesEvenOddFillRule = YES;
+      [bubble fill];
+
+      UIBezierPath *leftPause = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(7.8, 7.15, 1.5, 4.7) cornerRadius:0.75];
+      [leftPause fill];
+      UIBezierPath *rightPause = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(10.7, 7.15, 1.5, 4.7) cornerRadius:0.75];
+      [rightPause fill];
     });
-
-    NSString *cacheKey = NSStringFromCGSize(targetSize);
-    UIImage *cachedImage = [imageCache objectForKey:cacheKey];
-    if (cachedImage) {
-        return cachedImage;
-    }
-
-    UIGraphicsBeginImageContextWithOptions(targetSize, NO, 0);
-    CGContextRef context = UIGraphicsGetCurrentContext();
-    if (!context) {
-        UIGraphicsEndImageContext();
-        return nil;
-    }
-
-    CGContextScaleCTM(context, targetSize.width / 20.0, targetSize.height / 20.0);
-    UIColor *iconColor = [UIColor colorWithRed:22.0 / 255.0 green:24.0 / 255.0 blue:35.0 / 255.0 alpha:1.0];
-    CGContextSetStrokeColorWithColor(context, iconColor.CGColor);
-    CGContextSetFillColorWithColor(context, iconColor.CGColor);
-    CGContextSetLineCap(context, kCGLineCapRound);
-    CGContextSetLineJoin(context, kCGLineJoinRound);
-    CGContextSetLineWidth(context, 1.55);
-
-    UIBezierPath *bubble = [UIBezierPath bezierPath];
-    [bubble moveToPoint:CGPointMake(6.25, 3.8)];
-    [bubble addLineToPoint:CGPointMake(13.6, 3.8)];
-    [bubble addCurveToPoint:CGPointMake(17.0, 7.2)
-              controlPoint1:CGPointMake(15.65, 3.8)
-              controlPoint2:CGPointMake(17.0, 5.15)];
-    [bubble addLineToPoint:CGPointMake(17.0, 10.35)];
-    [bubble addCurveToPoint:CGPointMake(13.6, 13.75)
-              controlPoint1:CGPointMake(17.0, 12.4)
-              controlPoint2:CGPointMake(15.65, 13.75)];
-    [bubble addLineToPoint:CGPointMake(9.2, 13.75)];
-    [bubble addLineToPoint:CGPointMake(5.55, 16.6)];
-    [bubble addCurveToPoint:CGPointMake(4.55, 15.9)
-              controlPoint1:CGPointMake(5.1, 16.95)
-              controlPoint2:CGPointMake(4.55, 16.65)];
-    [bubble addLineToPoint:CGPointMake(4.55, 13.25)];
-    [bubble addCurveToPoint:CGPointMake(3.0, 10.35)
-              controlPoint1:CGPointMake(3.55, 12.6)
-              controlPoint2:CGPointMake(3.0, 11.55)];
-    [bubble addLineToPoint:CGPointMake(3.0, 7.2)];
-    [bubble addCurveToPoint:CGPointMake(6.25, 3.8)
-              controlPoint1:CGPointMake(3.0, 5.15)
-              controlPoint2:CGPointMake(4.25, 3.8)];
-    [bubble stroke];
-
-    CGContextSetLineWidth(context, 1.85);
-    CGContextMoveToPoint(context, 8.35, 7.05);
-    CGContextAddLineToPoint(context, 8.35, 11.45);
-    CGContextMoveToPoint(context, 11.65, 7.05);
-    CGContextAddLineToPoint(context, 11.65, 11.45);
-    CGContextStrokePath(context);
-
-    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
-    image = [image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
-    if (image) {
-        [imageCache setObject:image forKey:cacheKey];
-    }
-    return image;
-}
-
-static UIImage *DYYYLoginBypassSettingIcon(CGSize requestedSize) {
-    CGSize targetSize = requestedSize;
-    if (targetSize.width <= 0 || targetSize.height <= 0) {
-        targetSize = CGSizeMake(20, 20);
-    }
-
-    static NSCache<NSString *, UIImage *> *imageCache;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-      imageCache = [[NSCache alloc] init];
-    });
-
-    NSString *cacheKey = NSStringFromCGSize(targetSize);
-    UIImage *cachedImage = [imageCache objectForKey:cacheKey];
-    if (cachedImage) {
-        return cachedImage;
-    }
-
-    UIGraphicsBeginImageContextWithOptions(targetSize, NO, 0);
-    CGContextRef context = UIGraphicsGetCurrentContext();
-    if (!context) {
-        UIGraphicsEndImageContext();
-        return nil;
-    }
-
-    CGContextScaleCTM(context, targetSize.width / 20.0, targetSize.height / 20.0);
-    UIColor *iconColor = [UIColor colorWithRed:22.0 / 255.0 green:24.0 / 255.0 blue:35.0 / 255.0 alpha:1.0];
-    CGContextSetStrokeColorWithColor(context, iconColor.CGColor);
-    CGContextSetFillColorWithColor(context, iconColor.CGColor);
-    CGContextSetLineCap(context, kCGLineCapRound);
-    CGContextSetLineJoin(context, kCGLineJoinRound);
-    CGContextSetLineWidth(context, 2.05);
-
-    UIBezierPath *shield = [UIBezierPath bezierPath];
-    [shield moveToPoint:CGPointMake(10.0, 2.35)];
-    [shield addCurveToPoint:CGPointMake(15.8, 4.45)
-              controlPoint1:CGPointMake(11.75, 3.45)
-              controlPoint2:CGPointMake(13.75, 4.15)];
-    [shield addLineToPoint:CGPointMake(15.8, 8.35)];
-    [shield addCurveToPoint:CGPointMake(10.0, 16.85)
-              controlPoint1:CGPointMake(15.8, 12.1)
-              controlPoint2:CGPointMake(13.45, 15.15)];
-    [shield addCurveToPoint:CGPointMake(4.2, 8.35)
-              controlPoint1:CGPointMake(6.55, 15.15)
-              controlPoint2:CGPointMake(4.2, 12.1)];
-    [shield addLineToPoint:CGPointMake(4.2, 4.45)];
-    [shield addCurveToPoint:CGPointMake(10.0, 2.35)
-              controlPoint1:CGPointMake(6.25, 4.15)
-              controlPoint2:CGPointMake(8.25, 3.45)];
-    [shield closePath];
-    [shield stroke];
-
-    UIBezierPath *keyhole = [UIBezierPath bezierPathWithOvalInRect:CGRectMake(8.85, 7.65, 2.3, 2.3)];
-    [keyhole fill];
-
-    UIBezierPath *slot = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(9.25, 9.45, 1.5, 3.15) cornerRadius:0.75];
-    [slot fill];
-
-    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
-    image = [image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
-    if (image) {
-        [imageCache setObject:image forKey:cacheKey];
-    }
-    return image;
 }
 
 @interface AWESettingsTableViewCell : UITableViewCell
@@ -280,41 +208,90 @@ static UIImage *DYYYLoginBypassSettingIcon(CGSize requestedSize) {
 @property(nonatomic, strong) UIImageView *iconImageView;
 - (void)updateSubviews;
 - (void)updateSubviewsAfterLayout;
+- (void)layoutSubviews;
 @end
 
-static void DYYYApplyGeneratedSettingIconToCell(AWESettingsTableViewCell *cell) {
-    AWESettingItemModel *itemModel = cell.itemModel;
-    UIImageView *iconView = cell.iconImageView;
-    if (!iconView) {
+static BOOL DYYYIsGeneratedSettingIconIdentifier(NSString *identifier) {
+    return [identifier isEqualToString:kDYYYFeedNowPlayingSettingIdentifier] || [identifier isEqualToString:kDYYYCommentPausePlaybackSettingIdentifier];
+}
+
+static UIImage *DYYYGeneratedSettingIconForIdentifier(NSString *identifier, CGSize targetSize) {
+    if ([identifier isEqualToString:kDYYYFeedNowPlayingSettingIdentifier]) {
+        return DYYYFeedNowPlayingIcon(targetSize);
+    }
+    if ([identifier isEqualToString:kDYYYCommentPausePlaybackSettingIdentifier]) {
+        return DYYYCommentPausePlaybackIcon(targetSize);
+    }
+    return nil;
+}
+
+static void DYYYApplyGeneratedSettingIconToCellInternal(AWESettingsTableViewCell *cell, BOOL scheduleRetry);
+
+static void DYYYScheduleGeneratedSettingIconReapply(AWESettingsTableViewCell *cell) {
+    if (!cell) {
         return;
     }
 
-    UIImage *iconImage = nil;
-    if ([itemModel.identifier isEqualToString:kDYYYFeedNowPlayingSettingIdentifier]) {
-        iconImage = DYYYFeedNowPlayingSVGIcon(iconView.bounds.size);
-    } else if ([itemModel.identifier isEqualToString:kDYYYCommentPausePlaybackSettingIdentifier]) {
-        iconImage = DYYYCommentPausePlaybackIcon(iconView.bounds.size);
-    } else if ([itemModel.identifier isEqualToString:kDYYYLoginBypassSettingIdentifier]) {
-        iconImage = DYYYLoginBypassSettingIcon(iconView.bounds.size);
+    if (objc_getAssociatedObject(cell, &kDYYYGeneratedSettingIconRetryScheduledKey)) {
+        return;
     }
 
+    objc_setAssociatedObject(cell, &kDYYYGeneratedSettingIconRetryScheduledKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    __weak AWESettingsTableViewCell *weakCell = cell;
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+      DYYYApplyGeneratedSettingIconToCellInternal(weakCell, NO);
+    });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.06 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+      DYYYApplyGeneratedSettingIconToCellInternal(weakCell, NO);
+    });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+      AWESettingsTableViewCell *strongCell = weakCell;
+      DYYYApplyGeneratedSettingIconToCellInternal(strongCell, NO);
+      if (strongCell) {
+          objc_setAssociatedObject(strongCell, &kDYYYGeneratedSettingIconRetryScheduledKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+      }
+    });
+}
+
+static void DYYYApplyGeneratedSettingIconToCellInternal(AWESettingsTableViewCell *cell, BOOL scheduleRetry) {
+    AWESettingItemModel *itemModel = cell.itemModel;
+    UIImageView *iconView = cell.iconImageView;
+    NSString *identifier = itemModel.identifier;
+
+    if (!DYYYIsGeneratedSettingIconIdentifier(identifier)) {
+        if (iconView) {
+            objc_setAssociatedObject(iconView, &kDYYYGeneratedSettingIconIdentifierKey, nil, OBJC_ASSOCIATION_COPY_NONATOMIC);
+        }
+        return;
+    }
+
+    if (!iconView) {
+        if (scheduleRetry) {
+            DYYYScheduleGeneratedSettingIconReapply(cell);
+        }
+        return;
+    }
+
+    UIImage *iconImage = DYYYGeneratedSettingIconForIdentifier(identifier, iconView.bounds.size);
     if (!iconImage) {
         return;
     }
 
+    objc_setAssociatedObject(iconView, &kDYYYGeneratedSettingIconIdentifierKey, identifier, OBJC_ASSOCIATION_COPY_NONATOMIC);
     iconView.image = iconImage;
     iconView.contentMode = UIViewContentModeScaleAspectFit;
     iconView.hidden = NO;
     iconView.alpha = 1.0;
-    iconView.tintColor = cell.titleLabel.textColor;
+    iconView.tintColor = cell.titleLabel.textColor ?: cell.tintColor ?: [UIColor colorWithRed:22.0 / 255.0 green:24.0 / 255.0 blue:35.0 / 255.0 alpha:1.0];
 
-    if ([itemModel.identifier isEqualToString:kDYYYLoginBypassSettingIdentifier] && cell.titleLabel.superview && iconView.superview &&
-        CGRectGetHeight(cell.titleLabel.bounds) > 0 && CGRectGetHeight(iconView.bounds) > 0) {
-        CGPoint titleCenter = [cell.titleLabel.superview convertPoint:cell.titleLabel.center toView:iconView.superview];
-        CGRect iconFrame = iconView.frame;
-        iconFrame.origin.y = round(titleCenter.y - CGRectGetHeight(iconFrame) / 2.0);
-        iconView.frame = iconFrame;
+    if (scheduleRetry) {
+        DYYYScheduleGeneratedSettingIconReapply(cell);
     }
+}
+
+static void DYYYApplyGeneratedSettingIconToCell(AWESettingsTableViewCell *cell) {
+    DYYYApplyGeneratedSettingIconToCellInternal(cell, YES);
 }
 
 static void DYYYRemoveRemoteConfigObserver(void) {
@@ -895,6 +872,11 @@ static void DYYYBuildSettingsSearchIndexIfNeeded(NSArray<AWESettingItemModel *> 
 }
 
 - (void)updateSubviewsAfterLayout {
+    %orig;
+    DYYYApplyGeneratedSettingIconToCell(self);
+}
+
+- (void)layoutSubviews {
     %orig;
     DYYYApplyGeneratedSettingIconToCell(self);
 }
