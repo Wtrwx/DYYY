@@ -1,9 +1,11 @@
 #import "AwemeHeaders.h"
 #import "DYYYManager.h"
-#import <MobileCoreServices/MobileCoreServices.h>
+#import <fcntl.h>
 #import <math.h>
+#import <spawn.h>
 #import <stdlib.h>
 #import <UIKit/UIKit.h>
+#import <unistd.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -62,6 +64,13 @@ static NSString *const kDYYYMiniProgramJumpingAdsSettingIdentifier = @"DYYYEnabl
 
 static char kDYYYGeneratedSettingIconIdentifierKey;
 static char kDYYYGeneratedSettingIconRetryScheduledKey;
+#ifdef __cplusplus
+extern "C" {
+#endif
+extern char **environ;
+#ifdef __cplusplus
+}
+#endif
 
 static UIImage *DYYYRenderGeneratedSettingTemplateIcon(NSString *cacheName, CGSize requestedSize, void (^drawBlock)(CGContextRef context, CGSize targetSize)) {
     CGSize targetSize = requestedSize;
@@ -205,39 +214,33 @@ static UIImage *DYYYCommentPausePlaybackIcon(CGSize requestedSize) {
 }
 
 static UIImage *DYYYMiniProgramJumpingAdsIcon(CGSize requestedSize) {
-    return DYYYRenderGeneratedSettingTemplateIcon(@"mini-program-jumping-ads", requestedSize, ^(CGContextRef context, CGSize targetSize) {
+    return DYYYRenderGeneratedSettingTemplateIcon(@"mini-program-jumping-ads-v2", requestedSize, ^(CGContextRef context, CGSize targetSize) {
       CGContextScaleCTM(context, targetSize.width / 20.0, targetSize.height / 20.0);
       UIColor *iconColor = [UIColor colorWithRed:22.0 / 255.0 green:24.0 / 255.0 blue:35.0 / 255.0 alpha:1.0];
-      [iconColor setFill];
       [iconColor setStroke];
+      CGContextSetLineWidth(context, 1.55);
+      CGContextSetLineCap(context, kCGLineCapRound);
+      CGContextSetLineJoin(context, kCGLineJoinRound);
 
-      UIBezierPath *roundedSquare = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(2.2, 2.2, 9.4, 9.4) cornerRadius:2.2];
-      [roundedSquare appendPath:[UIBezierPath bezierPathWithRoundedRect:CGRectMake(4.2, 4.2, 5.4, 5.4) cornerRadius:1.2]];
-      roundedSquare.usesEvenOddFillRule = YES;
-      [roundedSquare fill];
-
-      UIBezierPath *smallSquare = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(12.8, 3.0, 4.9, 4.9) cornerRadius:1.2];
-      [smallSquare fill];
-
-      UIBezierPath *bottomSquare = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(3.0, 12.8, 4.9, 4.9) cornerRadius:1.2];
-      [bottomSquare fill];
+      UIBezierPath *tiles = [UIBezierPath bezierPath];
+      [tiles appendPath:[UIBezierPath bezierPathWithRoundedRect:CGRectMake(3.0, 3.0, 5.2, 5.2) cornerRadius:1.15]];
+      [tiles appendPath:[UIBezierPath bezierPathWithRoundedRect:CGRectMake(11.3, 3.3, 3.9, 3.9) cornerRadius:0.9]];
+      [tiles appendPath:[UIBezierPath bezierPathWithRoundedRect:CGRectMake(3.3, 11.3, 3.9, 3.9) cornerRadius:0.9]];
+      tiles.lineWidth = 1.55;
+      tiles.lineCapStyle = kCGLineCapRound;
+      tiles.lineJoinStyle = kCGLineJoinRound;
+      [tiles stroke];
 
       UIBezierPath *arrow = [UIBezierPath bezierPath];
-      [arrow moveToPoint:CGPointMake(10.9, 13.8)];
-      [arrow addLineToPoint:CGPointMake(16.1, 13.8)];
-      [arrow addLineToPoint:CGPointMake(14.2, 11.9)];
-      [arrow addCurveToPoint:CGPointMake(14.2, 10.95) controlPoint1:CGPointMake(13.95, 11.65) controlPoint2:CGPointMake(13.95, 11.2)];
-      [arrow addCurveToPoint:CGPointMake(15.15, 10.95) controlPoint1:CGPointMake(14.45, 10.7) controlPoint2:CGPointMake(14.9, 10.7)];
-      [arrow addLineToPoint:CGPointMake(18.45, 14.25)];
-      [arrow addCurveToPoint:CGPointMake(18.45, 15.2) controlPoint1:CGPointMake(18.7, 14.5) controlPoint2:CGPointMake(18.7, 14.95)];
-      [arrow addLineToPoint:CGPointMake(15.15, 18.5)];
-      [arrow addCurveToPoint:CGPointMake(14.2, 18.5) controlPoint1:CGPointMake(14.9, 18.75) controlPoint2:CGPointMake(14.45, 18.75)];
-      [arrow addCurveToPoint:CGPointMake(14.2, 17.55) controlPoint1:CGPointMake(13.95, 18.25) controlPoint2:CGPointMake(13.95, 17.8)];
-      [arrow addLineToPoint:CGPointMake(16.1, 15.65)];
-      [arrow addLineToPoint:CGPointMake(10.9, 15.65)];
-      [arrow addCurveToPoint:CGPointMake(10.9, 13.8) controlPoint1:CGPointMake(10.3, 15.65) controlPoint2:CGPointMake(10.3, 13.8)];
-      [arrow closePath];
-      [arrow fill];
+      [arrow moveToPoint:CGPointMake(10.0, 14.3)];
+      [arrow addLineToPoint:CGPointMake(16.7, 14.3)];
+      [arrow moveToPoint:CGPointMake(14.1, 11.7)];
+      [arrow addLineToPoint:CGPointMake(16.8, 14.3)];
+      [arrow addLineToPoint:CGPointMake(14.1, 16.9)];
+      arrow.lineWidth = 1.65;
+      arrow.lineCapStyle = kCGLineCapRound;
+      arrow.lineJoinStyle = kCGLineJoinRound;
+      [arrow stroke];
     });
 }
 
@@ -349,21 +352,121 @@ static NSString *DYYYStringOrEmpty(id value) {
     return [value isKindOfClass:[NSString class]] ? (NSString *)value : @"";
 }
 
+static NSString *DYYYShellQuotedString(NSString *string) {
+    NSString *safeString = [string ?: @"" stringByReplacingOccurrencesOfString:@"'" withString:@"'\\''"];
+    return [NSString stringWithFormat:@"'%@'", safeString];
+}
+
+static NSString *DYYYPreferredLaunchURLString(void) {
+    NSArray *urlTypes = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleURLTypes"];
+    NSMutableArray<NSString *> *schemes = [NSMutableArray array];
+    for (NSDictionary *urlType in urlTypes) {
+        if (![urlType isKindOfClass:[NSDictionary class]]) {
+            continue;
+        }
+        NSArray *urlSchemes = urlType[@"CFBundleURLSchemes"];
+        for (NSString *scheme in urlSchemes) {
+            if ([scheme isKindOfClass:[NSString class]] && scheme.length > 0) {
+                [schemes addObject:scheme];
+            }
+        }
+    }
+
+    for (NSString *preferredScheme in @[ @"snssdk1128", @"aweme" ]) {
+        for (NSString *scheme in schemes) {
+            if ([scheme caseInsensitiveCompare:preferredScheme] == NSOrderedSame) {
+                return [NSString stringWithFormat:@"%@://", scheme];
+            }
+        }
+    }
+
+    for (NSString *scheme in schemes) {
+        NSString *lowercaseScheme = scheme.lowercaseString;
+        if ([lowercaseScheme hasPrefix:@"snssdk"] &&
+            [lowercaseScheme rangeOfString:@"sync"].location == NSNotFound &&
+            [lowercaseScheme rangeOfString:@"lucky"].location == NSNotFound &&
+            [lowercaseScheme rangeOfString:@"share"].location == NSNotFound &&
+            [lowercaseScheme rangeOfString:@"pay"].location == NSNotFound) {
+            return [NSString stringWithFormat:@"%@://", scheme];
+        }
+    }
+
+    return nil;
+}
+
+static NSArray<NSString *> *DYYYApplicationRelaunchTargets(void) {
+    NSMutableArray<NSString *> *targets = [NSMutableArray array];
+    NSString *launchURLString = DYYYPreferredLaunchURLString();
+    if (launchURLString.length > 0) {
+        [targets addObject:launchURLString];
+    }
+
+    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
+    if (bundleIdentifier.length > 0 && ![targets containsObject:bundleIdentifier]) {
+        [targets addObject:bundleIdentifier];
+    }
+
+    return targets;
+}
+
+static BOOL DYYYSpawnApplicationRelaunchTaskAfterDelay(NSTimeInterval delay) {
+    NSArray<NSString *> *targets = DYYYApplicationRelaunchTargets();
+    if (targets.count == 0) {
+        return NO;
+    }
+
+    NSMutableArray<NSString *> *quotedTargets = [NSMutableArray arrayWithCapacity:targets.count];
+    for (NSString *target in targets) {
+        [quotedTargets addObject:DYYYShellQuotedString(target)];
+    }
+    NSString *targetList = [quotedTargets componentsJoinedByString:@" "];
+    NSString *command = [NSString stringWithFormat:@"log='/tmp/dyyy-relaunch.log'; : > \"$log\"; export PATH=/var/jb/usr/bin:/var/jb/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}; uid=%u; echo \"start $(date)\" >> \"$log\"; sleep %.2f; open_target() { target=\"$1\"; echo \"open $target\" >> \"$log\"; for tool in /var/jb/usr/bin/uiopen /usr/bin/uiopen; do if [ -x \"$tool\" ]; then /bin/launchctl asuser \"$uid\" \"$tool\" \"$target\" >> \"$log\" 2>&1 && exit 0; \"$tool\" \"$target\" >> \"$log\" 2>&1 && exit 0; fi; done; if command -v uiopen >/dev/null 2>&1; then uiopen \"$target\" >> \"$log\" 2>&1 && exit 0; fi; }; for target in %@; do open_target \"$target\"; done; echo 'failed' >> \"$log\"; exit 1",
+                         (unsigned)getuid(), MAX(delay, 0.0), targetList];
+
+    NSArray<NSString *> *shellCandidates = @[ @"/var/jb/bin/sh", @"/var/jb/usr/bin/sh", @"/bin/sh", @"/usr/bin/sh" ];
+    for (NSString *shellPath in shellCandidates) {
+        pid_t pid = 0;
+        posix_spawnattr_t attributes;
+        posix_spawnattr_init(&attributes);
+        posix_spawn_file_actions_t fileActions;
+        posix_spawn_file_actions_init(&fileActions);
+        posix_spawn_file_actions_addopen(&fileActions, STDIN_FILENO, "/dev/null", O_RDONLY, 0);
+        posix_spawn_file_actions_addopen(&fileActions, STDOUT_FILENO, "/dev/null", O_WRONLY, 0);
+        posix_spawn_file_actions_addopen(&fileActions, STDERR_FILENO, "/dev/null", O_WRONLY, 0);
+#ifdef POSIX_SPAWN_SETSID
+        posix_spawnattr_setflags(&attributes, POSIX_SPAWN_SETSID);
+#else
+        posix_spawnattr_setflags(&attributes, POSIX_SPAWN_SETPGROUP);
+        posix_spawnattr_setpgroup(&attributes, 0);
+#endif
+        char *const argv[] = { (char *)shellPath.fileSystemRepresentation, (char *)"-c", (char *)command.UTF8String, NULL };
+        int spawnResult = posix_spawn(&pid, shellPath.fileSystemRepresentation, &fileActions, &attributes, argv, environ);
+        posix_spawn_file_actions_destroy(&fileActions);
+        posix_spawnattr_destroy(&attributes);
+        if (spawnResult == 0) {
+            return YES;
+        }
+    }
+
+    return NO;
+}
+
 static void DYYYRestartApplicationAfterDelay(NSTimeInterval delay) {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(MAX(delay, 0.0) * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-      UIApplication *application = [UIApplication sharedApplication];
-      SEL suspendSelector = NSSelectorFromString(@"suspend");
-      if ([application respondsToSelector:suspendSelector]) {
-          ((void (*)(id, SEL))objc_msgSend)(application, suspendSelector);
+      if (!DYYYSpawnApplicationRelaunchTaskAfterDelay(1.15)) {
+          return;
       }
 
-      dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.35 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        SEL terminateSelector = NSSelectorFromString(@"terminateWithSuccess");
-        if ([application respondsToSelector:terminateSelector]) {
-            ((void (*)(id, SEL))objc_msgSend)(application, terminateSelector);
-        } else {
-            exit(0);
+      dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        UIApplication *application = [UIApplication sharedApplication];
+        SEL suspendSelector = NSSelectorFromString(@"suspend");
+        if ([application respondsToSelector:suspendSelector]) {
+            ((void (*)(id, SEL))objc_msgSend)(application, suspendSelector);
         }
+
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.45 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+          exit(0);
+        });
       });
     });
 }
@@ -4567,7 +4670,7 @@ void showDYYYSettingsVC(UIViewController *rootVC, BOOL hasAgreed) {
         unsigned long long clearedSize = (initialSize > afterSize) ? (initialSize - afterSize) : 0;
 
         dispatch_async(dispatch_get_main_queue(), ^{
-          [DYYYUtils showToast:[NSString stringWithFormat:@"已清理 %@ 缓存，应用即将重启", [DYYYUtils formattedSize:clearedSize]]];
+          [DYYYUtils showToast:[NSString stringWithFormat:@"已清理 %@ 缓存，请手动重启抖音", [DYYYUtils formattedSize:clearedSize]]];
 
           strongCleanCacheItem.detail = [DYYYUtils formattedSize:afterSize];
           strongCleanCacheItem.isEnable = YES;
