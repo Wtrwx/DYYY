@@ -613,6 +613,7 @@ static UIColor *DYYYSettingsSearchPlaceholderColor(BOOL usesLightBackground) {
 - (void)installNavigationInterceptors;
 - (void)applyThemeColors;
 - (void)updateLayout;
+- (void)updateSearchPlaceholderVisibilityAnimated:(BOOL)animated;
 - (void)updateNavigationGestureState;
 - (void)restoreNavigationGestureState;
 - (BOOL)handleBackNavigationRequest;
@@ -707,17 +708,7 @@ static UIColor *DYYYSettingsSearchPlaceholderColor(BOOL usesLightBackground) {
     self.containerView.frame = CGRectMake(16, 8, width - 32, 44);
     self.searchTextField.frame = self.containerView.bounds;
 
-    CGFloat iconSize = 18.0;
-    CGFloat spacing = 8.0;
-    CGSize labelSize = [self.centerPlaceholderLabel.text sizeWithAttributes:@{NSFontAttributeName : self.centerPlaceholderLabel.font}];
-    CGFloat placeholderWidth = iconSize + spacing + ceil(labelSize.width);
-    CGFloat placeholderHeight = MAX(iconSize, ceil(labelSize.height));
-    self.centerPlaceholderView.frame = CGRectMake((CGRectGetWidth(self.containerView.bounds) - placeholderWidth) / 2.0,
-                                                  (CGRectGetHeight(self.containerView.bounds) - placeholderHeight) / 2.0,
-                                                  placeholderWidth,
-                                                  placeholderHeight);
-    self.centerIconView.frame = CGRectMake(0, (placeholderHeight - iconSize) / 2.0, iconSize, iconSize);
-    self.centerPlaceholderLabel.frame = CGRectMake(iconSize + spacing, 0, ceil(labelSize.width), placeholderHeight);
+    [self updateSearchPlaceholderVisibilityAnimated:NO];
 
     if (needsHeaderUpdate) {
         tableView.tableHeaderView = self.headerView;
@@ -727,22 +718,73 @@ static UIColor *DYYYSettingsSearchPlaceholderColor(BOOL usesLightBackground) {
     [self updateNavigationGestureState];
 }
 
+- (CGRect)placeholderFrameForLeftAlignment:(BOOL)leftAligned {
+    CGFloat iconSize = 18.0;
+    CGFloat spacing = 8.0;
+    CGSize labelSize = [self.centerPlaceholderLabel.text sizeWithAttributes:@{NSFontAttributeName : self.centerPlaceholderLabel.font}];
+    CGFloat placeholderWidth = iconSize + spacing + ceil(labelSize.width);
+    CGFloat placeholderHeight = MAX(iconSize, ceil(labelSize.height));
+    self.centerIconView.frame = CGRectMake(0, (placeholderHeight - iconSize) / 2.0, iconSize, iconSize);
+    self.centerPlaceholderLabel.frame = CGRectMake(iconSize + spacing, 0, ceil(labelSize.width), placeholderHeight);
+
+    CGFloat containerWidth = CGRectGetWidth(self.containerView.bounds);
+    CGFloat containerHeight = CGRectGetHeight(self.containerView.bounds);
+    CGFloat targetX = leftAligned ? 14.0 : (containerWidth - placeholderWidth) / 2.0;
+    targetX = MAX(0.0, MIN(targetX, containerWidth - placeholderWidth));
+    return CGRectMake(targetX, (containerHeight - placeholderHeight) / 2.0, placeholderWidth, placeholderHeight);
+}
+
+- (void)updateSearchPlaceholderVisibility {
+    [self updateSearchPlaceholderVisibilityAnimated:NO];
+}
+
 - (NSString *)trimmedSearchText {
     return [self.searchTextField.text ?: @"" stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
 }
 
-- (void)updateSearchPlaceholderVisibility {
-    BOOL showCenteredPlaceholder = !self.searchTextField.isEditing && [self trimmedSearchText].length == 0;
-    self.centerPlaceholderView.hidden = !showCenteredPlaceholder;
-    if (showCenteredPlaceholder) {
-        self.searchTextField.placeholder = nil;
-        self.searchTextField.attributedPlaceholder = nil;
-    } else {
-        UIColor *placeholderColor = self.centerPlaceholderLabel.textColor ?: DYYYSettingsSearchPlaceholderColor(DYYYSettingsUsesDouyinLightBackground());
-        self.searchTextField.attributedPlaceholder = [[NSAttributedString alloc] initWithString:@"搜索设置项"
-                                                                                     attributes:@{NSForegroundColorAttributeName : placeholderColor}];
+- (void)updateSearchPlaceholderVisibilityAnimated:(BOOL)animated {
+    BOOL hasSearchText = [self trimmedSearchText].length > 0;
+    BOOL showPlaceholderView = !hasSearchText;
+    BOOL leftAligned = self.searchTextField.isEditing;
+    CGRect targetFrame = [self placeholderFrameForLeftAlignment:leftAligned];
+    CGFloat targetPlaceholderAlpha = showPlaceholderView ? 1.0 : 0.0;
+
+    self.searchTextField.placeholder = nil;
+    self.searchTextField.attributedPlaceholder = nil;
+    self.searchTextField.leftViewMode = (self.searchTextField.isEditing || hasSearchText) ? UITextFieldViewModeAlways : UITextFieldViewModeNever;
+    if (showPlaceholderView) {
+        self.centerPlaceholderView.hidden = NO;
+        self.leftIconView.alpha = 0.0;
     }
-    self.searchTextField.leftViewMode = showCenteredPlaceholder ? UITextFieldViewModeNever : UITextFieldViewModeAlways;
+
+    void (^animations)(void) = ^{
+      self.centerPlaceholderView.frame = targetFrame;
+      self.centerPlaceholderView.alpha = targetPlaceholderAlpha;
+      if (!showPlaceholderView) {
+          self.leftIconView.alpha = 1.0;
+      }
+    };
+
+    void (^completion)(BOOL) = ^(BOOL finished) {
+      if (!showPlaceholderView && finished) {
+          self.centerPlaceholderView.hidden = YES;
+      }
+    };
+
+    if (animated && self.centerPlaceholderView.superview) {
+        [UIView animateWithDuration:0.26
+                              delay:0
+             usingSpringWithDamping:0.88
+              initialSpringVelocity:0.0
+                            options:UIViewAnimationOptionBeginFromCurrentState | UIViewAnimationOptionAllowUserInteraction
+                         animations:animations
+                         completion:completion];
+    } else {
+        animations();
+        if (!showPlaceholderView) {
+            self.centerPlaceholderView.hidden = YES;
+        }
+    }
 }
 
 - (void)applyThemeColors {
@@ -815,7 +857,7 @@ static UIColor *DYYYSettingsSearchPlaceholderColor(BOOL usesLightBackground) {
 }
 
 - (void)searchTextDidChange:(UITextField *)textField {
-    [self updateSearchPlaceholderVisibility];
+    [self updateSearchPlaceholderVisibilityAnimated:YES];
     self.viewModel.sectionDataArray = [self sectionsForSearchText:[self trimmedSearchText]];
     [self.settingsVC.tableView reloadData];
     [self updateNavigationGestureState];
@@ -832,9 +874,15 @@ static UIColor *DYYYSettingsSearchPlaceholderColor(BOOL usesLightBackground) {
 
     self.searchTextField.text = @"";
     [self.searchTextField resignFirstResponder];
-    [self updateSearchPlaceholderVisibility];
+    [self updateSearchPlaceholderVisibilityAnimated:YES];
     self.viewModel.sectionDataArray = self.originalSections;
-    [self.settingsVC.tableView reloadData];
+    [UIView transitionWithView:self.settingsVC.tableView
+                      duration:0.18
+                       options:UIViewAnimationOptionTransitionCrossDissolve | UIViewAnimationOptionBeginFromCurrentState | UIViewAnimationOptionAllowUserInteraction
+                    animations:^{
+                      [self.settingsVC.tableView reloadData];
+                    }
+                    completion:nil];
     [self updateNavigationGestureState];
     return YES;
 }
@@ -921,12 +969,12 @@ static UIColor *DYYYSettingsSearchPlaceholderColor(BOOL usesLightBackground) {
 }
 
 - (void)textFieldDidBeginEditing:(UITextField *)textField {
-    [self updateSearchPlaceholderVisibility];
+    [self updateSearchPlaceholderVisibilityAnimated:YES];
     [self updateNavigationGestureState];
 }
 
 - (void)textFieldDidEndEditing:(UITextField *)textField {
-    [self updateSearchPlaceholderVisibility];
+    [self updateSearchPlaceholderVisibilityAnimated:YES];
     [self updateNavigationGestureState];
 }
 

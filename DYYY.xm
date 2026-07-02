@@ -11173,52 +11173,546 @@ static BOOL DYYYShouldHideTemplateVideoForAweme(AWEAwemeModel *aweme) {
 %hook AWEGeneralSearchModel
 - (instancetype)initWithDictionary:(id)dict error:(NSError **)error {
 	id orig = %orig;
-	
+
 	BOOL noAds = DYYYGetBool(@"DYYYNoAds");
 	if (!noAds || !orig) {
 		return orig;
 	}
-	
+
 	if ([DYYYUtils isAdvertisementContainerModel:orig] || [DYYYUtils isAdvertisementRawData:dict]) {
 		return nil;
 	}
-	
+
 	return orig;
 }
 %end
 
-%group DYYYMiniProgramJumpingAdsGroup
-%hook BDARewardedVideoAdBaseController
-
-- (BOOL)sendReward {
-    if (DYYYGetBool(kDYYYMiniProgramJumpingAdsKey)) {
-        return YES;
-    }
-    return %orig;
+static BOOL DYYYMiniProgramRewardBypassEnabled(void) {
+    return DYYYGetBool(kDYYYMiniProgramJumpingAdsKey);
 }
 
-- (BOOL)sendFirstReward {
-    if (DYYYGetBool(kDYYYMiniProgramJumpingAdsKey)) {
-        return YES;
-    }
-    return %orig;
+static NSMutableDictionary<NSString *, NSValue *> *DYYYMiniProgramRewardOriginalIMPs(void) {
+    static NSMutableDictionary<NSString *, NSValue *> *originalIMPs = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+      originalIMPs = [NSMutableDictionary dictionary];
+    });
+    return originalIMPs;
 }
 
-- (void)viewDidAppear:(BOOL)animated {
-    %orig;
-    if (!DYYYGetBool(kDYYYMiniProgramJumpingAdsKey)) {
+static NSMutableSet<NSString *> *DYYYMiniProgramRewardInstalledHooks(void) {
+    static NSMutableSet<NSString *> *installedHooks = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+      installedHooks = [NSMutableSet set];
+    });
+    return installedHooks;
+}
+
+static NSString *DYYYMiniProgramRewardHookKey(Class cls, SEL selector) {
+    return [NSString stringWithFormat:@"%s:%@", class_getName(cls), NSStringFromSelector(selector)];
+}
+
+static IMP DYYYMiniProgramOriginalIMPForObject(id object, SEL selector) {
+    if (!object || !selector) {
+        return NULL;
+    }
+
+    NSMutableDictionary<NSString *, NSValue *> *originalIMPs = DYYYMiniProgramRewardOriginalIMPs();
+    for (Class cls = object_getClass(object); cls; cls = class_getSuperclass(cls)) {
+        NSString *key = DYYYMiniProgramRewardHookKey(cls, selector);
+        NSValue *value = nil;
+        @synchronized(originalIMPs) {
+            value = [originalIMPs objectForKey:key];
+        }
+        if (value) {
+            return (IMP)[value pointerValue];
+        }
+    }
+
+    return NULL;
+}
+
+static BOOL DYYYMiniProgramHookInstanceMethod(Class cls, SEL selector, IMP replacement) {
+    if (!cls || !selector || !replacement || !class_getInstanceMethod(cls, selector)) {
+        return NO;
+    }
+
+    NSString *key = DYYYMiniProgramRewardHookKey(cls, selector);
+    NSMutableSet<NSString *> *installedHooks = DYYYMiniProgramRewardInstalledHooks();
+    @synchronized(installedHooks) {
+        if ([installedHooks containsObject:key]) {
+            return YES;
+        }
+
+        IMP original = NULL;
+        MSHookMessageEx(cls, selector, replacement, &original);
+        if (original) {
+            NSMutableDictionary<NSString *, NSValue *> *originalIMPs = DYYYMiniProgramRewardOriginalIMPs();
+            @synchronized(originalIMPs) {
+                [originalIMPs setObject:[NSValue valueWithPointer:(const void *)original] forKey:key];
+            }
+        }
+        [installedHooks addObject:key];
+    }
+
+    return YES;
+}
+
+static BOOL DYYYMiniProgramAddRelatedObject(NSMutableArray *objects, NSMutableSet *seenObjects, id object) {
+    if (!object || object == [NSNull null]) {
+        return NO;
+    }
+
+    if ([object isKindOfClass:[NSString class]] ||
+        [object isKindOfClass:[NSNumber class]] ||
+        [object isKindOfClass:[NSArray class]] ||
+        [object isKindOfClass:[NSDictionary class]] ||
+        [object isKindOfClass:[NSSet class]]) {
+        return NO;
+    }
+
+    NSValue *key = [NSValue valueWithNonretainedObject:object];
+    if ([seenObjects containsObject:key]) {
+        return NO;
+    }
+
+    [seenObjects addObject:key];
+    [objects addObject:object];
+    return YES;
+}
+
+static id DYYYMiniProgramObjectForSelector(id object, SEL selector) {
+    if (!object || !selector || ![object respondsToSelector:selector]) {
+        return nil;
+    }
+
+    return ((id (*)(id, SEL))objc_msgSend)(object, selector);
+}
+
+static NSArray *DYYYMiniProgramRewardRelatedObjects(id source) {
+    NSMutableArray *objects = [NSMutableArray array];
+    NSMutableSet *seenObjects = [NSMutableSet set];
+    DYYYMiniProgramAddRelatedObject(objects, seenObjects, source);
+
+    NSArray<NSString *> *selectorNames = @[
+        @"delegate",
+        @"RVController",
+        @"rewardVideoController",
+        @"videoAdViewController",
+        @"adRewardedVideoController"
+    ];
+
+    for (NSUInteger index = 0; index < objects.count && index < 12; index++) {
+        id object = [objects objectAtIndex:index];
+        for (NSString *selectorName in selectorNames) {
+            id relatedObject = DYYYMiniProgramObjectForSelector(object, NSSelectorFromString(selectorName));
+            DYYYMiniProgramAddRelatedObject(objects, seenObjects, relatedObject);
+        }
+    }
+
+    return objects;
+}
+
+static void DYYYMiniProgramSetIntegerIfPossible(id object, SEL selector, NSInteger value) {
+    if (!object || !selector || ![object respondsToSelector:selector]) {
         return;
     }
 
-    SEL closeSelector = NSSelectorFromString(@"close");
-    id controller = (id)self;
-    if ([controller respondsToSelector:closeSelector]) {
-        ((void (*)(id, SEL))objc_msgSend)(controller, closeSelector);
+    ((void (*)(id, SEL, NSInteger))objc_msgSend)(object, selector, value);
+}
+
+static void DYYYMiniProgramMarkRewardStateForObject(id object) {
+    if (!object || !DYYYMiniProgramRewardBypassEnabled()) {
+        return;
+    }
+
+    DYYYMiniProgramSetIntegerIfPossible(object, NSSelectorFromString(@"setDisableHostSendReward:"), 0);
+    DYYYMiniProgramSetIntegerIfPossible(object, NSSelectorFromString(@"setSendReward:"), 1);
+    DYYYMiniProgramSetIntegerIfPossible(object, NSSelectorFromString(@"setSendFirstReward:"), 1);
+    DYYYMiniProgramSetIntegerIfPossible(object, NSSelectorFromString(@"setEnableOneMore:"), 1);
+    DYYYMiniProgramSetIntegerIfPossible(object, NSSelectorFromString(@"setRewardOneMore:"), 1);
+}
+
+static void DYYYMiniProgramMarkRewardState(id source) {
+    for (id object in DYYYMiniProgramRewardRelatedObjects(source)) {
+        DYYYMiniProgramMarkRewardStateForObject(object);
     }
 }
 
-%end
-%end
+static id DYYYMiniProgramPreferredRewardObject(id source) {
+    NSArray *objects = DYYYMiniProgramRewardRelatedObjects(source);
+    for (id object in objects) {
+        if ([object respondsToSelector:NSSelectorFromString(@"sendReward")] ||
+            [object respondsToSelector:NSSelectorFromString(@"sendFirstReward")] ||
+            [object respondsToSelector:NSSelectorFromString(@"close")]) {
+            return object;
+        }
+    }
+
+    return objects.count > 0 ? [objects objectAtIndex:0] : source;
+}
+
+static BOOL DYYYMiniProgramShouldThrottleRewardCallback(id target) {
+    static char kDYYYMiniProgramRewardCallbackThrottleKey;
+    NSTimeInterval now = CACurrentMediaTime();
+    NSNumber *lastTime = objc_getAssociatedObject(target, &kDYYYMiniProgramRewardCallbackThrottleKey);
+    if (lastTime && now - [lastTime doubleValue] < 0.35) {
+        return YES;
+    }
+
+    objc_setAssociatedObject(target, &kDYYYMiniProgramRewardCallbackThrottleKey, @(now), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    return NO;
+}
+
+static __thread NSUInteger dyyyMiniProgramRewardEffectiveNotifyDepth = 0;
+
+static void DYYYMiniProgramNotifyRewardEffective(id source) {
+    if (!DYYYMiniProgramRewardBypassEnabled() || dyyyMiniProgramRewardEffectiveNotifyDepth > 0) {
+        return;
+    }
+
+    NSArray *objects = DYYYMiniProgramRewardRelatedObjects(source);
+    id rewardObject = DYYYMiniProgramPreferredRewardObject(source);
+    SEL effectiveSelector = NSSelectorFromString(@"videoAdBecomeEffective:");
+
+    dyyyMiniProgramRewardEffectiveNotifyDepth++;
+    @try {
+        for (id object in objects) {
+            if (![object respondsToSelector:effectiveSelector] || DYYYMiniProgramShouldThrottleRewardCallback(object)) {
+                continue;
+            }
+            ((void (*)(id, SEL, id))objc_msgSend)(object, effectiveSelector, rewardObject ?: source);
+        }
+    } @catch (__unused NSException *exception) {
+    } @finally {
+        dyyyMiniProgramRewardEffectiveNotifyDepth--;
+    }
+}
+
+static BOOL DYYYMiniProgramIsRewardViewController(id object) {
+    if (!object || ![object isKindOfClass:[UIViewController class]]) {
+        return NO;
+    }
+
+    Class rewardControllerClass = objc_getClass("BDARewardedVideoAdBaseController");
+    if (rewardControllerClass && [object isKindOfClass:rewardControllerClass]) {
+        return YES;
+    }
+
+    NSString *className = NSStringFromClass([object class]);
+    return [className containsString:@"BDARewardedVideo"];
+}
+
+static BOOL DYYYMiniProgramCanCloseRewardViewController(id object) {
+    if (!DYYYMiniProgramRewardBypassEnabled() || !DYYYMiniProgramIsRewardViewController(object)) {
+        return NO;
+    }
+
+    UIApplication *application = [UIApplication sharedApplication];
+    if (application.applicationState != UIApplicationStateActive) {
+        return NO;
+    }
+
+    UIViewController *viewController = (UIViewController *)object;
+    if (!viewController.isViewLoaded || !viewController.view.window || viewController.isBeingDismissed) {
+        return NO;
+    }
+    if (viewController.navigationController && viewController.navigationController.isBeingDismissed) {
+        return NO;
+    }
+
+    return YES;
+}
+
+static BOOL DYYYMiniProgramMarkRewardCloseScheduled(id object) {
+    static char kDYYYMiniProgramRewardCloseThrottleKey;
+    NSTimeInterval now = CACurrentMediaTime();
+    NSNumber *lastTime = objc_getAssociatedObject(object, &kDYYYMiniProgramRewardCloseThrottleKey);
+    if (lastTime && now - [lastTime doubleValue] < 1.5) {
+        return YES;
+    }
+
+    objc_setAssociatedObject(object, &kDYYYMiniProgramRewardCloseThrottleKey, @(now), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    return NO;
+}
+
+static BOOL DYYYMiniProgramCloseRewardViewController(id object) {
+    if (!DYYYMiniProgramCanCloseRewardViewController(object)) {
+        return NO;
+    }
+
+    SEL closeSelector = NSSelectorFromString(@"close");
+    if ([object respondsToSelector:closeSelector]) {
+        ((void (*)(id, SEL))objc_msgSend)(object, closeSelector);
+        return YES;
+    }
+
+    [(UIViewController *)object dismissViewControllerAnimated:NO completion:nil];
+    return YES;
+}
+
+static void DYYYMiniProgramCloseRewardObjectSoon(id source) {
+    if (!DYYYMiniProgramCanCloseRewardViewController(source) || DYYYMiniProgramMarkRewardCloseScheduled(source)) {
+        return;
+    }
+
+    __weak id weakSource = source;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+      id object = weakSource;
+      DYYYMiniProgramCloseRewardViewController(object);
+    });
+}
+
+static void DYYYMiniProgramHandleRewardCallback(id owner, id adObject, BOOL shouldClose) {
+    if (!DYYYMiniProgramRewardBypassEnabled()) {
+        return;
+    }
+
+    id source = adObject ?: owner;
+    DYYYMiniProgramMarkRewardState(source);
+    DYYYMiniProgramNotifyRewardEffective(source);
+    if (shouldClose) {
+        DYYYMiniProgramCloseRewardObjectSoon(owner);
+    }
+}
+
+static NSInteger DYYYMiniProgramRewardTrueGetter(id self, SEL _cmd) {
+    if (DYYYMiniProgramRewardBypassEnabled()) {
+        return 1;
+    }
+
+    NSInteger (*original)(id, SEL) = (NSInteger (*)(id, SEL))DYYYMiniProgramOriginalIMPForObject(self, _cmd);
+    return original ? original(self, _cmd) : 0;
+}
+
+static NSInteger DYYYMiniProgramRewardFalseGetter(id self, SEL _cmd) {
+    if (DYYYMiniProgramRewardBypassEnabled()) {
+        return 0;
+    }
+
+    NSInteger (*original)(id, SEL) = (NSInteger (*)(id, SEL))DYYYMiniProgramOriginalIMPForObject(self, _cmd);
+    return original ? original(self, _cmd) : 0;
+}
+
+static void DYYYMiniProgramRewardTrueSetter(id self, SEL _cmd, NSInteger value) {
+    if (DYYYMiniProgramRewardBypassEnabled() && value < 1) {
+        value = 1;
+    }
+
+    void (*original)(id, SEL, NSInteger) = (void (*)(id, SEL, NSInteger))DYYYMiniProgramOriginalIMPForObject(self, _cmd);
+    if (original) {
+        original(self, _cmd, value);
+    }
+}
+
+static void DYYYMiniProgramRewardFalseSetter(id self, SEL _cmd, NSInteger value) {
+    if (DYYYMiniProgramRewardBypassEnabled()) {
+        value = 0;
+    }
+
+    void (*original)(id, SEL, NSInteger) = (void (*)(id, SEL, NSInteger))DYYYMiniProgramOriginalIMPForObject(self, _cmd);
+    if (original) {
+        original(self, _cmd, value);
+    }
+}
+
+static void DYYYMiniProgramRewardSetDelegate(id self, SEL _cmd, id delegate) {
+    void (*original)(id, SEL, id) = (void (*)(id, SEL, id))DYYYMiniProgramOriginalIMPForObject(self, _cmd);
+    if (original) {
+        original(self, _cmd, delegate);
+    }
+
+    DYYYMiniProgramHandleRewardCallback(self, self, NO);
+}
+
+static void DYYYMiniProgramRewardViewDidLoad(id self, SEL _cmd) {
+    void (*original)(id, SEL) = (void (*)(id, SEL))DYYYMiniProgramOriginalIMPForObject(self, _cmd);
+    if (original) {
+        original(self, _cmd);
+    }
+
+    DYYYMiniProgramHandleRewardCallback(self, self, NO);
+}
+
+static void DYYYMiniProgramRewardViewWillAppear(id self, SEL _cmd, BOOL animated) {
+    void (*original)(id, SEL, BOOL) = (void (*)(id, SEL, BOOL))DYYYMiniProgramOriginalIMPForObject(self, _cmd);
+    if (original) {
+        original(self, _cmd, animated);
+    }
+
+    DYYYMiniProgramHandleRewardCallback(self, self, NO);
+}
+
+static void DYYYMiniProgramRewardViewDidAppear(id self, SEL _cmd, BOOL animated) {
+    void (*original)(id, SEL, BOOL) = (void (*)(id, SEL, BOOL))DYYYMiniProgramOriginalIMPForObject(self, _cmd);
+    if (original) {
+        original(self, _cmd, animated);
+    }
+
+    DYYYMiniProgramHandleRewardCallback(self, self, YES);
+}
+
+static void DYYYMiniProgramRewardPrepareForReuse(id self, SEL _cmd) {
+    void (*original)(id, SEL) = (void (*)(id, SEL))DYYYMiniProgramOriginalIMPForObject(self, _cmd);
+    if (original) {
+        original(self, _cmd);
+    }
+
+    DYYYMiniProgramHandleRewardCallback(self, self, NO);
+}
+
+static void DYYYMiniProgramRewardCallback1(id self, SEL _cmd, id arg0) {
+    void (*original)(id, SEL, id) = (void (*)(id, SEL, id))DYYYMiniProgramOriginalIMPForObject(self, _cmd);
+    if (original) {
+        original(self, _cmd, arg0);
+    }
+
+    DYYYMiniProgramHandleRewardCallback(self, arg0, NO);
+}
+
+static void DYYYMiniProgramRewardEffectiveCallback1(id self, SEL _cmd, id arg0) {
+    void (*original)(id, SEL, id) = (void (*)(id, SEL, id))DYYYMiniProgramOriginalIMPForObject(self, _cmd);
+    if (original) {
+        original(self, _cmd, arg0);
+    }
+
+    if (DYYYMiniProgramRewardBypassEnabled()) {
+        DYYYMiniProgramMarkRewardState(arg0 ?: self);
+    }
+}
+
+static void DYYYMiniProgramRewardCallback2(id self, SEL _cmd, id arg0, id arg1) {
+    void (*original)(id, SEL, id, id) = (void (*)(id, SEL, id, id))DYYYMiniProgramOriginalIMPForObject(self, _cmd);
+    if (original) {
+        original(self, _cmd, arg0, arg1);
+    }
+
+    DYYYMiniProgramHandleRewardCallback(self, arg0 ?: arg1, NO);
+}
+
+static void DYYYMiniProgramRewardCallbackBeforeNext(id self, SEL _cmd, id arg0, BOOL isMore, NSInteger index, id info) {
+    void (*original)(id, SEL, id, BOOL, NSInteger, id) = (void (*)(id, SEL, id, BOOL, NSInteger, id))DYYYMiniProgramOriginalIMPForObject(self, _cmd);
+    if (original) {
+        original(self, _cmd, arg0, isMore, index, info);
+    }
+
+    DYYYMiniProgramHandleRewardCallback(self, arg0 ?: info, NO);
+}
+
+static void DYYYMiniProgramRewardCallbackDisplayInfoContext(id self, SEL _cmd, id arg0, id context, NSInteger index, id completion) {
+    void (*original)(id, SEL, id, id, NSInteger, id) = (void (*)(id, SEL, id, id, NSInteger, id))DYYYMiniProgramOriginalIMPForObject(self, _cmd);
+    if (original) {
+        original(self, _cmd, arg0, context, index, completion);
+    }
+
+    DYYYMiniProgramHandleRewardCallback(self, arg0 ?: context, NO);
+}
+
+static void DYYYMiniProgramRewardCallbackDisplayInfo(id self, SEL _cmd, id arg0, NSInteger index, id callback) {
+    void (*original)(id, SEL, id, NSInteger, id) = (void (*)(id, SEL, id, NSInteger, id))DYYYMiniProgramOriginalIMPForObject(self, _cmd);
+    if (original) {
+        original(self, _cmd, arg0, index, callback);
+    }
+
+    DYYYMiniProgramHandleRewardCallback(self, arg0, NO);
+}
+
+static void DYYYMiniProgramHookRewardControllerClass(Class cls) {
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"disableHostSendReward"), (IMP)DYYYMiniProgramRewardFalseGetter);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"sendReward"), (IMP)DYYYMiniProgramRewardTrueGetter);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"sendFirstReward"), (IMP)DYYYMiniProgramRewardTrueGetter);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"enableOneMore"), (IMP)DYYYMiniProgramRewardTrueGetter);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"rewardOneMore"), (IMP)DYYYMiniProgramRewardTrueGetter);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"setDisableHostSendReward:"), (IMP)DYYYMiniProgramRewardFalseSetter);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"setSendReward:"), (IMP)DYYYMiniProgramRewardTrueSetter);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"setSendFirstReward:"), (IMP)DYYYMiniProgramRewardTrueSetter);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"setEnableOneMore:"), (IMP)DYYYMiniProgramRewardTrueSetter);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"setRewardOneMore:"), (IMP)DYYYMiniProgramRewardTrueSetter);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"setDelegate:"), (IMP)DYYYMiniProgramRewardSetDelegate);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"viewDidLoad"), (IMP)DYYYMiniProgramRewardViewDidLoad);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"viewWillAppear:"), (IMP)DYYYMiniProgramRewardViewWillAppear);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"viewDidAppear:"), (IMP)DYYYMiniProgramRewardViewDidAppear);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"prepareForReuse"), (IMP)DYYYMiniProgramRewardPrepareForReuse);
+}
+
+static void DYYYMiniProgramHookRewardCallbackClass(Class cls) {
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"videoAdDidLoadSuccess:"), (IMP)DYYYMiniProgramRewardCallback1);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"videoAdBecomeEffective:"), (IMP)DYYYMiniProgramRewardEffectiveCallback1);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"videoAd:didClickCloseWithInfo:"), (IMP)DYYYMiniProgramRewardCallback2);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"videoAdBeforeStartRequestNextReward:isMore:index:info:"), (IMP)DYYYMiniProgramRewardCallbackBeforeNext);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"videoAdMoreRewardDisplayInfo:context:index:completion:"), (IMP)DYYYMiniProgramRewardCallbackDisplayInfoContext);
+    DYYYMiniProgramHookInstanceMethod(cls, NSSelectorFromString(@"videoAdMoreRewardDisplayInfo:index:callBack:"), (IMP)DYYYMiniProgramRewardCallbackDisplayInfo);
+}
+
+static void DYYYMiniProgramInstallRewardBypassHooks(void);
+
+static void DYYYScheduleMiniProgramRewardHookRetry(NSTimeInterval delay) {
+    static BOOL retryScheduled = NO;
+    if (retryScheduled) {
+        return;
+    }
+
+    retryScheduled = YES;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+      retryScheduled = NO;
+      DYYYMiniProgramInstallRewardBypassHooks();
+    });
+}
+
+static void DYYYMiniProgramInstallRewardBypassHooks(void) {
+    if (![NSThread isMainThread]) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+          DYYYMiniProgramInstallRewardBypassHooks();
+        });
+        return;
+    }
+
+    Class rewardControllerClass = objc_getClass("BDARewardedVideoAdBaseController");
+    if (rewardControllerClass) {
+        DYYYMiniProgramHookRewardControllerClass(rewardControllerClass);
+    }
+
+    NSArray<NSString *> *rewardCallbackClassNames = @[
+        @"CMCRVSDKManager",
+        @"AWERewardedVideoManager",
+        @"BDPAppVideoAdvertisementImpl",
+        @"BDPBDAVideoAd",
+        @"BDPGameVideoAdvertisementImplHg",
+        @"BDAROpenRewardSession",
+        @"BDUGLuckyADRewardVideoManager",
+        @"AWEPayRewardVideoDelegateImp",
+        @"IESECMallAdRewardDelegateImp",
+        @"IESGCPADRewardTaskImp"
+    ];
+
+    for (NSString *className in rewardCallbackClassNames) {
+        Class cls = objc_getClass(className.UTF8String);
+        if (cls) {
+            DYYYMiniProgramHookRewardCallbackClass(cls);
+        }
+    }
+
+    static NSUInteger retryCount = 0;
+    if (retryCount < 40) {
+        retryCount++;
+        DYYYScheduleMiniProgramRewardHookRetry(0.5);
+    }
+}
+
+static void DYYYStartMiniProgramRewardBypassHookInstaller(void) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+      DYYYMiniProgramInstallRewardBypassHooks();
+      NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+      [center addObserverForName:NSBundleDidLoadNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(__unused NSNotification *notification) {
+          DYYYMiniProgramInstallRewardBypassHooks();
+      }];
+      [center addObserverForName:UIApplicationDidBecomeActiveNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(__unused NSNotification *notification) {
+          DYYYMiniProgramInstallRewardBypassHooks();
+      }];
+    });
+}
 
 // 去除启动视频广告
 %hook AWEAwesomeSplashFeedCellOldAccessoryView
@@ -14964,9 +15458,7 @@ static void findTargetViewInView(UIView *view) {
         }
         [FloatingSpeedButton reloadConfiguration];
 
-        if (objc_getClass("BDARewardedVideoAdBaseController")) {
-            %init(DYYYMiniProgramJumpingAdsGroup);
-        }
+        DYYYStartMiniProgramRewardBypassHookInstaller();
 
         // 初始化红包激励挂件容器视图类组
         Class incentivePendantClass = objc_getClass("AWEIncentiveSwiftImplDOUYINLite.IncentivePendantContainerView");
